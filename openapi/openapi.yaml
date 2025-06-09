@@ -1,0 +1,70 @@
+openapi: 3.0.1
+info:
+  title: TWSE OpenAPI
+  description: |
+    This OpenAPI specification describes a subset of the Taiwan Stock Exchange
+    (TWSE) OpenAPI service. The `/v1/tradingInfo/allStocks` endpoint provides
+    daily trading data for all listed stocks on a specific date.
+  version: "1.0.0"
+servers:
+  - url: https://openapi.twse.com.tw
+paths:
+  /v1/tradingInfo/allStocks:
+    get:
+      summary: Retrieve daily trading information for all TWSE listed stocks.
+      description: |
+        Returns a list of trading information for all stocks on the specified
+        date. The `date` query parameter uses the `YYYYMMDD` format and is
+        required.
+      parameters:
+        - name: date
+          in: query
+          description: Date of the trading data in `YYYYMMDD` format.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response containing stock information.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    Code:
+                      type: string
+                      description: Stock code.
+                    Name:
+                      type: string
+                      description: Stock name.
+                    TradeVolume:
+                      type: integer
+                      description: Trading volume.
+                    TradeValue:
+                      type: integer
+                      description: Trading value in NTD.
+                    OpeningPrice:
+                      type: number
+                      format: float
+                      description: Opening price for the date.
+                    HighestPrice:
+                      type: number
+                      format: float
+                      description: Highest price for the date.
+                    LowestPrice:
+                      type: number
+                      format: float
+                      description: Lowest price for the date.
+                    ClosingPrice:
+                      type: number
+                      format: float
+                      description: Closing price for the date.
+                    Change:
+                      type: number
+                      format: float
+                      description: Price change from the previous close.
+                  required:
+                    - Code
+                    - Name

@@ -64,3 +64,9 @@ python -m client --list-tools
 python -m client all_stocks --param date=20240101
 ```
 
+## OpenAPI Document
+
+An OpenAPI specification describing the available TWSE endpoints is
+provided in `openapi/openapi.yaml`. The `allStocks` endpoint can be used to
+retrieve trading information for all listed stocks on a given date.
+
