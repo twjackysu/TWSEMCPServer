@@ -12,7 +12,13 @@ TOOLS = {
 
 @app.get("/query/{tool_name}")
 async def query(tool_name: str, params: dict | None = None):
+    import traceback
     tool = TOOLS.get(tool_name)
     if not tool:
         raise HTTPException(status_code=404, detail="tool not found")
-    return tool.query(params)
+    try:
+        return tool.query(params)
+    except Exception as e:
+        print(f"Error in query: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
