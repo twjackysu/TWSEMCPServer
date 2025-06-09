@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from .tools.twse import TWSETool
 
@@ -9,6 +10,18 @@ TOOLS = {
     "all_stocks": TWSETool("/v1/tradingInfo/allStocks"),
     "daily_summary": TWSETool("/v1/exchangeReport/STOCK_DAY_AVG_ALL"),
 }
+
+
+@app.get("/")
+async def root():
+    """Basic health check endpoint."""
+    return {"status": "ok"}
+
+
+@app.post("/initialize")
+async def initialize():
+    """Return basic server capabilities."""
+    return JSONResponse({"tools": list(TOOLS.keys())})
 
 @app.get("/query/{tool_name}")
 async def query(tool_name: str, params: dict | None = None):

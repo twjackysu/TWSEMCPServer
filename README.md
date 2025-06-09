@@ -25,3 +25,12 @@ uvicorn server.main:app --reload
 
 Then access `http://localhost:8000/query/{tool_name}` with optional query
 parameters to call a specific tool.
+
+To check the available tools programmatically, first call the `/initialize`
+endpoint:
+
+```bash
+curl -X POST http://localhost:8000/initialize
+```
+
+This returns a JSON object listing the supported tool names.
