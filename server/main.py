@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from fastmcp import FastMCP
 
 from .tools.twse import TWSETool
 
-app = FastAPI(title="TW Stock MCP Server")
+app = FastMCP(title="TW Stock MCP Server")
 
 # Pre-defined tools mapping names to TWSE API endpoints
 TOOLS = {

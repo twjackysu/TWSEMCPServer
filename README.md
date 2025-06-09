@@ -1,72 +1,54 @@
 # TWStockMCPServer
 
-Simple MCP server built with **FastAPI** that exposes tools for querying the
-[Taiwan Stock Exchange OpenAPI](https://openapi.twse.com.tw/).
+This project demonstrates a simple MCP server built with **FastMCP**. It exposes tools for querying the [Taiwan Stock Exchange OpenAPI](https://openapi.twse.com.tw/).
 
-This repository provides a starting point for building a FastMCP server. Each
-tool wraps one of the TWSE endpoints and can be accessed through an HTTP
-endpoint.
+## 1. Setup
 
-## Setup
-
-Install dependencies:
+Install the required packages:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Running
+## 2. Running the Server
 
-Start the development server using `uvicorn`:
+Start the development server with `uvicorn`:
 
 ```bash
 uvicorn server.main:app --reload
 ```
 
-Then access `http://localhost:8000/query/{tool_name}` with optional query
-parameters to call a specific tool.
-
-To check the available tools programmatically, first call the `/initialize`
-endpoint:
+When the server is running you can discover the available tools:
 
 ```bash
 curl -X POST http://localhost:8000/initialize
 ```
 
-This returns a JSON object listing the supported tool names.
+Use `/query/{tool_name}` with optional parameters to fetch data. For example:
 
-## Using the FastMCP Client
+```bash
+curl "http://localhost:8000/query/all_stocks?date=20240101"
+```
 
-A minimal client implementation is included in `client/client.py`. You can use
-it to interact with the server programmatically:
+## 3. Using the Python Client
+
+The `client/client.py` module provides `FastMCPClient` for programmatic access.
 
 ```python
 from client.client import FastMCPClient
 
 client = FastMCPClient("http://localhost:8000")
-
-# Discover available tools
 print(client.initialize())
-
-# Call a specific tool
-result = client.query("all_stocks", params={"date": "20240101"})
-print(result)
+print(client.query("all_stocks", params={"date": "20240101"}))
 ```
 
-Alternatively you can run the client from the command line. This requires the
-server to be running first:
+You can also use the command line interface:
 
 ```bash
-# List the available tools
 python -m client --list-tools
-
-# Query a specific tool with optional parameters
 python -m client all_stocks --param date=20240101
 ```
 
 ## OpenAPI Document
 
-An OpenAPI specification describing the available TWSE endpoints is
-provided in `openapi/openapi.yaml`. The `allStocks` endpoint can be used to
-retrieve trading information for all listed stocks on a given date.
-
+For reference, `openapi/openapi.yaml` describes the TWSE endpoints used by this server.
