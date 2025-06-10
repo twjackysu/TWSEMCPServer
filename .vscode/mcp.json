@@ -2,7 +2,7 @@
   "servers": {
     "twse_stock_server": {
       "command": "python",
-      "args": ["{{repo absolute path}}\\server\\server.py"]
+      "args": ["${workspaceFolder}\\server.py"]
     }
   }
 }
