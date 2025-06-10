@@ -1,9 +1,10 @@
 from fastmcp import FastMCP
 import requests
-from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
 from fastmcp.prompts.prompt import PromptMessage
 
-mcp = FastMCP("Demo 🚀")
+from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
+
+mcp = FastMCP("TWSE Stock Trend Analysis 🚀")
 
 @mcp.tool
 def json_type(data) -> str:
