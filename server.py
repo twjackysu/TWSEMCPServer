@@ -44,8 +44,18 @@ def fetch_json(url: str) -> str:
     headers = {
         "Accept": "application/json"
     }
-    resp = requests.get(url, headers=headers)
-    resp.raise_for_status()
+    try:
+        # 先嘗試正常請求
+        resp = requests.get(url, headers=headers)
+        resp.raise_for_status()
+    except requests.exceptions.SSLError:
+        # 如果有 SSL 錯誤，改用不驗證 SSL 的方式
+        logger.warning(f"SSL verification failed for {url}, trying with verify=False")
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        resp = requests.get(url, headers=headers, verify=False)
+        resp.raise_for_status()
+    
     if 'application/json' in resp.headers.get('Content-Type', ''):
         data = resp.json()
         logger.info("JSON data received successfully.")
@@ -80,15 +90,76 @@ def parse_swagger(swagger_url: str) -> list:
     return apis
 
 @mcp.tool
-def fetch_twse_company_profile() -> list:
-    """Fetches the basic profile data for all listed companies from TWSE OpenAPI (t187ap03_L)."""
+def fetch_twse_company_profile() -> str:
+    """Fetches the basic profile data for all listed companies from TWSE OpenAPI (t187ap03_L).
+    output format:
+    ```
+    {
+        "出表日期": "string",
+        "公司代號": "string",
+        "公司名稱": "string",
+        "公司簡稱": "string",
+        "外國企業註冊地國": "string",
+        "產業別": "string",
+        "住址": "string",
+        "營利事業統一編號": "string",
+        "董事長": "string",
+        "總經理": "string",
+        "發言人": "string",
+        "發言人職稱": "string",
+        "代理發言人": "string",
+        "總機電話": "string",
+        "成立日期": "string",
+        "上市日期": "string",
+        "普通股每股面額": "string",
+        "實收資本額": "string",
+        "私募股數": "string",
+        "特別股": "string",
+        "編制財務報表類型": "string",
+        "股票過戶機構": "string",
+        "過戶電話": "string",
+        "過戶地址": "string",
+        "簽證會計師事務所": "string",
+        "簽證會計師1": "string",
+        "簽證會計師2": "string",
+        "英文簡稱": "string",
+        "英文通訊地址": "string",
+        "傳真機號碼": "string",
+        "電子郵件信箱": "string",
+        "網址": "string",
+        "已發行普通股數或TDR原股發行股數": "string"
+    }
+    ```
+    """
     url = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
     logger.info(f"Fetching TWSE company profile data from {url}")
-    resp = requests.get(url, headers={"Accept": "application/json"})
-    resp.raise_for_status()
-    data = resp.json()
-    logger.info(f"Received {len(data)} company profiles from TWSE.")
-    return data
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"Accept": "application/json"}, verify=False)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        logger.info(f"Received {len(data)} company profiles from TWSE.")
+        return json.dumps(data, indent=2, ensure_ascii=False)
+    except requests.exceptions.SSLError as e:
+        logger.error(f"SSL error occurred: {e}")
+        logger.info("Trying to disable SSL warnings...")
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        # 再次嘗試並關閉警告
+        resp = requests.get(url, headers={"Accept": "application/json"}, verify=False)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        logger.info(f"Received {len(data)} company profiles from TWSE after disabling SSL verification.")
+        return json.dumps(data, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.error(f"Failed to fetch company profiles: {e}")
+        return json.dumps([], indent=2)
 
 @mcp.prompt
 def stock_trend_analysis_prompt(stock_symbol: str, period: str) -> PromptMessage:
