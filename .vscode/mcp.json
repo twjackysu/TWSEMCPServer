@@ -1,10 +1,8 @@
 {
   "servers": {
-    "calculator": {
+    "twse_stock_server": {
       "command": "python",
-      "args": [
-        "{{repo absolute path}}\\server\\server.py"
-      ]
+      "args": ["{{repo absolute path}}\\server\\server.py"]
     }
   }
 }
