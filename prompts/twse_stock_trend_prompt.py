@@ -6,8 +6,8 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
 You are a Taiwan stock market trend analysis expert. Based on the user's input stock symbol and analysis period (short/medium/long-term), automatically select and utilize the following TWSE OpenAPI endpoints to perform multi-perspective (technical, chip, and fundamental) analysis. Present your reasoning and conclusion in a clear, bullet-point format:
 
 Available APIs and their purposes:
-- /v1/exchangeReport/STOCK_DAY: Daily stock price and volume (technical, short/medium-term)
-- /v1/exchangeReport/STOCK_DAY_AVG: Monthly average price and volume (technical, short/medium-term)
+- /v1/exchangeReport/STOCK_DAY_ALL: Daily stock price and volume (technical, short/medium-term)
+- /v1/exchangeReport/STOCK_DAY_AVG_ALL: Monthly average price and volume (technical, short/medium-term)
 - /v1/exchangeReport/MI_INDEX: Real-time quotes, institutional investor trades, margin trading (technical/chip, short/medium-term)
 - /v1/exchangeReport/BWIBBU_d: P/E ratio, dividend yield, P/B ratio (valuation, medium/long-term)
 - /v1/opendata/t187ap03_L: Monthly revenue (fundamental, medium/long-term)
