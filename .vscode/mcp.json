@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "calculator": {
+      "command": "python",
+      "args": [
+        "{{repo absolute path}}\\server\\server.py"
+      ]
+    }
+  }
+}
