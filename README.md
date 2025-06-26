@@ -4,72 +4,72 @@
 [![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
-A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchange (TWSE) data analysis, providing real-time stock information, financial reports, ESG data, and trend analysis capabilities.
+一個全面的**模型上下文協議 (MCP) 伺服器**，專為台灣證券交易所 (TWSE) 數據分析設計，提供即時股票資訊、財務報表、ESG 數據和趨勢分析功能。
 
-## � Demo
+## 🎬 示範影片
 
-![Get stock trend demo](./staticFiles/sample-ezgif.com-resize.gif)
+![股票趨勢分析示範](./staticFiles/sample-ezgif.com-resize.gif)
 
-*Watch the demonstration of TWStockMCPServer in action*
+*觀看 TWStockMCPServer 功能展示*
 
-## ✨ Features
+## ✨ 主要功能
 
-### 📊 **Technical Analysis Tools**
-- **Daily Trading Data**: Real-time stock prices, volumes, and trading statistics
-- **Price Trends**: Daily closing prices and monthly average calculations
-- **Valuation Metrics**: P/E ratios, dividend yields, and P/B ratios
-- **Historical Data**: Monthly and yearly trading information
+### 📊 **技術分析工具**
+- **每日交易數據**：即時股價、成交量和交易統計
+- **價格趨勢**：每日收盤價和月平均價格計算
+- **估值指標**：本益比、股利殖利率和股價淨值比
+- **歷史數據**：月份和年度交易資訊
 
-### 💰 **Fundamental Analysis**
-- **Financial Statements**: Income statements and balance sheets
-- **Revenue Reports**: Monthly revenue tracking and growth analysis
-- **Dividend Information**: Distribution history and dividend policies
-- **Corporate Governance**: ESG data and governance metrics
+### 💰 **基本面分析**
+- **財務報表**：綜合損益表和資產負債表
+- **營收報告**：月營收追蹤和成長分析
+- **股利資訊**：配息記錄和股利政策
+- **公司治理**：ESG 數據和治理指標
 
-### 🏛️ **Market Intelligence**
-- **Market Indices**: Real-time TWSE index information
-- **Institutional Activity**: Margin trading and short selling data
-- **Market Statistics**: Daily market summaries and trends
+### 🏛️ **市場情報**
+- **市場指數**：即時台股指數資訊
+- **法人動態**：融資融券和借貸數據
+- **市場統計**：每日市場摘要和趨勢
 
-### 🌱 **ESG & Sustainability**
-- **Climate Management**: Climate-related risk assessments
-- **Risk Management**: Corporate risk management policies
-- **Supply Chain**: Supply chain management transparency
-- **Information Security**: Cybersecurity incident reporting
+### 🌱 **ESG 與永續經營**
+- **氣候管理**：氣候相關風險評估
+- **風險管理**：企業風險管理政策
+- **供應鏈**：供應鏈管理透明度
+- **資訊安全**：網路安全事件報告
 
-## �️ Installation
+## ⚙️ 安裝說明
 
-### Prerequisites
-- Python 3.8 or higher
-- pip package manager or [uv](https://github.com/astral-sh/uv)
+### 系統需求
+- Python 3.8 或更高版本
+- pip 套件管理器或 [uv](https://github.com/astral-sh/uv)
 
-### Quick Start
+### 快速開始
 
-1. **Clone the repository**
+1. **複製專案**
    ```bash
    git clone https://github.com/yourusername/TWStockMCPServer.git
    cd TWStockMCPServer
    ```
 
-2. **Install dependencies**
+2. **安裝相依套件**
    
-   **Using pip:**
+   **使用 pip：**
    ```bash
    pip install -r requirements.txt
    ```
    
-   **Using uv (recommended):**
+   **使用 uv（推薦）：**
    ```bash
    uv venv
    .venv\Scripts\activate  # Windows
-   # or
+   # 或
    source .venv/bin/activate  # macOS/Linux
    uv add mcp[cli] httpx fastmcp requests
    ```
 
-3. **Configure MCP Client**
+3. **設定 MCP 客戶端**
    
-   Add to your MCP client configuration (e.g., `.vscode/mcp.json`):
+   在您的 MCP 客戶端設定檔中新增（例如：`.vscode/mcp.json`）：
    ```json
    {
      "servers": {
@@ -82,164 +82,145 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
    }
    ```
 
-4. **Run the server**
+4. **啟動伺服器**
    
-   **Development Mode (with hot-reload):**
+   **開發模式（熱重載）：**
    ```bash
    uv run fastmcp dev server.py
    ```
    
-   **Production Mode:**
+   **正式環境模式：**
    ```bash
    uv run fastmcp run server.py
-   # or
+   # 或
    python server.py
    ```
 
-## 🔧 Configuration
+## 🔧 設定
 
-### Environment Variables
-Create a `.env` file in the project root:
+### 環境變數
+在專案根目錄建立 `.env` 檔案：
 ```properties
 workspaceRoot=your/project/path
 ```
 
-### Dependencies
-Key dependencies include:
-- `fastmcp`: MCP server framework
-- `requests`: HTTP client for API calls
-- `logging`: Built-in Python logging
+### 相依套件
+主要相依套件包括：
+- `fastmcp`：MCP 伺服器框架
+- `requests`：HTTP 客戶端進行 API 呼叫
+- `logging`：Python 內建日誌系統
 
-## 📚 Available Tools
+## 📚 可用工具
 
-### Company Information
-- `get_company_profile(code)` - Basic company information
-- `get_company_dividend(code)` - Dividend distribution data
-- `get_company_monthly_revenue(code)` - Monthly revenue reports
+### 公司資訊
+- `get_company_profile(code)` - 公司基本資訊
+- `get_company_dividend(code)` - 股利分配數據
+- `get_company_monthly_revenue(code)` - 月營收報告
 
-### Trading Data
-- `get_stock_daily_trading(code)` - Daily trading statistics
-- `get_stock_monthly_average(code)` - Monthly price averages
-- `get_stock_valuation_ratios(code)` - Valuation metrics
-- `get_stock_monthly_trading(code)` - Monthly trading data
-- `get_stock_yearly_trading(code)` - Annual trading statistics
+### 交易數據
+- `get_stock_daily_trading(code)` - 每日交易統計
+- `get_stock_monthly_average(code)` - 月平均價格
+- `get_stock_valuation_ratios(code)` - 估值指標
+- `get_stock_monthly_trading(code)` - 月交易數據
+- `get_stock_yearly_trading(code)` - 年度交易統計
 
-### Financial Reports
-- `get_company_income_statement(code)` - Comprehensive income statements
-- `get_company_balance_sheet(code)` - Balance sheet data
+### 財務報表
+- `get_company_income_statement(code)` - 綜合損益表
+- `get_company_balance_sheet(code)` - 資產負債表數據
 
-### Market Data
-- `get_market_index_info()` - Market index information
-- `get_margin_trading_info()` - Margin trading statistics
+### 市場數據
+- `get_market_index_info()` - 市場指數資訊
+- `get_margin_trading_info()` - 融資融券統計
 
-### ESG & Governance
-- `get_company_governance_info(code)` - Corporate governance
-- `get_company_climate_management(code)` - Climate-related management
-- `get_company_risk_management(code)` - Risk management policies
-- `get_company_supply_chain_management(code)` - Supply chain data
-- `get_company_info_security(code)` - Information security metrics
+### ESG 與治理
+- `get_company_governance_info(code)` - 公司治理
+- `get_company_climate_management(code)` - 氣候相關管理
+- `get_company_risk_management(code)` - 風險管理政策
+- `get_company_supply_chain_management(code)` - 供應鏈數據
+- `get_company_info_security(code)` - 資訊安全指標
 
-## 💡 Usage Examples
+## 🤝 參與貢獻
 
-### Basic Stock Analysis
-```python
-# Get Taiwan Semiconductor (2330) information
-profile = get_company_profile("2330")
-trading_data = get_stock_daily_trading("2330")
-valuation = get_stock_valuation_ratios("2330")
-```
+歡迎開發者社群參與貢獻！您可以透過以下方式協助：
 
-### Trend Analysis
-Use the built-in trend analysis prompt for comprehensive stock evaluation:
-```python
-# Analyze MediaTek's short-term prospects
-analysis = stock_trend_analysis_prompt("2454", "short")
-```
+### 貢獻方式
 
-### ESG Analysis
-```python
-# Examine TSMC's ESG performance
-governance = get_company_governance_info("2330")
-climate = get_company_climate_management("2330")
-risk_mgmt = get_company_risk_management("2330")
-```
+1. **新增工具**：擴展 API 覆蓋範圍，實作新的 TWSE 端點
+2. **改善文件**：協助改進範例和說明文件
+3. **修復錯誤**：回報和修復問題
+4. **功能建議**：提出新功能想法
+5. **測試**：新增測試案例和提升可靠性
 
-## 🤝 Contributing
+### 開發環境設定
 
-We welcome contributions from the developer community! Here's how you can help:
-
-### Ways to Contribute
-
-1. **Add New Tools**: Extend the API coverage by implementing new TWSE endpoints
-2. **Improve Documentation**: Help improve examples and documentation
-3. **Bug Fixes**: Report and fix issues
-4. **Feature Requests**: Suggest new functionality
-5. **Testing**: Add test cases and improve reliability
-
-### Development Setup
-
-1. **Fork the repository**
-2. **Create a feature branch**
+1. **Fork 專案**
+2. **建立功能分支**
    ```bash
    git checkout -b feature/your-new-tool
    ```
-3. **Add your tool to `server.py`**
+3. **在 `server.py` 中新增您的工具**
    ```python
    @mcp.tool
    def your_new_tool(code: str) -> str:
-       """Your tool description."""
-       # Implementation here
+       """您的工具說明。"""
+       # 實作內容
    ```
-4. **Update documentation**
-5. **Submit a pull request**
+4. **更新說明文件**
+5. **提交 Pull Request**
 
-### API Reference
-Refer to `staticFiles/apis_summary_simple.json` for available TWSE API endpoints that can be implemented as new tools.
+### API 參考
+參考 `staticFiles/apis_summary_simple.json` 查看可實作為新工具的可用 TWSE API 端點。
 
-### Code Style
-- Follow Python PEP 8 guidelines
-- Add comprehensive docstrings
-- Include error handling
-- Log important operations
+### 程式碼風格
+- 遵循 Python PEP 8 指南
+- 新增完整的 docstrings
+- 包含錯誤處理
+- 記錄重要操作
 
-## 📋 API Coverage
+## 📋 API 涵蓋範圍
 
-Currently supports **15+ TWSE API endpoints** including:
-- Company profiles and basic information
-- Stock trading data (daily, monthly, yearly)
-- Financial statements and reports
-- ESG and sustainability metrics
-- Market indices and statistics
-- Dividend and governance information
+目前支援 **15+ TWSE API 端點**，包括：
+- 公司檔案和基本資訊
+- 股票交易數據（每日、每月、每年）
+- 財務報表和報告
+- ESG 和永續指標
+- 市場指數和統計
+- 股利和治理資訊
 
-## 🔒 Data Sources
+## 🔒 資料來源
 
-All data is sourced from official Taiwan Stock Exchange (TWSE) OpenAPI:
-- Base URL: `https://openapi.twse.com.tw/v1`
-- Real-time and historical data
-- No API key required
-- Rate limiting applies
+所有資料來源自台灣證券交易所 (TWSE) 官方開放 API：
+- 基礎 URL：`https://openapi.twse.com.tw/v1`
+- 即時和歷史資料
+- 無需 API 金鑰
+- 適用速率限制
 
-## ⚠️ Disclaimer
+## ⚠️ 免責聲明
 
-This software is for informational purposes only. It does not constitute financial advice. Users should conduct their own research and consult with financial professionals before making investment decisions.
+本軟體僅供參考之用，不構成投資建議。使用者應進行自己的研究，並在做出投資決定前諮詢財務專業人士。
 
-## 📄 License
+## 📄 授權條款
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+本專案採用 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案。
 
-## 🙏 Acknowledgments
+## 🙏 致謝
 
-- Taiwan Stock Exchange for providing the open data API
-- MCP community for the protocol specification
-- Contributors and users of this project
+- 台灣證券交易所提供開放資料 API
+- MCP 社群提供協議規範
+- 本專案的貢獻者和使用者
 
-## 📞 Support
+## 📞 支援
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/TWStockMCPServer/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/TWStockMCPServer/discussions)
-- **Documentation**: [Wiki](https://github.com/yourusername/TWStockMCPServer/wiki)
+- **問題回報**：[GitHub Issues](https://github.com/yourusername/TWStockMCPServer/issues)
+- **討論區**：[GitHub Discussions](https://github.com/yourusername/TWStockMCPServer/discussions)
+- **說明文件**：[Wiki](https://github.com/yourusername/TWStockMCPServer/wiki)
 
 ---
 
-**Made with ❤️ for the Taiwan stock analysis community**
+**以 ❤️ 為台灣股票分析社群打造**
+
+## 🌏 語言版本
+
+- [English](README_en-us.md) | **繁體中文**
+
+> 免責聲明：由於我不熟悉 Python，該專案完全由 AI 生成，然後根據需要手動調整。
