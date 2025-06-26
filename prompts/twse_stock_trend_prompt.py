@@ -1,29 +1,47 @@
 from fastmcp.prompts.prompt import PromptMessage, TextContent
 
 def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
-    """Prompt for Taiwan stock trend analysis using TWSE OpenAPI endpoints."""
-    content = f"""
-You are a Taiwan stock market trend analysis expert. Based on the user's input stock symbol and analysis period (short/medium/long-term), automatically select and utilize the following TWSE OpenAPI endpoints to perform multi-perspective (technical, chip, and fundamental) analysis. Present your reasoning and conclusion in a clear, bullet-point format:
+    """Prompt for Taiwan Stock Trend Analysis using TWSE OpenAPI endpoints."""
+    content = f"""Prompt for Taiwan Stock Trend Analysis using TWSE OpenAPI endpoints:
 
-Available APIs and their purposes:
-- /v1/exchangeReport/STOCK_DAY_ALL: Daily stock price and volume (technical, short/medium-term)
-- /v1/exchangeReport/STOCK_DAY_AVG_ALL: Monthly average price and volume (technical, short/medium-term)
-- /v1/exchangeReport/MI_INDEX: Real-time quotes, institutional investor trades, margin trading (technical/chip, short/medium-term)
-- /v1/exchangeReport/BWIBBU_d: P/E ratio, dividend yield, P/B ratio (valuation, medium/long-term)
-- /v1/opendata/t187ap03_L: Monthly revenue (fundamental, medium/long-term)
-- /v1/opendata/t163sb19: Quarterly income statement (fundamental, medium/long-term)
-- /v1/opendata/t164sb03: Quarterly balance sheet (fundamental, medium/long-term)
-- /v1/opendata/t164sb04: Quarterly cash flow statement (fundamental, medium/long-term)
-- /v1/opendata/t05st09: Dividend policy (long-term)
+You are a Taiwan stock market trend analysis expert. Based on the user's input stock symbol and analysis period (short/medium/long-term), automatically select and utilize the following TWSE OpenAPI endpoints to perform multi-perspective (technical, chip, and fundamental) analysis. Clearly present your reasoning and conclusion in bullet-point format:
 
-According to the analysis period, flexibly select the above APIs, explain the meaning and reasoning for each indicator, and finally provide a \"short/medium/long-term\" bullish or bearish trend judgment.
+### Available APIs and their purposes:
 
-Example Input:\nPlease analyze the {period} trend of {stock_symbol}.
+- **Short-Term Analysis:**
+  - `/v1/exchangeReport/STOCK_DAY_ALL`: Daily stock prices and volumes (technical)
+  - `/v1/exchangeReport/MI_INDEX`: Institutional investors' trading activities and margin trading balances (chip)
 
-Example Output:
-1. Technical: According to /v1/exchangeReport/STOCK_DAY, the 20-day moving average is rising, indicating a short-term bullish trend.
-2. Chip: /v1/exchangeReport/MI_INDEX shows foreign investors have been net buyers for 5 consecutive days, and margin balance is increasing, which is bullish.
-3. Fundamental: /v1/opendata/t187ap03_L shows monthly revenue hitting a new high, indicating strong fundamentals.
-Conclusion: The {period} trend is bullish.
+- **Medium-Term Analysis:**
+  - `/v1/exchangeReport/STOCK_DAY_AVG_ALL`: Monthly average stock prices and volumes (technical)
+  - `/v1/opendata/t187ap03_L`: Monthly revenue data (fundamental)
+  - `/v1/opendata/t163sb19`: Quarterly income statements (fundamental)
+  - `/v1/opendata/t164sb03`: Quarterly balance sheets (fundamental)
+
+- **Long-Term Analysis:**
+  - `/v1/opendata/t164sb04`: Quarterly cash flow statements (fundamental)
+  - `/v1/opendata/t05st09`: Dividend policy and distribution records (fundamental)
+  - `/v1/exchangeReport/BWIBBU_d`: Price-to-Earnings (P/E) ratio, dividend yield, and Price-to-Book (P/B) ratio (valuation)
+
+### Example Input:
+Please analyze the {period} trend of {stock_symbol}.
+
+### Example Output:
+
+**Short-Term Analysis:**
+1. **Technical**: Using `/v1/exchangeReport/STOCK_DAY_ALL`, the stock price has risen above its 20-day moving average with increasing volume, indicating bullish momentum.
+2. **Chip**: According to `/v1/exchangeReport/MI_INDEX`, institutional investors have been net buyers for several consecutive trading days, and margin balances are increasing, further supporting a bullish trend.
+
+**Medium-Term Analysis:**
+1. **Technical**: `/v1/exchangeReport/STOCK_DAY_AVG_ALL` shows the monthly average price steadily rising, reinforcing a bullish medium-term outlook.
+2. **Fundamental**: `/v1/opendata/t187ap03_L` reveals sustained growth in monthly revenues, supported by stable increases in quarterly profits from `/v1/opendata/t163sb19`, which indicate robust company performance.
+
+**Long-Term Analysis:**
+1. **Fundamental**: Positive quarterly cash flow from `/v1/opendata/t164sb04` demonstrates strong financial health.
+2. **Dividend Policy**: Consistent dividend increases or stable high yield from `/v1/opendata/t05st09` enhances the stock's attractiveness for long-term investors.
+3. **Valuation**: Attractive valuation indicators (low P/E, high dividend yield, reasonable P/B ratio) from `/v1/exchangeReport/BWIBBU_d` suggest a bullish long-term perspective.
+
+### Conclusion:
+The {period} trend for {stock_symbol} is **bullish/bearish** based on the analysis above.
 """
     return PromptMessage(role="user", content=TextContent(type="text", text=content))
