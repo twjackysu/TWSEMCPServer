@@ -6,6 +6,14 @@
 
 一個全面的**模型上下文協議 (MCP) 伺服器**，專為台灣證券交易所 (TWSE) 數據分析設計，提供即時股票資訊、財務報表、ESG 數據和趨勢分析功能。
 
+<a href="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer/badge" />
+</a>
+
+## 🌏 語言版本
+
+- [English](README_en-us.md) | **繁體中文**
+
 ## 🎬 示範影片
 
 ![股票趨勢分析示範](./staticFiles/sample-ezgif.com-resize.gif)
@@ -197,7 +205,7 @@ workspaceRoot=your/project/path
 
 ## ⚠️ 免責聲明
 
-本軟體僅供參考之用，不構成投資建議。使用者應進行自己的研究，並在做出投資決定前諮詢財務專業人士。
+本軟體僅供參考之用，不構成投資建議。使用者應進行自己的研究，並在做出投資決定前諮詢財務專業人士。由於我不熟悉 Python，該專案完全由 AI 生成，然後根據需要手動調整。
 
 ## 📄 授權條款
 
@@ -219,8 +227,3 @@ workspaceRoot=your/project/path
 
 **以 ❤️ 為台灣股票分析社群打造**
 
-## 🌏 語言版本
-
-- [English](README_en-us.md) | **繁體中文**
-
-> 免責聲明：由於我不熟悉 Python，該專案完全由 AI 生成，然後根據需要手動調整。
