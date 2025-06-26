@@ -8,7 +8,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 ## � Demo
 
-![Get stock trend demo](./staticFiles/sample.gif)
+![Get stock trend demo](./staticFiles/sample-ezgif.com-resize.gif)
 
 *Watch the demonstration of TWStockMCPServer in action*
 
