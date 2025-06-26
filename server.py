@@ -35,6 +35,160 @@ def get_company_profile(code: str) -> str:
         logger.error(f"Failed to fetch company profiles: {e}")
         return ''
 
+
+
+@mcp.tool
+def get_company_dividend(code: str) -> str:
+    """Obtain the dividend distribution information of a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap45_L"
+    logger.info(f"Fetching TWSE company dividend data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company dividend data: {e}")
+        return ''
+
+
+
+@mcp.tool
+def get_company_monthly_revenue(code: str) -> str:
+    """Obtain monthly revenue information for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap05_L"
+    logger.info(f"Fetching TWSE company monthly revenue data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        # 取得最近的資料
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company monthly revenue data: {e}")
+        return ''
+
+@mcp.tool
+def get_company_governance_info(code: str) -> str:
+    """Obtain corporate governance information for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap46_L_9"
+    logger.info(f"Fetching TWSE company governance data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company governance data: {e}")
+        return ''
+
+@mcp.tool
+def get_company_climate_management(code: str) -> str:
+    """Obtain climate-related management information for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap46_L_8"
+    logger.info(f"Fetching TWSE company climate management data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company climate management data: {e}")
+        return ''
+
+@mcp.tool
+def get_company_risk_management(code: str) -> str:
+    """Obtain risk management policy information for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap46_L_19"
+    logger.info(f"Fetching TWSE company risk management data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company risk management data: {e}")
+        return ''
+
+@mcp.tool
+def get_company_supply_chain_management(code: str) -> str:
+    """Obtain supply chain management information for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap46_L_13"
+    logger.info(f"Fetching TWSE company supply chain management data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company supply chain management data: {e}")
+        return ''
+
+@mcp.tool
+def get_company_info_security(code: str) -> str:
+    """Obtain information security data for a listed company based on its stock code."""
+    url = f"{BASE_URL}/opendata/t187ap46_L_16"
+    logger.info(f"Fetching TWSE company information security data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        filteredData = [item for item in data if isinstance(item, dict) and item.get("公司代號") == code]
+        firstOrDefaultItem = filteredData[0] if filteredData else None
+        formattedData = format_properties_with_values_multiline(firstOrDefaultItem) if firstOrDefaultItem else {}
+        return formattedData
+    except Exception as e:
+        logger.error(f"Failed to fetch company information security data: {e}")
+        return ''
+
+
+
 @mcp.prompt
 def stock_trend_analysis_prompt(stock_symbol: str, period: str) -> PromptMessage:
     """Prompt for Taiwan stock trend analysis using TWSE OpenAPI endpoints."""
