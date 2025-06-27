@@ -48,7 +48,7 @@
 ## ⚙️ 安裝說明
 
 ### 系統需求
-- Python 3.8 或更高版本
+- Python 3.13 或更高版本
 - pip 套件管理器或 [uv](https://github.com/astral-sh/uv)
 
 ### 快速開始
@@ -68,29 +68,10 @@
    
    **使用 uv（推薦）：**
    ```bash
-   uv venv
-   .venv\Scripts\activate  # Windows
-   # 或
-   source .venv/bin/activate  # macOS/Linux
-   uv add mcp[cli] httpx fastmcp requests
+   uv sync
    ```
 
-3. **設定 MCP 客戶端**
-   
-   在您的 MCP 客戶端設定檔中新增（例如：`.vscode/mcp.json`）：
-   ```json
-   {
-     "servers": {
-       "twse_stock_server": {
-         "type": "stdio",
-         "command": "python",
-         "args": ["${workspaceFolder}/server.py"]
-       }
-     }
-   }
-   ```
-
-4. **啟動伺服器**
+3. **啟動伺服器**
    
    **開發模式（熱重載）：**
    ```bash
@@ -100,23 +81,7 @@
    **正式環境模式：**
    ```bash
    uv run fastmcp run server.py
-   # 或
-   python server.py
    ```
-
-## 🔧 設定
-
-### 環境變數
-在專案根目錄建立 `.env` 檔案：
-```properties
-workspaceRoot=your/project/path
-```
-
-### 相依套件
-主要相依套件包括：
-- `fastmcp`：MCP 伺服器框架
-- `requests`：HTTP 客戶端進行 API 呼叫
-- `logging`：Python 內建日誌系統
 
 ## 📚 可用工具
 

@@ -48,7 +48,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 ## �️ Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.13 or higher
 - pip package manager or [uv](https://github.com/astral-sh/uv)
 
 ### Quick Start
@@ -66,31 +66,12 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
    pip install -r requirements.txt
    ```
    
-   **Using uv (recommended):**
+   **use uv:**
    ```bash
-   uv venv
-   .venv\Scripts\activate  # Windows
-   # or
-   source .venv/bin/activate  # macOS/Linux
-   uv add mcp[cli] httpx fastmcp requests
+   uv sync
    ```
 
-3. **Configure MCP Client**
-   
-   Add to your MCP client configuration (e.g., `.vscode/mcp.json`):
-   ```json
-   {
-     "servers": {
-       "twse_stock_server": {
-         "type": "stdio",
-         "command": "python",
-         "args": ["${workspaceFolder}/server.py"]
-       }
-     }
-   }
-   ```
-
-4. **Run the server**
+3. **Run the server**
    
    **Development Mode (with hot-reload):**
    ```bash
@@ -100,23 +81,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
    **Production Mode:**
    ```bash
    uv run fastmcp run server.py
-   # or
-   python server.py
    ```
-
-## 🔧 Configuration
-
-### Environment Variables
-Create a `.env` file in the project root:
-```properties
-workspaceRoot=your/project/path
-```
-
-### Dependencies
-Key dependencies include:
-- `fastmcp`: MCP server framework
-- `requests`: HTTP client for API calls
-- `logging`: Built-in Python logging
 
 ## 📚 Available Tools
 
@@ -146,31 +111,6 @@ Key dependencies include:
 - `get_company_risk_management(code)` - Risk management policies
 - `get_company_supply_chain_management(code)` - Supply chain data
 - `get_company_info_security(code)` - Information security metrics
-
-## 💡 Usage Examples
-
-### Basic Stock Analysis
-```python
-# Get Taiwan Semiconductor (2330) information
-profile = get_company_profile("2330")
-trading_data = get_stock_daily_trading("2330")
-valuation = get_stock_valuation_ratios("2330")
-```
-
-### Trend Analysis
-Use the built-in trend analysis prompt for comprehensive stock evaluation:
-```python
-# Analyze MediaTek's short-term prospects
-analysis = stock_trend_analysis_prompt("2454", "short")
-```
-
-### ESG Analysis
-```python
-# Examine TSMC's ESG performance
-governance = get_company_governance_info("2330")
-climate = get_company_climate_management("2330")
-risk_mgmt = get_company_risk_management("2330")
-```
 
 ## 🤝 Contributing
 
