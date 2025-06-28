@@ -37,53 +37,90 @@ python server.py
 
 ## Code Architecture
 
+### Modular Structure
+
+The project follows a clean modular architecture with clear separation of concerns:
+
+```
+TWStockMCPServer/
+├── server.py                    # Main MCP server (29 lines)
+├── utils/                       # Shared utilities
+│   ├── api_client.py           # TWSE API client
+│   └── formatters.py           # Data formatting utilities
+├── tools/                      # MCP tools organized by category
+│   ├── company/                # Company-related tools (8 tools)
+│   ├── trading/                # Trading data tools (5 tools)
+│   └── market/                 # Market data tools (4 tools)
+└── prompts/                    # MCP prompts
+```
+
 ### Core Components
 
-**server.py**: Main MCP server implementation containing:
-- 15+ MCP tools for TWSE data retrieval
+**server.py**: Lightweight main server (29 lines):
+- MCP server initialization and tool registration
 - 1 MCP prompt for stock trend analysis
+- Clean separation from business logic
+
+**utils/**: Shared utility modules:
+- `TWSEAPIClient`: Unified API client for TWSE data retrieval
+- `format_properties_with_values_multiline()`: Single record formatting
+- `format_multiple_records()`: Multiple records formatting
 - Base URL: `https://openapi.twse.com.tw/v1`
-- SSL verification disabled (`verify=False`) for TWSE API compatibility
+- SSL verification disabled for TWSE API compatibility
 - UTF-8 encoding handling for Traditional Chinese data
 
-### Tool Categories
+### Tool Categories (19 tools total)
 
-**Company Information**:
-- `get_company_profile()` - Basic company info from `/opendata/t187ap03_L`
-- `get_company_dividend()` - Dividend data from `/opendata/t187ap45_L`
-- `get_company_monthly_revenue()` - Monthly revenue from `/opendata/t187ap05_L`
+**tools/company/** - Company-related tools (8 tools):
+- **basic_info.py**: 
+  - `get_company_profile()` - Basic company info from `/opendata/t187ap03_L`
+  - `get_company_dividend()` - Dividend data from `/opendata/t187ap45_L`
+  - `get_company_monthly_revenue()` - Monthly revenue from `/opendata/t187ap05_L`
+- **financials.py**:
+  - `get_company_income_statement()` - Income statement from `/opendata/t187ap06_L_ci`
+  - `get_company_balance_sheet()` - Balance sheet from `/opendata/t187ap07_L_ci`
+- **esg.py**:
+  - `get_company_governance_info()` - Governance from `/opendata/t187ap46_L_9`
+  - `get_company_climate_management()` - Climate data from `/opendata/t187ap46_L_8`
+  - `get_company_risk_management()` - Risk management from `/opendata/t187ap46_L_19`
+  - `get_company_supply_chain_management()` - Supply chain from `/opendata/t187ap46_L_13`
+  - `get_company_info_security()` - Information security from `/opendata/t187ap46_L_16`
 
-**Trading Data**:
-- `get_stock_daily_trading()` - Daily trading from `/exchangeReport/STOCK_DAY_ALL`
-- `get_stock_monthly_average()` - Monthly averages from `/exchangeReport/STOCK_DAY_AVG_ALL`
-- `get_stock_valuation_ratios()` - P/E, dividend yield, P/B from `/exchangeReport/BWIBBU_ALL`
-- `get_stock_monthly_trading()` - Monthly trading from `/exchangeReport/FMSRFK_ALL`
-- `get_stock_yearly_trading()` - Yearly trading from `/exchangeReport/FMNPTK_ALL`
+**tools/trading/** - Trading data tools (5 tools):
+- **daily.py**: `get_stock_daily_trading()` - Daily trading from `/exchangeReport/STOCK_DAY_ALL`
+- **periodic.py**: 
+  - `get_stock_monthly_average()` - Monthly averages from `/exchangeReport/STOCK_DAY_AVG_ALL`
+  - `get_stock_monthly_trading()` - Monthly trading from `/exchangeReport/FMSRFK_ALL`
+  - `get_stock_yearly_trading()` - Yearly trading from `/exchangeReport/FMNPTK_ALL`
+- **valuation.py**: `get_stock_valuation_ratios()` - P/E, dividend yield, P/B from `/exchangeReport/BWIBBU_ALL`
 
-**Financial Statements**:
-- `get_company_income_statement()` - Income statement from `/opendata/t187ap06_L_ci`
-- `get_company_balance_sheet()` - Balance sheet from `/opendata/t187ap07_L_ci`
-
-**Market Data**:
-- `get_market_index_info()` - Market indices from `/exchangeReport/MI_INDEX`
-- `get_margin_trading_info()` - Margin trading from `/exchangeReport/MI_MARGN`
-
-**ESG & Governance**:
-- `get_company_governance_info()` - Governance from `/opendata/t187ap46_L_9`
-- `get_company_climate_management()` - Climate data from `/opendata/t187ap46_L_8`
-- `get_company_risk_management()` - Risk management from `/opendata/t187ap46_L_19`
-- `get_company_supply_chain_management()` - Supply chain from `/opendata/t187ap46_L_13`
-- `get_company_info_security()` - Information security from `/opendata/t187ap46_L_16`
+**tools/market/** - Market data tools (4 tools):
+- **indices.py**:
+  - `get_market_index_info()` - Market indices from `/exchangeReport/MI_INDEX`
+  - `get_market_historical_index()` - Historical TAIEX data from `/indicesReport/MI_5MINS_HIST`
+- **statistics.py**:
+  - `get_margin_trading_info()` - Margin trading from `/exchangeReport/MI_MARGN`
+  - `get_real_time_trading_stats()` - Real-time statistics from `/exchangeReport/MI_5MINS`
 
 ### Data Processing Pattern
 
-All tools follow the same pattern:
-1. Make HTTP request to TWSE API with `verify=False` and 30s timeout
-2. Set UTF-8 encoding for proper Traditional Chinese handling
-3. Filter data by company code (`公司代號` or `Code`)
-4. Format using `format_properties_with_values_multiline()` helper
-5. Return formatted string or empty string on error
-6. Log operations using Python's logging module
+**Unified API Client**: All tools use `TWSEAPIClient` class with these methods:
+- `get_data(endpoint)`: Generic data fetching
+- `get_company_data(endpoint, code)`: Company-specific data with filtering
+- `get_latest_market_data(endpoint, count)`: Latest market records
+
+**Common Processing Pattern**:
+1. Tools call appropriate `TWSEAPIClient` method
+2. API client handles HTTP request with `verify=False` and 30s timeout
+3. UTF-8 encoding set for proper Traditional Chinese handling
+4. Data filtered by company code (`公司代號` or `Code`) when applicable
+5. Format using utility functions:
+   - `format_properties_with_values_multiline()` for single records
+   - `format_multiple_records()` for multiple records with separators
+6. Return formatted string or empty string on error
+7. All operations logged using Python's logging module
+
+**Tool Registration**: Each module provides `register_tools(mcp)` function that registers all its tools with the MCP instance.
 
 ### Prompt System
 
@@ -99,18 +136,52 @@ All tools follow the same pattern:
 
 ## Development Notes
 
-- No testing framework detected - manual testing recommended
-- Chinese language comments and data fields throughout codebase
-- Error handling includes logging but returns empty strings on failure
-- All API calls include proper User-Agent header: "stock-mcp/1.0"
-- Rate limiting considerations apply due to TWSE API constraints
-- SSL verification disabled specifically for TWSE API compatibility
+- **Architecture**: Clean modular design with separation of concerns
+- **Error Handling**: Standardized try-catch pattern returning empty strings on failure
+- **Logging**: All operations logged using Python's logging module
+- **Encoding**: UTF-8 encoding for Traditional Chinese data
+- **API Client**: Unified `TWSEAPIClient` with proper User-Agent: "stock-mcp/1.0"
+- **SSL**: Verification disabled specifically for TWSE API compatibility
+- **Testing**: Manual testing recommended (no framework detected)
 
 ## Adding New Tools
 
-1. Reference `staticFiles/apis_summary_simple.json` for available TWSE endpoints
-2. Follow existing tool pattern in `server.py`
-3. Use `@mcp.tool` decorator
-4. Include comprehensive docstring
-5. Implement error handling and logging
-6. Use `format_properties_with_values_multiline()` for consistent output formatting
+### 1. Choose Appropriate Module
+- **Company tools**: Add to `tools/company/` (basic_info.py, financials.py, or esg.py)
+- **Trading tools**: Add to `tools/trading/` (daily.py, periodic.py, or valuation.py)  
+- **Market tools**: Add to `tools/market/` (indices.py or statistics.py)
+- **New category**: Create new subdirectory under `tools/`
+
+### 2. Implementation Pattern
+```python
+# In appropriate tools module (e.g., tools/company/basic_info.py)
+from utils import TWSEAPIClient, format_properties_with_values_multiline
+
+def register_tools(mcp):
+    @mcp.tool
+    def your_new_tool(code: str) -> str:
+        """Comprehensive docstring describing the tool."""
+        try:
+            data = TWSEAPIClient.get_company_data("/your/endpoint", code)
+            return format_properties_with_values_multiline(data) if data else ""
+        except Exception:
+            return ""
+```
+
+### 3. API Reference
+- Check `staticFiles/apis_summary_simple.json` for available TWSE endpoints
+- Use appropriate `TWSEAPIClient` method:
+  - `get_company_data()` for company-specific data
+  - `get_data()` for general endpoints
+  - `get_latest_market_data()` for recent market data
+
+### 4. Tool Registration
+Tools are automatically registered when server starts via `tools.register_all_tools(mcp)`. No manual registration needed in `server.py`.
+
+## Modular Benefits
+
+- **Maintainability**: Each tool in its logical location
+- **Scalability**: Easy to add new tools without touching main server
+- **Reusability**: Shared utilities eliminate code duplication
+- **Clarity**: Clear organization by business domain
+- **Testing**: Individual modules can be tested independently
