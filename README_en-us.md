@@ -1,7 +1,7 @@
 # 🚀 TWStockMCPServer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchange (TWSE) data analysis, providing real-time stock information, financial reports, ESG data, and trend analysis capabilities.
@@ -27,17 +27,18 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 - **Price Trends**: Daily closing prices and monthly average calculations
 - **Valuation Metrics**: P/E ratios, dividend yields, and P/B ratios
 - **Historical Data**: Monthly and yearly trading information
+- **Real-time Statistics**: 5-second interval trading statistics
 
 ### 💰 **Fundamental Analysis**
-- **Financial Statements**: Income statements and balance sheets
+- **Financial Statements**: Income statements and balance sheets (general industry)
 - **Revenue Reports**: Monthly revenue tracking and growth analysis
 - **Dividend Information**: Distribution history and dividend policies
 - **Corporate Governance**: ESG data and governance metrics
 
 ### 🏛️ **Market Intelligence**
-- **Market Indices**: Real-time TWSE index information
+- **Market Indices**: Real-time TWSE index information and historical data
 - **Institutional Activity**: Margin trading and short selling data
-- **Market Statistics**: Daily market summaries and trends
+- **Market Statistics**: Daily market summaries and long-term trend analysis
 
 ### 🌱 **ESG & Sustainability**
 - **Climate Management**: Climate-related risk assessments
@@ -49,7 +50,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 ### Prerequisites
 - Python 3.13 or higher
-- pip package manager or [uv](https://github.com/astral-sh/uv)
+- pip package manager or [uv](https://github.com/astral-sh/uv) (recommended)
 
 ### Quick Start
 
@@ -66,7 +67,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
    pip install -r requirements.txt
    ```
    
-   **use uv:**
+   **Using uv (recommended):**
    ```bash
    uv sync
    ```
@@ -93,17 +94,19 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 ### Trading Data
 - `get_stock_daily_trading(code)` - Daily trading statistics
 - `get_stock_monthly_average(code)` - Monthly price averages
-- `get_stock_valuation_ratios(code)` - Valuation metrics
+- `get_stock_valuation_ratios(code)` - Valuation metrics (P/E, dividend yield, P/B ratios)
 - `get_stock_monthly_trading(code)` - Monthly trading data
 - `get_stock_yearly_trading(code)` - Annual trading statistics
 
 ### Financial Reports
-- `get_company_income_statement(code)` - Comprehensive income statements
-- `get_company_balance_sheet(code)` - Balance sheet data
+- `get_company_income_statement(code)` - Comprehensive income statements (general industry)
+- `get_company_balance_sheet(code)` - Balance sheet data (general industry)
 
 ### Market Data
 - `get_market_index_info()` - Market index information
 - `get_margin_trading_info()` - Margin trading statistics
+- `get_real_time_trading_stats()` - Real-time trading statistics (5-second updates)
+- `get_market_historical_index()` - Taiwan Capitalization Weighted Stock Index historical data
 
 ### ESG & Governance
 - `get_company_governance_info(code)` - Corporate governance
@@ -152,13 +155,19 @@ Refer to `staticFiles/apis_summary_simple.json` for available TWSE API endpoints
 
 ## 📋 API Coverage
 
-Currently supports **15+ TWSE API endpoints** including:
-- Company profiles and basic information
-- Stock trading data (daily, monthly, yearly)
-- Financial statements and reports
-- ESG and sustainability metrics
-- Market indices and statistics
-- Dividend and governance information
+Currently provides **19 MCP Tools** covering **19+ TWSE API endpoints**, including:
+- Company profiles and basic information (3 tools)
+- Stock trading data (daily, monthly, yearly) (5 tools)
+- Financial statements and reports (2 tools)
+- Market indices and real-time statistics (4 tools)
+- ESG and sustainability metrics (5 tools)
+- Dividend and governance information (included in company information)
+
+### Analysis Coverage
+- **Technical Analysis**: Daily, monthly, yearly trading data, real-time statistics
+- **Fundamental Analysis**: Financial statements, revenue data, valuation metrics
+- **Market Sentiment Analysis**: Margin trading, institutional investor activity
+- **Market Analysis**: Market indices, historical trends, market statistics
 
 ## 🔒 Data Sources
 

@@ -1,7 +1,7 @@
 # 🚀 TWStockMCPServer
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
 一個全面的**模型上下文協議 (MCP) 伺服器**，專為台灣證券交易所 (TWSE) 數據分析設計，提供即時股票資訊、財務報表、ESG 數據和趨勢分析功能。
@@ -27,17 +27,18 @@
 - **價格趨勢**：每日收盤價和月平均價格計算
 - **估值指標**：本益比、股利殖利率和股價淨值比
 - **歷史數據**：月份和年度交易資訊
+- **即時統計**：每 5 秒更新的委託成交統計
 
 ### 💰 **基本面分析**
-- **財務報表**：綜合損益表和資產負債表
+- **財務報表**：綜合損益表和資產負債表（一般業）
 - **營收報告**：月營收追蹤和成長分析
 - **股利資訊**：配息記錄和股利政策
 - **公司治理**：ESG 數據和治理指標
 
 ### 🏛️ **市場情報**
-- **市場指數**：即時台股指數資訊
+- **市場指數**：即時台股指數資訊和歷史資料
 - **法人動態**：融資融券和借貸數據
-- **市場統計**：每日市場摘要和趨勢
+- **市場統計**：每日市場摘要和長期趨勢分析
 
 ### 🌱 **ESG 與永續經營**
 - **氣候管理**：氣候相關風險評估
@@ -49,7 +50,7 @@
 
 ### 系統需求
 - Python 3.13 或更高版本
-- pip 套件管理器或 [uv](https://github.com/astral-sh/uv)
+- pip 套件管理器或 [uv](https://github.com/astral-sh/uv)（推薦）
 
 ### 快速開始
 
@@ -93,17 +94,19 @@
 ### 交易數據
 - `get_stock_daily_trading(code)` - 每日交易統計
 - `get_stock_monthly_average(code)` - 月平均價格
-- `get_stock_valuation_ratios(code)` - 估值指標
+- `get_stock_valuation_ratios(code)` - 估值指標（本益比、殖利率、股價淨值比）
 - `get_stock_monthly_trading(code)` - 月交易數據
 - `get_stock_yearly_trading(code)` - 年度交易統計
 
 ### 財務報表
-- `get_company_income_statement(code)` - 綜合損益表
-- `get_company_balance_sheet(code)` - 資產負債表數據
+- `get_company_income_statement(code)` - 綜合損益表（一般業）
+- `get_company_balance_sheet(code)` - 資產負債表（一般業）
 
 ### 市場數據
 - `get_market_index_info()` - 市場指數資訊
 - `get_margin_trading_info()` - 融資融券統計
+- `get_real_time_trading_stats()` - 即時交易統計（每 5 秒更新）
+- `get_market_historical_index()` - 發行量加權股價指數歷史資料
 
 ### ESG 與治理
 - `get_company_governance_info(code)` - 公司治理
@@ -152,13 +155,19 @@
 
 ## 📋 API 涵蓋範圍
 
-目前支援 **15+ TWSE API 端點**，包括：
-- 公司檔案和基本資訊
-- 股票交易數據（每日、每月、每年）
-- 財務報表和報告
-- ESG 和永續指標
-- 市場指數和統計
-- 股利和治理資訊
+目前提供 **19 個 MCP Tools**，涵蓋 **19+ TWSE API 端點**，包括：
+- 公司檔案和基本資訊（3 tools）
+- 股票交易數據（每日、每月、每年）（5 tools）
+- 財務報表和報告（2 tools）
+- 市場指數和即時統計（4 tools）
+- ESG 和永續指標（5 tools）
+- 股利和治理資訊（包含在公司資訊中）
+
+### 分析功能覆蓋
+- **技術面分析**：日線、月線、年線交易數據、即時統計
+- **基本面分析**：財務報表、營收數據、估值指標
+- **籌碼面分析**：融資融券、機構投資人動態
+- **市場面分析**：大盤指數、歷史趨勢、市場統計
 
 ## 🔒 資料來源
 

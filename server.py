@@ -398,6 +398,58 @@ def get_company_balance_sheet(code: str) -> str:
         logger.error(f"Failed to fetch company balance sheet data: {e}")
         return ''
 
+@mcp.tool
+def get_real_time_trading_stats() -> str:
+    """Obtain real-time 5-second trading statistics including order volumes and transaction counts."""
+    url = f"{BASE_URL}/exchangeReport/MI_5MINS"
+    logger.info(f"Fetching TWSE real-time trading statistics from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        # 取得最近的交易統計資料 (最新的幾筆)
+        formatted_items = []
+        for item in data[-10:]:  # 取最新10筆資料
+            if isinstance(item, dict):
+                formatted_item = format_properties_with_values_multiline(item)
+                formatted_items.append(formatted_item)
+                formatted_items.append("-" * 30)
+        
+        return "\n".join(formatted_items)
+    except Exception as e:
+        logger.error(f"Failed to fetch real-time trading statistics: {e}")
+        return ''
+
+@mcp.tool
+def get_market_historical_index() -> str:
+    """Obtain historical TAIEX (Taiwan Capitalization Weighted Stock Index) data for long-term trend analysis."""
+    url = f"{BASE_URL}/indicesReport/MI_5MINS_HIST"
+    logger.info(f"Fetching TWSE historical market index data from {url}")
+    try:
+        # 透過 verify=False 跳過 SSL 憑證驗證
+        resp = requests.get(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"}, verify=False, timeout=30.0)
+        resp.raise_for_status()
+        
+        # 設定正確的編碼 (UTF-8)
+        resp.encoding = 'utf-8'
+        data = resp.json()
+        # 取得最近的歷史指數資料
+        formatted_items = []
+        for item in data[-20:]:  # 取最新20筆歷史資料
+            if isinstance(item, dict):
+                formatted_item = format_properties_with_values_multiline(item)
+                formatted_items.append(formatted_item)
+                formatted_items.append("-" * 30)
+        
+        return "\n".join(formatted_items)
+    except Exception as e:
+        logger.error(f"Failed to fetch historical market index data: {e}")
+        return ''
+
 def format_properties_with_values_multiline(data: dict) -> str:
     description_items = [f"{key}: {value}" for key, value in data.items()]
     description = "\n".join(description_items)
