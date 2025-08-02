@@ -84,6 +84,52 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
    uv run fastmcp run server.py
    ```
 
+## 🎯 Five Core Question Scenarios
+
+### 1. **Stock Trend Analysis** (`stock_trend_analysis_prompt`)
+**Questions you can ask:**
+- "Please analyze the short-term trend of TSMC (2330)"
+- "How is the medium-term trend of Evergreen (2603)?"
+- "Long-term investment value analysis of Hon Hai (2317)"
+
+**Using tools:** 15 tools covering technical, fundamental, chip, news, and ESG analysis
+
+### 2. **Foreign Investment Analysis** (`foreign_investment_analysis`)
+**Questions you can ask:**
+- "Which industries do foreign investors prefer most?"
+- "What are the current top 20 companies by foreign holdings?"
+- "How is MediaTek's (2454) foreign investment status?"
+- "Semiconductor industry foreign investment trend analysis"
+
+**Using tools:** 6 tools focused on foreign investment flows and fundamental validation
+
+### 3. **Market Hotspot Monitoring** (`market_hotspot_monitoring`)
+**Questions you can ask:**
+- "What major news is in the market today?"
+- "Which stocks have abnormally active trading volumes?"
+- "What important ex-dividend schedules are there this week?"
+- "How is the current market speculation sentiment?"
+
+**Using tools:** 8 tools monitoring news, trading activity, and corporate actions
+
+### 4. **Dividend Investment Strategy** (`dividend_investment_strategy`)
+**Questions you can ask:**
+- "Recommend some high dividend yield stocks"
+- "Which companies will go ex-dividend next quarter?"
+- "Dividend growth portfolio recommendations"
+- "Financial sector dividend investment opportunities analysis"
+
+**Using tools:** 9 tools focused on dividend analysis and financial assessment
+
+### 5. **Investment Screening** (`investment_screening`)
+**Questions you can ask:**
+- "Recommend some value investment targets"
+- "Growth stock screening criteria and recommendations"
+- "Stocks suitable for conservative investors"
+- "Which stocks are currently favored by foreign investors?"
+
+**Using tools:** 12 tools for comprehensive screening and risk assessment
+
 ## 📚 Available Tools
 
 ### Company Information (13 tools)
@@ -164,20 +210,6 @@ Refer to `staticFiles/apis_summary_simple.json` for available TWSE API endpoints
 - Include error handling
 - Log important operations
 
-## 📋 API Coverage
-
-Currently provides **29 MCP Tools** covering **29+ TWSE API endpoints**, including:
-- Company profiles and basic information (13 tools)
-- Stock trading data (daily, monthly, yearly, warrants, ETF) (10 tools)
-- Market indices and real-time statistics (6 tools)
-
-### Analysis Coverage
-- **Technical Analysis**: Daily, monthly, yearly trading data, real-time statistics, warrant trading
-- **Fundamental Analysis**: Financial statements, revenue data, valuation metrics, ex-dividend schedules
-- **Market Sentiment Analysis**: Margin trading, foreign investment activity, regular investment rankings
-- **Market Analysis**: Market indices, historical trends, market statistics
-- **Information Analysis**: Major announcements, TWSE news, company events
-
 ## 🔒 Data Sources
 
 All data is sourced from official Taiwan Stock Exchange (TWSE) OpenAPI:
@@ -199,12 +231,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Taiwan Stock Exchange for providing the open data API
 - MCP community for the protocol specification
 - Contributors and users of this project
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/yourusername/TWStockMCPServer/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/TWStockMCPServer/discussions)
-- **Documentation**: [Wiki](https://github.com/yourusername/TWStockMCPServer/wiki)
 
 ---
 

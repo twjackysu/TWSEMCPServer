@@ -4,23 +4,33 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
     """Prompt for Taiwan Stock Trend Analysis using TWSE OpenAPI endpoints."""
     content = f"""Prompt for Taiwan Stock Trend Analysis using TWSE OpenAPI endpoints:
 
-You are a Taiwan stock market trend analysis expert. Based on the user's input stock symbol and analysis period (short/medium/long-term), automatically select and utilize the following TWSE OpenAPI endpoints to perform multi-perspective (technical, chip, and fundamental) analysis. Clearly present your reasoning and conclusion in bullet-point format:
+You are a Taiwan stock market trend analysis expert. Based on the user's input stock symbol and analysis period (short/medium/long-term), automatically select and utilize the following comprehensive TWSE MCP tools to perform multi-perspective analysis (technical, fundamental, chip, market sentiment, and news). Clearly present your reasoning and conclusion in bullet-point format:
 
-### Available APIs and their purposes:
+### Available MCP Tools by Analysis Timeframe:
 
-- **Short-Term Analysis:**
-  - `/v1/exchangeReport/STOCK_DAY_ALL`: Daily stock prices and volumes (technical)
-  - `/v1/exchangeReport/MI_INDEX`: Institutional investors' trading activities and margin trading balances (chip)
+- **Short-Term Analysis (1-30 days):**
+  - **Technical**: `get_stock_daily_trading(code)` - Daily prices, volumes, and trading statistics
+  - **Technical**: `get_real_time_trading_stats()` - Real-time market statistics (5-second updates)
+  - **Chip**: `get_margin_trading_info()` - Margin trading and short selling data
+  - **Chip**: `get_foreign_investment_by_industry()` - Foreign investment flows by industry
+  - **Market Sentiment**: `get_warrant_daily_trading(code)` - Warrant trading activity (leverage indicator)
+  - **News**: `get_company_major_news(code)` - Recent major announcements
 
-- **Medium-Term Analysis:**
-  - `/v1/exchangeReport/STOCK_DAY_AVG_ALL`: Monthly average stock prices and volumes (technical)
-  - `/v1/opendata/t187ap05_L`: Monthly revenue data (fundamental)
-  - `/v1/opendata/t187ap06_L_ci`: Comprehensive income statements for general industry (fundamental)
-  - `/v1/opendata/t187ap07_L_ci`: Balance sheets for general industry (fundamental)
+- **Medium-Term Analysis (1-12 months):**
+  - **Technical**: `get_stock_monthly_average(code)` - Monthly average prices and volumes
+  - **Technical**: `get_stock_monthly_trading(code)` - Monthly trading statistics
+  - **Fundamental**: `get_company_monthly_revenue(code)` - Monthly revenue trends
+  - **Fundamental**: `get_company_income_statement(code)` - Quarterly income statements
+  - **Fundamental**: `get_company_balance_sheet(code)` - Balance sheet data
+  - **Chip**: `get_top_foreign_holdings()` - Foreign investment concentration in top stocks
+  - **Events**: `get_dividend_rights_schedule(code)` - Upcoming ex-dividend dates
 
-- **Long-Term Analysis:**
-  - `/v1/opendata/t187ap45_L`: Dividend distribution information (fundamental)
-  - `/v1/exchangeReport/BWIBBU_ALL`: Price-to-Earnings (P/E) ratio, dividend yield, and Price-to-Book (P/B) ratio (valuation)
+- **Long-Term Analysis (1+ years):**
+  - **Technical**: `get_stock_yearly_trading(code)` - Annual trading patterns
+  - **Valuation**: `get_stock_valuation_ratios(code)` - P/E, dividend yield, P/B ratios
+  - **Fundamental**: `get_company_dividend(code)` - Dividend history and policy
+  - **ESG**: `get_company_governance_info(code)` - Corporate governance quality
+  - **Market Context**: `get_market_historical_index()` - Historical market performance
 
 ### Example Input:
 Please analyze the {period} trend of {stock_symbol}.
@@ -28,16 +38,23 @@ Please analyze the {period} trend of {stock_symbol}.
 ### Example Output:
 
 **Short-Term Analysis:**
-1. **Technical**: Using `/v1/exchangeReport/STOCK_DAY_ALL`, the stock price has risen above its 20-day moving average with increasing volume, indicating bullish momentum.
-2. **Chip**: According to `/v1/exchangeReport/MI_INDEX`, institutional investors have been net buyers for several consecutive trading days, and margin balances are increasing, further supporting a bullish trend.
+1. **Technical**: Using `get_stock_daily_trading({stock_symbol})`, the stock price has risen above its 20-day moving average with increasing volume. `get_real_time_trading_stats()` confirms strong intraday momentum.
+2. **Chip**: `get_margin_trading_info()` shows decreasing margin balances and increasing short covering, indicating bullish sentiment. `get_foreign_investment_by_industry()` reveals net foreign buying in the sector.
+3. **Market Sentiment**: `get_warrant_daily_trading({stock_symbol})` shows increased call warrant activity, suggesting bullish leverage positioning.
+4. **News**: `get_company_major_news({stock_symbol})` shows positive announcements supporting the uptrend.
 
 **Medium-Term Analysis:**
-1. **Technical**: `/v1/exchangeReport/STOCK_DAY_AVG_ALL` shows the monthly average price steadily rising, reinforcing a bullish medium-term outlook.
-2. **Fundamental**: `/v1/opendata/t187ap05_L` reveals sustained growth in monthly revenues, supported by stable increases in quarterly profits from `/v1/opendata/t187ap06_L_ci` and strong balance sheet from `/v1/opendata/t187ap07_L_ci`, which indicate robust company performance.
+1. **Technical**: `get_stock_monthly_average({stock_symbol})` and `get_stock_monthly_trading({stock_symbol})` show consistent upward trend with healthy volume patterns.
+2. **Fundamental**: `get_company_monthly_revenue({stock_symbol})` reveals sustained growth. `get_company_income_statement({stock_symbol})` and `get_company_balance_sheet({stock_symbol})` confirm improving profitability and financial health.
+3. **Chip**: `get_top_foreign_holdings()` indicates the stock is gaining foreign institutional interest.
+4. **Events**: `get_dividend_rights_schedule({stock_symbol})` shows upcoming ex-dividend date that may support price.
 
 **Long-Term Analysis:**
-1. **Dividend Policy**: Consistent dividend increases or stable high yield from `/v1/opendata/t187ap45_L` enhances the stock's attractiveness for long-term investors.
-2. **Valuation**: Attractive valuation indicators (low P/E, high dividend yield, reasonable P/B ratio) from `/v1/exchangeReport/BWIBBU_ALL` suggest a bullish long-term perspective.
+1. **Technical**: `get_stock_yearly_trading({stock_symbol})` shows multi-year uptrend with strong fundamentals support.
+2. **Valuation**: `get_stock_valuation_ratios({stock_symbol})` indicates attractive P/E ratio, sustainable dividend yield, and reasonable P/B ratio.
+3. **Fundamental**: `get_company_dividend({stock_symbol})` shows consistent dividend growth policy.
+4. **ESG**: `get_company_governance_info({stock_symbol})` indicates strong corporate governance supporting long-term value.
+5. **Market Context**: `get_market_historical_index()` shows the overall market environment remains supportive.
 
 ### Conclusion:
 The {period} trend for {stock_symbol} is **bullish/bearish** based on the analysis above.
