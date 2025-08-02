@@ -56,9 +56,9 @@ TWStockMCPServer/
 
 ### Core Components
 
-**server.py**: Lightweight main server (29 lines):
+**server.py**: Lightweight main server (54 lines):
 - MCP server initialization and tool registration
-- 1 MCP prompt for stock trend analysis
+- 5 MCP prompts for comprehensive stock analysis
 - Clean separation from business logic
 
 **utils/**: Shared utility modules:
@@ -69,9 +69,9 @@ TWStockMCPServer/
 - SSL verification disabled for TWSE API compatibility
 - UTF-8 encoding handling for Traditional Chinese data
 
-### Tool Categories (19 tools total)
+### Tool Categories (29 tools total)
 
-**tools/company/** - Company-related tools (8 tools):
+**tools/company/** - Company-related tools (13 tools):
 - **basic_info.py**: 
   - `get_company_profile()` - Basic company info from `/opendata/t187ap03_L`
   - `get_company_dividend()` - Dividend data from `/opendata/t187ap45_L`
@@ -85,22 +85,35 @@ TWStockMCPServer/
   - `get_company_risk_management()` - Risk management from `/opendata/t187ap46_L_19`
   - `get_company_supply_chain_management()` - Supply chain from `/opendata/t187ap46_L_13`
   - `get_company_info_security()` - Information security from `/opendata/t187ap46_L_16`
+- **news.py**:
+  - `get_company_major_news()` - Company announcements from `/opendata/t187ap04_L`
+  - `get_twse_news()` - TWSE official news from `/news/newsList`
+  - `get_twse_events()` - TWSE events from `/news/eventList`
 
-**tools/trading/** - Trading data tools (5 tools):
+**tools/trading/** - Trading data tools (10 tools):
 - **daily.py**: `get_stock_daily_trading()` - Daily trading from `/exchangeReport/STOCK_DAY_ALL`
 - **periodic.py**: 
   - `get_stock_monthly_average()` - Monthly averages from `/exchangeReport/STOCK_DAY_AVG_ALL`
   - `get_stock_monthly_trading()` - Monthly trading from `/exchangeReport/FMSRFK_ALL`
   - `get_stock_yearly_trading()` - Yearly trading from `/exchangeReport/FMNPTK_ALL`
 - **valuation.py**: `get_stock_valuation_ratios()` - P/E, dividend yield, P/B from `/exchangeReport/BWIBBU_ALL`
+- **dividend_schedule.py**: `get_dividend_rights_schedule()` - Ex-dividend/rights schedule from `/exchangeReport/TWT48U_ALL`
+- **etf.py**: `get_etf_regular_investment_ranking()` - ETF regular investment ranking from `/ETFReport/ETFRank`
+- **warrants.py**:
+  - `get_warrant_basic_info()` - Warrant basic info from `/opendata/t187ap37_L`
+  - `get_warrant_daily_trading()` - Warrant trading data from `/opendata/t187ap42_L`
+  - `get_warrant_trader_count()` - Warrant trader count from `/opendata/t187ap43_L`
 
-**tools/market/** - Market data tools (4 tools):
+**tools/market/** - Market data tools (6 tools):
 - **indices.py**:
   - `get_market_index_info()` - Market indices from `/exchangeReport/MI_INDEX`
   - `get_market_historical_index()` - Historical TAIEX data from `/indicesReport/MI_5MINS_HIST`
 - **statistics.py**:
   - `get_margin_trading_info()` - Margin trading from `/exchangeReport/MI_MARGN`
   - `get_real_time_trading_stats()` - Real-time statistics from `/exchangeReport/MI_5MINS`
+- **foreign.py**:
+  - `get_foreign_investment_by_industry()` - Foreign investment by industry from `/fund/MI_QFIIS_cat`
+  - `get_top_foreign_holdings()` - Top 20 foreign holdings from `/fund/MI_QFIIS_sort_20`
 
 ### Data Processing Pattern
 
@@ -124,9 +137,15 @@ TWStockMCPServer/
 
 ### Prompt System
 
-**prompts/twse_stock_trend_prompt.py**: Contains comprehensive prompt template for Taiwan stock trend analysis with:
-- Multi-timeframe analysis (short/medium/long-term)
-- Technical, fundamental, and chip analysis perspectives
+**prompts/** - 5 comprehensive prompt templates:
+- **twse_stock_trend_prompt.py**: Taiwan stock trend analysis with multi-timeframe analysis
+- **foreign_investment_analysis_prompt.py**: Foreign investment analysis and monitoring
+- **market_hotspot_monitoring_prompt.py**: Market hotspot and trend monitoring
+- **dividend_investment_strategy_prompt.py**: Dividend investment strategy analysis
+- **investment_screening_prompt.py**: Investment screening and selection criteria
+
+Each prompt provides:
+- Multi-perspective analysis (technical, fundamental, market sentiment)
 - Specific API endpoint recommendations for each analysis type
 - Structured output format with reasoning and conclusions
 
@@ -147,9 +166,9 @@ TWStockMCPServer/
 ## Adding New Tools
 
 ### 1. Choose Appropriate Module
-- **Company tools**: Add to `tools/company/` (basic_info.py, financials.py, or esg.py)
-- **Trading tools**: Add to `tools/trading/` (daily.py, periodic.py, or valuation.py)  
-- **Market tools**: Add to `tools/market/` (indices.py or statistics.py)
+- **Company tools**: Add to `tools/company/` (basic_info.py, financials.py, esg.py, or news.py)
+- **Trading tools**: Add to `tools/trading/` (daily.py, periodic.py, valuation.py, dividend_schedule.py, etf.py, or warrants.py)  
+- **Market tools**: Add to `tools/market/` (indices.py, statistics.py, or foreign.py)
 - **New category**: Create new subdirectory under `tools/`
 
 ### 2. Implementation Pattern

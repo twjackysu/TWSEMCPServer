@@ -86,34 +86,45 @@
 
 ## 📚 可用工具
 
-### 公司資訊
+### 公司資訊（13個工具）
+**基本資訊與新聞：**
 - `get_company_profile(code)` - 公司基本資訊
 - `get_company_dividend(code)` - 股利分配數據
 - `get_company_monthly_revenue(code)` - 月營收報告
+- `get_company_major_news(code)` - 公司重大訊息公告
+- `get_twse_news()` - 證交所官方新聞
+- `get_twse_events()` - 證交所活動公告
 
-### 交易數據
-- `get_stock_daily_trading(code)` - 每日交易統計
-- `get_stock_monthly_average(code)` - 月平均價格
-- `get_stock_valuation_ratios(code)` - 估值指標（本益比、殖利率、股價淨值比）
-- `get_stock_monthly_trading(code)` - 月交易數據
-- `get_stock_yearly_trading(code)` - 年度交易統計
-
-### 財務報表
+**財務報表：**
 - `get_company_income_statement(code)` - 綜合損益表（一般業）
 - `get_company_balance_sheet(code)` - 資產負債表（一般業）
 
-### 市場數據
-- `get_market_index_info()` - 市場指數資訊
-- `get_margin_trading_info()` - 融資融券統計
-- `get_real_time_trading_stats()` - 即時交易統計（每 5 秒更新）
-- `get_market_historical_index()` - 發行量加權股價指數歷史資料
-
-### ESG 與治理
+**ESG 與治理：**
 - `get_company_governance_info(code)` - 公司治理
 - `get_company_climate_management(code)` - 氣候相關管理
 - `get_company_risk_management(code)` - 風險管理政策
 - `get_company_supply_chain_management(code)` - 供應鏈數據
 - `get_company_info_security(code)` - 資訊安全指標
+
+### 交易數據（10個工具）
+- `get_stock_daily_trading(code)` - 每日交易統計
+- `get_stock_monthly_average(code)` - 月平均價格
+- `get_stock_valuation_ratios(code)` - 估值指標（本益比、殖利率、股價淨值比）
+- `get_stock_monthly_trading(code)` - 月交易數據
+- `get_stock_yearly_trading(code)` - 年度交易統計
+- `get_dividend_rights_schedule(code)` - 除權息日程
+- `get_etf_regular_investment_ranking()` - ETF定期定額投資排行
+- `get_warrant_basic_info(code)` - 權證基本資料
+- `get_warrant_daily_trading(code)` - 權證每日交易量值
+- `get_warrant_trader_count()` - 權證每日交易人數
+
+### 市場數據（6個工具）
+- `get_market_index_info()` - 市場指數資訊
+- `get_margin_trading_info()` - 融資融券統計
+- `get_real_time_trading_stats()` - 即時交易統計（每 5 秒更新）
+- `get_market_historical_index()` - 發行量加權股價指數歷史資料
+- `get_foreign_investment_by_industry()` - 外資及陸資投資統計（依行業別）
+- `get_top_foreign_holdings()` - 外資及陸資投資統計（前20名）
 
 ## 🤝 參與貢獻
 
@@ -155,13 +166,10 @@
 
 ## 📋 API 涵蓋範圍
 
-目前提供 **19 個 MCP Tools**，涵蓋 **19+ TWSE API 端點**，包括：
-- 公司檔案和基本資訊（3 tools）
-- 股票交易數據（每日、每月、每年）（5 tools）
-- 財務報表和報告（2 tools）
-- 市場指數和即時統計（4 tools）
-- ESG 和永續指標（5 tools）
-- 股利和治理資訊（包含在公司資訊中）
+目前提供 **29 個 MCP Tools**，涵蓋 **29+ TWSE API 端點**，包括：
+- 公司檔案和基本資訊（13 tools）
+- 股票交易數據（每日、每月、每年、權證、ETF）（10 tools）
+- 市場指數和即時統計（6 tools）
 
 ### 分析功能覆蓋
 - **技術面分析**：日線、月線、年線交易數據、即時統計

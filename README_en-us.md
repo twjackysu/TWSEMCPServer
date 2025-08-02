@@ -86,34 +86,45 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 ## 📚 Available Tools
 
-### Company Information
+### Company Information (13 tools)
+**Basic Information & News:**
 - `get_company_profile(code)` - Basic company information
 - `get_company_dividend(code)` - Dividend distribution data
 - `get_company_monthly_revenue(code)` - Monthly revenue reports
+- `get_company_major_news(code)` - Company major announcements
+- `get_twse_news()` - TWSE official news
+- `get_twse_events()` - TWSE event announcements
 
-### Trading Data
-- `get_stock_daily_trading(code)` - Daily trading statistics
-- `get_stock_monthly_average(code)` - Monthly price averages
-- `get_stock_valuation_ratios(code)` - Valuation metrics (P/E, dividend yield, P/B ratios)
-- `get_stock_monthly_trading(code)` - Monthly trading data
-- `get_stock_yearly_trading(code)` - Annual trading statistics
-
-### Financial Reports
+**Financial Reports:**
 - `get_company_income_statement(code)` - Comprehensive income statements (general industry)
 - `get_company_balance_sheet(code)` - Balance sheet data (general industry)
 
-### Market Data
-- `get_market_index_info()` - Market index information
-- `get_margin_trading_info()` - Margin trading statistics
-- `get_real_time_trading_stats()` - Real-time trading statistics (5-second updates)
-- `get_market_historical_index()` - Taiwan Capitalization Weighted Stock Index historical data
-
-### ESG & Governance
+**ESG & Governance:**
 - `get_company_governance_info(code)` - Corporate governance
 - `get_company_climate_management(code)` - Climate-related management
 - `get_company_risk_management(code)` - Risk management policies
 - `get_company_supply_chain_management(code)` - Supply chain data
 - `get_company_info_security(code)` - Information security metrics
+
+### Trading Data (10 tools)
+- `get_stock_daily_trading(code)` - Daily trading statistics
+- `get_stock_monthly_average(code)` - Monthly price averages
+- `get_stock_valuation_ratios(code)` - Valuation metrics (P/E, dividend yield, P/B ratios)
+- `get_stock_monthly_trading(code)` - Monthly trading data
+- `get_stock_yearly_trading(code)` - Annual trading statistics
+- `get_dividend_rights_schedule(code)` - Ex-dividend/rights schedule
+- `get_etf_regular_investment_ranking()` - ETF regular investment ranking
+- `get_warrant_basic_info(code)` - Warrant basic information
+- `get_warrant_daily_trading(code)` - Warrant daily trading data
+- `get_warrant_trader_count()` - Warrant daily trader count
+
+### Market Data (6 tools)
+- `get_market_index_info()` - Market index information
+- `get_margin_trading_info()` - Margin trading statistics
+- `get_real_time_trading_stats()` - Real-time trading statistics (5-second updates)
+- `get_market_historical_index()` - Taiwan Capitalization Weighted Stock Index historical data
+- `get_foreign_investment_by_industry()` - Foreign and mainland China investment by industry
+- `get_top_foreign_holdings()` - Top 20 foreign and mainland China holdings
 
 ## 🤝 Contributing
 
@@ -155,19 +166,17 @@ Refer to `staticFiles/apis_summary_simple.json` for available TWSE API endpoints
 
 ## 📋 API Coverage
 
-Currently provides **19 MCP Tools** covering **19+ TWSE API endpoints**, including:
-- Company profiles and basic information (3 tools)
-- Stock trading data (daily, monthly, yearly) (5 tools)
-- Financial statements and reports (2 tools)
-- Market indices and real-time statistics (4 tools)
-- ESG and sustainability metrics (5 tools)
-- Dividend and governance information (included in company information)
+Currently provides **29 MCP Tools** covering **29+ TWSE API endpoints**, including:
+- Company profiles and basic information (13 tools)
+- Stock trading data (daily, monthly, yearly, warrants, ETF) (10 tools)
+- Market indices and real-time statistics (6 tools)
 
 ### Analysis Coverage
-- **Technical Analysis**: Daily, monthly, yearly trading data, real-time statistics
-- **Fundamental Analysis**: Financial statements, revenue data, valuation metrics
-- **Market Sentiment Analysis**: Margin trading, institutional investor activity
+- **Technical Analysis**: Daily, monthly, yearly trading data, real-time statistics, warrant trading
+- **Fundamental Analysis**: Financial statements, revenue data, valuation metrics, ex-dividend schedules
+- **Market Sentiment Analysis**: Margin trading, foreign investment activity, regular investment rankings
 - **Market Analysis**: Market indices, historical trends, market statistics
+- **Information Analysis**: Major announcements, TWSE news, company events
 
 ## 🔒 Data Sources
 
