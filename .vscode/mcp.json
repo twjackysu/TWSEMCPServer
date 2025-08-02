@@ -2,8 +2,8 @@
   "servers": {
     "twse_stock_server": {
       "type": "stdio",
-      "command": "python",
-      "args": ["${workspaceFolder}\\server.py"]
+      "command": "uv",
+      "args": ["run", "${workspaceFolder}\\server.py"]
     }
   }
 }
