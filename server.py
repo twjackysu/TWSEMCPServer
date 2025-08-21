@@ -51,4 +51,4 @@ if __name__ == "__main__":
     logger.info("All MCP tools registered successfully!")
     
     # Run the MCP server
-    mcp.run(transport='stdio')
+    mcp.run(transport="http", host="127.0.0.1", port=9000)
