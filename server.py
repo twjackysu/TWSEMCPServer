@@ -44,11 +44,7 @@ def investment_screening(screening_criteria: str = "comprehensive", risk_level: 
     """Prompt for investment screening using TWSE OpenAPI endpoints."""
     return investment_screening_prompt(screening_criteria, risk_level)
 
+register_all_tools(mcp)
 if __name__ == "__main__":
-    # Register all tools before running the server
-    logger.info("Registering MCP tools...")
-    register_all_tools(mcp)
-    logger.info("All MCP tools registered successfully!")
-    
     # Run the MCP server
     mcp.run(transport="http", host="127.0.0.1", port=9000)
