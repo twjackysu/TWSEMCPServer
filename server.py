@@ -47,4 +47,4 @@ def investment_screening(screening_criteria: str = "comprehensive", risk_level: 
 register_all_tools(mcp)
 if __name__ == "__main__":
     # Run the MCP server
-    mcp.run(transport="http", host="127.0.0.1", port=9000)
+    mcp.run(transport='stdio')
