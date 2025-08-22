@@ -159,7 +159,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 - `get_company_dividend(code)` - Dividend distribution data
 - `get_company_monthly_revenue(code)` - Monthly revenue reports
 - `get_company_major_news(code)` - Company major announcements
-- `get_twse_news()` - TWSE official news
+- `get_twse_news(start_date, end_date)` - TWSE official news (with optional date filtering)
 - `get_twse_events()` - TWSE event announcements
 
 **Financial Reports:**

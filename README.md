@@ -153,7 +153,7 @@
 - `get_company_dividend(code)` - 股利分配數據
 - `get_company_monthly_revenue(code)` - 月營收報告
 - `get_company_major_news(code)` - 公司重大訊息公告
-- `get_twse_news()` - 證交所官方新聞
+- `get_twse_news(start_date, end_date)` - 證交所官方新聞（可選日期篩選）
 - `get_twse_events()` - 證交所活動公告
 
 **財務報表：**

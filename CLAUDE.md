@@ -87,7 +87,7 @@ TWStockMCPServer/
   - `get_company_info_security()` - Information security from `/opendata/t187ap46_L_16`
 - **news.py**:
   - `get_company_major_news()` - Company announcements from `/opendata/t187ap04_L`
-  - `get_twse_news()` - TWSE official news from `/news/newsList`
+  - `get_twse_news(start_date, end_date)` - TWSE official news from `/news/newsList` (with optional date filtering)
   - `get_twse_events()` - TWSE events from `/news/eventList`
 
 **tools/trading/** - Trading data tools (10 tools):
