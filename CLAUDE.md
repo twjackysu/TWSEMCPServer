@@ -106,7 +106,11 @@ TWStockMCPServer/
 
 **tools/market/** - Market data tools (6 tools):
 - **indices.py**:
-  - `get_market_index_info()` - Market indices from `/exchangeReport/MI_INDEX`
+  - `get_market_index_info(category="major", count=20, format="detailed")` - Market indices with advanced filtering from `/exchangeReport/MI_INDEX`
+    - **category**: Filter by index type (major, sector, esg, leverage, return, thematic, dividend, all)
+    - **count**: Limit number of results (default: 20, max: 50 for specific categories)
+    - **format**: Output format (detailed, summary, simple)
+    - Uses pattern matching for automatic categorization (avoids hardcoded index names)
   - `get_market_historical_index()` - Historical TAIEX data from `/indicesReport/MI_5MINS_HIST`
 - **statistics.py**:
   - `get_margin_trading_info()` - Margin trading from `/exchangeReport/MI_MARGN`

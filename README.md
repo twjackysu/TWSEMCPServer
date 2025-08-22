@@ -180,7 +180,10 @@
 - `get_warrant_trader_count()` - 權證每日交易人數
 
 ### 市場數據（6個工具）
-- `get_market_index_info()` - 市場指數資訊
+- `get_market_index_info(category, count, format)` - 市場指數資訊（支援分類篩選、數量控制和格式選擇）
+  - **category**: 指數分類（major=主要指數, sector=產業別, esg=永續指數, leverage=槓桿指數, return=報酬指數, thematic=主題指數, dividend=高股息指數, all=全部）
+  - **count**: 返回數量（預設20，最多50）
+  - **format**: 輸出格式（detailed=詳細, summary=摘要, simple=簡單）
 - `get_margin_trading_info()` - 融資融券統計
 - `get_real_time_trading_stats()` - 即時交易統計（每 5 秒更新）
 - `get_market_historical_index()` - 發行量加權股價指數歷史資料

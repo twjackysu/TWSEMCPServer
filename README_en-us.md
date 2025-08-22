@@ -186,7 +186,10 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 - `get_warrant_trader_count()` - Warrant daily trader count
 
 ### Market Data (6 tools)
-- `get_market_index_info()` - Market index information
+- `get_market_index_info(category, count, format)` - Market index information (with category filtering, count control, and format selection)
+  - **category**: Index category (major=major indices, sector=industry sectors, esg=ESG indices, leverage=leveraged indices, return=total return indices, thematic=themed indices, dividend=high dividend indices, all=all indices)
+  - **count**: Number of results to return (default: 20, max: 50)
+  - **format**: Output format (detailed=full details, summary=compact summary, simple=name and change only)
 - `get_margin_trading_info()` - Margin trading statistics
 - `get_real_time_trading_stats()` - Real-time trading statistics (5-second updates)
 - `get_market_historical_index()` - Taiwan Capitalization Weighted Stock Index historical data

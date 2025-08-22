@@ -80,13 +80,13 @@ class TWSEAPIClient:
             return None
     
     @classmethod
-    def get_latest_market_data(cls, endpoint: str, count: int = 1, timeout: float = 30.0) -> List[Dict[str, Any]]:
+    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = 30.0) -> List[Dict[str, Any]]:
         """
         Fetch latest market data from TWSE API.
         
         Args:
             endpoint: API endpoint path
-            count: Number of latest records to return
+            count: Number of latest records to return. If None, returns all records.
             timeout: Request timeout in seconds
             
         Returns:
@@ -94,8 +94,8 @@ class TWSEAPIClient:
         """
         try:
             data = cls.get_data(endpoint, timeout)
-            # Return latest records
-            return data[-count:] if data else []
+            # Return latest records or all data if count is None
+            return data[-count:] if data and count is not None else data
             
         except Exception as e:
             logger.error(f"Failed to fetch latest market data: {e}")

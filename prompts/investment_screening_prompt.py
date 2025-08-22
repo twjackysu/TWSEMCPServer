@@ -24,6 +24,10 @@ You are a Taiwan stock market investment screening expert. Use the following TWS
 - `get_company_dividend(code)`: Dividend history and consistency
 
 **Market Validation:**
+- `get_market_index_info(category, count, format)`: Sector performance and market context
+  - Use `category="sector", format="summary"` to identify outperforming industries
+  - Use `category="esg", count=10` for ESG investment universe
+  - Use `category="dividend", format="simple"` for income-focused screening
 - `get_top_foreign_holdings()`: Foreign investor preferences (quality signal)
 - `get_etf_regular_investment_ranking()`: Popular retail investment choices
 - `get_margin_trading_info()`: Institutional vs retail interest
