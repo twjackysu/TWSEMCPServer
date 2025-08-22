@@ -154,7 +154,7 @@
 - `get_company_monthly_revenue(code)` - 月營收報告
 - `get_company_major_news(code)` - 公司重大訊息公告
 - `get_twse_news(start_date, end_date)` - 證交所官方新聞（可選日期篩選）
-- `get_twse_events()` - 證交所活動公告
+- `get_twse_events(top=10)` - 證交所活動公告
 
 **財務報表：**
 - `get_company_income_statement(code)` - 綜合損益表（一般業）

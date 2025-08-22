@@ -88,7 +88,7 @@ TWStockMCPServer/
 - **news.py**:
   - `get_company_major_news()` - Company announcements from `/opendata/t187ap04_L`
   - `get_twse_news(start_date, end_date)` - TWSE official news from `/news/newsList` (with optional date filtering)
-  - `get_twse_events()` - TWSE events from `/news/eventList`
+  - `get_twse_events(top=10)` - TWSE events from `/news/eventList` (optional top parameter)
 
 **tools/trading/** - Trading data tools (10 tools):
 - **daily.py**: `get_stock_daily_trading()` - Daily trading from `/exchangeReport/STOCK_DAY_ALL`

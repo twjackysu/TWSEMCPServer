@@ -134,12 +134,15 @@ def register_tools(mcp):
             return ""
 
     @mcp.tool
-    def get_twse_events() -> str:
+    def get_twse_events(top: int = 10) -> str:
         """
         Get Taiwan Stock Exchange event announcements and activities.
         
         Retrieves information about TWSE organized events, seminars, training sessions,
         and other activities that may be of interest to market participants and investors.
+        
+        Args:
+            top: Number of top events to return (default: 10). If empty or 0, returns all events.
         
         Returns:
             Formatted string containing TWSE events including:
@@ -149,6 +152,8 @@ def register_tools(mcp):
         """
         try:
             data = TWSEAPIClient.get_data("/news/eventList")
+            if data and top > 0:
+                data = data[:top]
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""

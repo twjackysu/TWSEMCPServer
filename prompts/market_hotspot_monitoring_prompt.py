@@ -14,7 +14,7 @@ You are a Taiwan stock market monitoring expert. Use the following TWSE OpenAPI 
 **News & Announcements:**
 - `get_company_major_news(code)`: Company major announcements (filter by company or get all)
 - `get_twse_news(start_date, end_date)`: Latest TWSE official news and announcements (with optional date filtering)
-- `get_twse_events()`: TWSE events and activities
+- `get_twse_events(top=10)`: TWSE events and activities
 
 **Market Activity Indicators:**
 - `get_real_time_trading_stats()`: Real-time market statistics
