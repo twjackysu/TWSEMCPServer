@@ -48,11 +48,26 @@
 
 ## ⚙️ 安裝說明
 
-### 系統需求
+### 🚀 方式一：直接使用線上服務（推薦）
+
+感謝 FastMCP Cloud 提供的免費託管服務（暫時免費），您可以直接使用以下配置連接我的 MCP Server：
+
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
+  }
+}
+```
+
+### 🔧 方式二：本地安裝
+
+#### 系統需求
 - Python 3.13 或更高版本
 - pip 套件管理器或 [uv](https://github.com/astral-sh/uv)（推薦）
 
-### 快速開始
+#### 快速開始
 
 1. **複製專案**
    ```bash
@@ -229,6 +244,7 @@
 ## 🙏 致謝
 
 - 台灣證券交易所提供開放資料 API
+- [FastMCPCloud](https://fastmcp.app/) 提供免費 MCP 伺服器託管服務
 - MCP 社群提供協議規範
 - 本專案的貢獻者和使用者
 

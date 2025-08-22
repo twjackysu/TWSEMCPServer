@@ -1,6 +1,27 @@
 # 🚀 TWStockMCPServer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://## ⚙️ Installation
+
+### 🚀 Option 1: Direct Online Usage (Recommended)
+
+Thanks to FastMCP Cloud for providing free hosting service (temporarily free), you can directly use the following configuration to connect to our MCP server:
+
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
+  }
+}
+```
+
+### 🔧 Option 2: Local Installation
+
+#### Prerequisites
+- Python 3.13 or higher
+- pip package manager or [uv](https://github.com/astral-sh/uv) (recommended)
+
+#### Quick Startelds.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
 
@@ -229,6 +250,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Taiwan Stock Exchange for providing the open data API
+- [FastMCPCloud](https://fastmcp.app/) for providing free MCP server hosting service
 - MCP community for the protocol specification
 - Contributors and users of this project
 
