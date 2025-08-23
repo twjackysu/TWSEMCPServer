@@ -16,7 +16,11 @@
 
 ## 🎬 示範影片
 
-![股票趨勢分析示範](./staticFiles/sample-ezgif.com-resize.gif)
+### VSCode Copilot demo
+![VSCode Copilot demo](./staticFiles/sample-ezgif.com-resize.gif)
+
+### Gemini CLI demo
+![Gemini CLI demo](./staticFiles/gemini-cli-demo.gif)
 
 *觀看 TWStockMCPServer 功能展示*
 

@@ -37,7 +37,11 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 ## � Demo
 
-![Get stock trend demo](./staticFiles/sample-ezgif.com-resize.gif)
+### VSCode Copilot demo
+![VSCode Copilot demo](./staticFiles/sample-ezgif.com-resize.gif)
+
+### Gemini CLI demo
+![Gemini CLI demo](./staticFiles/gemini-cli-demo.gif)
 
 *Watch the demonstration of TWStockMCPServer in action*
 
