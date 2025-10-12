@@ -71,7 +71,21 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 - **Supply Chain**: Supply chain management transparency
 - **Information Security**: Cybersecurity incident reporting
 
-## �️ Installation
+## 📈 API Implementation Progress
+
+Want to see our current API coverage? Check out our **[API TODO List](API_TODO.md)** to track implementation progress!
+
+Current Progress: **35/143 (24.5%)** Completed ✅
+
+- Corporate Governance: 8/56 (14.3%)
+- Securities Trading: 12/36 (33.3%)
+- Financial Statements: 9/30 (30%)
+- Warrants: 2/3 (66.7%)
+- Other categories in progress...
+
+> 💡 **Update Progress**: Run `python generate_todo.py` to auto-scan and update implementation status
+
+## ⚙️ Installation
 
 ### Prerequisites
 - Python 3.13 or higher
