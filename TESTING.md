@@ -6,6 +6,12 @@
 
 ## 安裝測試依賴
 
+使用 uv：
+```bash
+uv sync --extra dev
+```
+
+或使用 pip：
 ```bash
 pip install -r requirements-dev.txt
 ```
@@ -14,36 +20,40 @@ pip install -r requirements-dev.txt
 
 ### 執行所有測試
 ```bash
+# 使用 uv (推薦)
+uv run pytest
+
+# 或直接使用 pytest
 pytest
 ```
 
 ### 執行特定測試檔案
 ```bash
 # ESG API 測試
-pytest tests/e2e/test_esg_api.py
+uv run pytest tests/e2e/test_esg_api.py
 
 # API Client 測試
-pytest tests/test_api_client.py
+uv run pytest tests/test_api_client.py
 ```
 
 ### 執行特定測試類別
 ```bash
-pytest tests/e2e/test_esg_api.py::TestAnticompetitiveLitigationAPI
+uv run pytest tests/e2e/test_esg_api.py::TestAnticompetitiveLitigationAPI
 ```
 
 ### 執行特定測試函數
 ```bash
-pytest tests/e2e/test_esg_api.py::TestAnticompetitiveLitigationAPI::test_api_endpoint_is_accessible
+uv run pytest tests/e2e/test_esg_api.py::TestAnticompetitiveLitigationAPI::test_api_endpoint_is_accessible
 ```
 
 ### 顯示詳細輸出
 ```bash
-pytest -v -s
+uv run pytest -v -s
 ```
 
 ### 產生覆蓋率報告
 ```bash
-pytest --cov=tools --cov=utils --cov-report=html
+uv run pytest --cov=tools --cov=utils --cov-report=html
 ```
 
 覆蓋率報告會產生在 `htmlcov/index.html`

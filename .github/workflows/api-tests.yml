@@ -41,23 +41,22 @@ jobs:
     
     - name: 📦 Install dependencies
       run: |
-        uv pip install --system -r requirements-dev.txt
-        uv sync
+        uv sync --extra dev
     
     - name: 🧪 Run all tests
       if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
       run: |
-        pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=xml --cov-report=term
+        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=xml --cov-report=term
     
     - name: 🧪 Run ESG API tests only
       if: ${{ github.event.inputs.test_scope == 'esg' }}
       run: |
-        pytest tests/e2e/test_esg_api.py -v --tb=short
+        uv run pytest tests/e2e/test_esg_api.py -v --tb=short
     
     - name: 🧪 Run API client tests only
       if: ${{ github.event.inputs.test_scope == 'api_client' }}
       run: |
-        pytest tests/test_api_client.py -v --tb=short
+        uv run pytest tests/test_api_client.py -v --tb=short
     
     - name: 📊 Upload coverage to Codecov
       if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
