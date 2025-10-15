@@ -3,6 +3,8 @@
 
 import sys
 import subprocess
+import os
+import webbrowser
 
 def run_tests(scope="all"):
     """Run tests based on scope."""
@@ -10,7 +12,7 @@ def run_tests(scope="all"):
         "all": ["pytest", "tests/", "-v", "--tb=short"],
         "esg": ["pytest", "tests/e2e/test_esg_api.py", "-v"],
         "api": ["pytest", "tests/test_api_client.py", "-v"],
-        "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html"],
+        "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html", "--cov-report=term"],
         "quick": ["pytest", "tests/", "-x", "--tb=short"],  # Stop at first failure
     }
     
@@ -24,6 +26,11 @@ def run_tests(scope="all"):
     
     if scope == "cov" and result.returncode == 0:
         print("\n📊 Coverage report generated in htmlcov/index.html")
+        # 自動開啟瀏覽器查看報告
+        html_path = os.path.abspath("htmlcov/index.html")
+        if os.path.exists(html_path):
+            print(f"🌐 Opening coverage report in browser...")
+            webbrowser.open(f"file://{html_path}")
     
     return result.returncode
 

@@ -46,7 +46,7 @@ jobs:
     - name: 🧪 Run all tests
       if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
       run: |
-        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=xml --cov-report=term
+        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=term
     
     - name: 🧪 Run ESG API tests only
       if: ${{ github.event.inputs.test_scope == 'esg' }}
@@ -57,13 +57,6 @@ jobs:
       if: ${{ github.event.inputs.test_scope == 'api_client' }}
       run: |
         uv run pytest tests/test_api_client.py -v --tb=short
-    
-    - name: 📊 Upload coverage to Codecov
-      if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
     
     - name: 💬 Create issue on failure
       if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
