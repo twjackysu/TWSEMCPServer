@@ -1,0 +1,155 @@
+name: TWSE API E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # 每天早上 9 點執行 (UTC 1:00 = 台灣時間 9:00)
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    # 允許手動觸發
+    inputs:
+      test_scope:
+        description: '測試範圍'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - esg
+          - api_client
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    
+    - name: 📦 Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+    
+    - name: 📦 Install dependencies
+      run: |
+        uv pip install --system -r requirements-dev.txt
+        uv sync
+    
+    - name: 🧪 Run all tests
+      if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
+      run: |
+        pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=xml --cov-report=term
+    
+    - name: 🧪 Run ESG API tests only
+      if: ${{ github.event.inputs.test_scope == 'esg' }}
+      run: |
+        pytest tests/e2e/test_esg_api.py -v --tb=short
+    
+    - name: 🧪 Run API client tests only
+      if: ${{ github.event.inputs.test_scope == 'api_client' }}
+      run: |
+        pytest tests/test_api_client.py -v --tb=short
+    
+    - name: 📊 Upload coverage to Codecov
+      if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+    
+    - name: 💬 Create issue on failure
+      if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = '⚠️ TWSE API Schema Change Detected';
+          const body = `
+          ## 測試失敗通知
+          
+          E2E 測試失敗，可能原因：
+          - 證交所 API schema 已變更
+          - API 端點無法訪問
+          - 資料格式不符合預期
+          
+          ### 測試詳情
+          - **觸發方式**: ${context.eventName}
+          - **分支**: ${context.ref}
+          - **提交**: ${context.sha}
+          - **執行時間**: ${new Date().toISOString()}
+          
+          請檢查 [測試日誌](${context.payload.repository.html_url}/actions/runs/${context.runId}) 以了解詳細資訊。
+          
+          ### 建議行動
+          1. 檢查證交所 API 文件是否有更新
+          2. 查看測試日誌中的錯誤訊息
+          3. 更新相關的工具函數和測試
+          4. 更新 API_TODO.md 文件
+          `;
+          
+          // 檢查是否已有相同的 issue
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'api-change'
+          });
+          
+          const existingIssue = issues.data.find(issue => issue.title === title);
+          
+          if (!existingIssue) {
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['api-change', 'bug', 'automated']
+            });
+          } else {
+            // 更新現有 issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: `測試再次失敗 (${new Date().toISOString()})\n\n查看 [最新測試日誌](${context.payload.repository.html_url}/actions/runs/${context.runId})`
+            });
+          }
+    
+    - name: ✅ Comment on success after previous failure
+      if: success() && github.event_name == 'schedule'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // 關閉相關的 issue（如果有的話）
+          const issues = await github.rest.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            labels: 'api-change'
+          });
+          
+          for (const issue of issues.data) {
+            if (issue.title.includes('TWSE API Schema Change Detected')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: '✅ 測試已恢復正常，問題已解決。'
+              });
+              
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }
+          }
