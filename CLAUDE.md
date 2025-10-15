@@ -8,6 +8,19 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan Stock Excha
 
 ## Development Commands
 
+### Quick Reference
+
+| Task | Command |
+|------|---------|
+| Install dependencies | `uv sync` |
+| Install with tests | `uv sync --extra dev` |
+| Run server (dev) | `uv run fastmcp dev server.py` |
+| Run server (prod) | `uv run fastmcp run server.py` |
+| Run all tests | `uv run pytest` |
+| Run tests with coverage | `python run_tests.py cov` |
+| Run specific test | `uv run pytest tests/e2e/test_esg_api.py -v` |
+| Quick test (fail fast) | `python run_tests.py quick` |
+
 ### Environment Setup
 ```bash
 # Install dependencies using uv (recommended)
@@ -34,6 +47,16 @@ python server.py
 - **httpx**: Async HTTP client (>=0.28.1) 
 - **mcp[cli]**: MCP CLI tools (>=1.9.3)
 - **requests**: HTTP library for TWSE API calls (>=2.32.4)
+
+### Development Dependencies (Optional)
+```bash
+# Install test dependencies
+uv sync --extra dev
+```
+- **pytest**: Testing framework (>=7.4.0)
+- **pytest-cov**: Coverage reporting (>=4.1.0)
+- **pytest-mock**: Mocking support (>=3.11.1)
+- **pytest-asyncio**: Async test support (>=0.21.0)
 
 ## Code Architecture
 
@@ -166,6 +189,196 @@ Each prompt provides:
 - **API Client**: Unified `TWSEAPIClient` with proper User-Agent: "stock-mcp/1.0"
 - **SSL**: Verification disabled specifically for TWSE API compatibility
 - **Testing**: Manual testing recommended (no framework detected)
+
+## Testing
+
+### Test Location and Structure
+
+The project uses **pytest** for E2E (End-to-End) testing of TWSE API integrations:
+
+```
+tests/
+├── conftest.py              # Shared pytest fixtures
+├── test_api_client.py       # API client tests
+└── e2e/
+    └── test_esg_api.py      # ESG API E2E tests
+```
+
+### Running Tests
+
+#### Quick Test Commands
+```bash
+# Run all tests (recommended)
+uv run pytest
+
+# Run specific test file
+uv run pytest tests/e2e/test_esg_api.py -v
+
+# Run with coverage report
+uv run pytest --cov=tools --cov=utils --cov-report=html
+
+# Run and open HTML coverage report automatically
+python run_tests.py cov
+```
+
+#### Using run_tests.py Script
+```bash
+python run_tests.py all      # All tests
+python run_tests.py esg      # ESG API tests only
+python run_tests.py api      # API client tests only
+python run_tests.py cov      # With coverage + auto-open HTML report
+python run_tests.py quick    # Stop at first failure
+```
+
+### Test Coverage
+
+Current test coverage (see `API_TODO.md` for details):
+- **7 APIs tested** (19.4% of implemented APIs)
+- **100% coverage** of ESG APIs
+- Tests marked with 🧪 in API_TODO.md
+
+Tested APIs:
+- ✅ Anti-competitive litigation (`/opendata/t187ap46_L_20`)
+- ✅ Risk management (`/opendata/t187ap46_L_19`)
+- ✅ Information security (`/opendata/t187ap46_L_16`)
+- ✅ Supply chain management (`/opendata/t187ap46_L_13`)
+- ✅ Functional committees (`/opendata/t187ap46_L_9`)
+- ✅ Climate management (`/opendata/t187ap46_L_8`)
+- ✅ Company basic info (`/opendata/t187ap03_L`)
+
+### Adding Tests for New APIs
+
+When implementing a new API tool, **always add corresponding E2E tests**:
+
+#### 1. Choose the Right Test File
+- **ESG APIs**: Add to `tests/e2e/test_esg_api.py`
+- **Company APIs**: Add to `tests/e2e/test_company_api.py` (create if needed)
+- **Trading APIs**: Add to `tests/e2e/test_trading_api.py` (create if needed)
+
+#### 2. Test Template
+```python
+class TestYourNewAPI:
+    """Description of API being tested."""
+    
+    ENDPOINT = "/opendata/your_endpoint"
+    EXPECTED_FIELDS = [
+        "欄位1",
+        "欄位2",
+        "欄位3",
+    ]
+    
+    def test_api_endpoint_is_accessible(self):
+        """測試 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        assert data is not None, "API 應該回傳資料"
+        assert isinstance(data, list), "API 應該回傳 list"
+        assert len(data) > 0, "API 應該回傳至少一筆資料"
+    
+    def test_response_schema_matches_expected(self):
+        """測試回應 schema 符合預期."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        first_item = data[0]
+        
+        for field in self.EXPECTED_FIELDS:
+            assert field in first_item, f"欄位 '{field}' 應該存在於回應中"
+    
+    def test_get_company_data_by_code(self, sample_stock_code):
+        """測試依公司代號查詢資料."""
+        data = TWSEAPIClient.get_company_data(self.ENDPOINT, sample_stock_code)
+        
+        if data:
+            assert data.get("公司代號") == sample_stock_code
+```
+
+#### 3. Update API_TODO.md
+After adding tests, mark the API with 🧪:
+```markdown
+- [x] 🧪 Your API Name - `/opendata/your_endpoint`
+```
+
+### CI/CD Integration
+
+Tests run automatically via **GitHub Actions**:
+
+#### Automatic Triggers
+- ✅ Push to `main` or `develop` branch
+- ✅ Pull requests to `main`
+- ✅ Daily at 9:00 AM Taiwan time (monitors API changes)
+
+#### Manual Trigger
+1. Go to **Actions** tab on GitHub
+2. Select **"TWSE API E2E Tests"**
+3. Click **"Run workflow"**
+4. Choose test scope:
+   - `all` - Run all tests
+   - `esg` - ESG API tests only
+   - `api_client` - API client tests only
+
+#### Test Failure Alerts
+When tests fail (especially scheduled runs):
+- 🔔 Automatically creates GitHub issue
+- 📋 Labels: `api-change`, `bug`, `automated`
+- 📝 Includes failure details and logs
+- ✅ Auto-closes when tests pass again
+
+### Viewing Test Results
+
+#### 1. Terminal Output
+```bash
+uv run pytest --cov=tools --cov=utils --cov-report=term
+```
+Shows coverage summary in terminal.
+
+#### 2. HTML Coverage Report (Recommended)
+```bash
+python run_tests.py cov
+```
+Automatically opens `htmlcov/index.html` in browser showing:
+- Line-by-line coverage
+- Missing coverage highlights
+- Per-file statistics
+
+#### 3. GitHub Actions Logs
+Check the "🧪 Run all tests" step in Actions for:
+- Test results
+- Coverage statistics
+- Failure details
+
+### Test Best Practices
+
+When adding new API tools:
+
+1. **✅ DO**: Add E2E tests that call real TWSE APIs
+2. **✅ DO**: Test schema validation (field names and types)
+3. **✅ DO**: Test data format validation (company codes, dates, numbers)
+4. **✅ DO**: Test filtering/query logic with real data
+5. **✅ DO**: Use parametrized tests for testing multiple similar endpoints
+6. **✅ DO**: Mark API with 🧪 in API_TODO.md after adding tests
+
+7. **❌ DON'T**: Mock API responses (these are E2E tests)
+8. **❌ DON'T**: Assume field names won't change (that's what tests catch!)
+9. **❌ DON'T**: Skip edge case testing (empty results, invalid codes, etc.)
+
+### Example: Adding Tests for New ESG API
+
+```python
+# tests/e2e/test_esg_api.py
+
+@pytest.mark.parametrize("endpoint,name", [
+    ("/opendata/t187ap46_L_9", "功能性委員會"),
+    ("/opendata/t187ap46_L_20", "反競爭行為法律訴訟"),  # Your new API
+])
+def test_esg_api_endpoints_accessible(self, endpoint, name):
+    """測試所有 ESG API 端點可訪問."""
+    data = TWSEAPIClient.get_data(endpoint)
+    assert data is not None, f"{name} API 應該回傳資料"
+    assert isinstance(data, list), f"{name} API 應該回傳 list"
+```
+
+For detailed testing documentation, see:
+- 📖 `TESTING.md` - Complete testing guide
+- 📖 `.github/ACTIONS_GUIDE.md` - GitHub Actions usage
+- 📖 `.github/UV_INTEGRATION.md` - UV and dependency management
 
 ## Adding New Tools
 
