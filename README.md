@@ -54,9 +54,9 @@
 
 想了解目前支援的 API 覆蓋率？查看我們的 **[API TODO List](API_TODO.md)** 來追蹤實作進度！
 
-目前進度：**35/143 (24.5%)** 已完成 ✅
+目前進度：**37/143 (25.9%)** 已完成 ✅
 
-- 公司治理：8/56 個 (14.3%)
+- 公司治理：10/56 個 (17.9%)
 - 證券交易：12/36 個 (33.3%)
 - 財務報表：9/30 個 (30%)
 - 權證：2/3 個 (66.7%)
@@ -162,51 +162,6 @@
 - "目前哪些股票被外資看好？"
 
 **使用工具：** 12個工具進行全方位篩選和風險評估
-
-## 📚 可用工具
-
-### 公司資訊（13個工具）
-**基本資訊與新聞：**
-- `get_company_profile(code)` - 公司基本資訊
-- `get_company_dividend(code)` - 股利分配數據
-- `get_company_monthly_revenue(code)` - 月營收報告
-- `get_company_major_news(code)` - 公司重大訊息公告
-- `get_twse_news(start_date, end_date)` - 證交所官方新聞（可選日期篩選）
-- `get_twse_events(top=10)` - 證交所活動公告
-
-**財務報表：**
-- `get_company_income_statement(code)` - 綜合損益表（一般業）
-- `get_company_balance_sheet(code)` - 資產負債表（一般業）
-
-**ESG 與治理：**
-- `get_company_governance_info(code)` - 公司治理
-- `get_company_climate_management(code)` - 氣候相關管理
-- `get_company_risk_management(code)` - 風險管理政策
-- `get_company_supply_chain_management(code)` - 供應鏈數據
-- `get_company_info_security(code)` - 資訊安全指標
-
-### 交易數據（10個工具）
-- `get_stock_daily_trading(code)` - 每日交易統計
-- `get_stock_monthly_average(code)` - 月平均價格
-- `get_stock_valuation_ratios(code)` - 估值指標（本益比、殖利率、股價淨值比）
-- `get_stock_monthly_trading(code)` - 月交易數據
-- `get_stock_yearly_trading(code)` - 年度交易統計
-- `get_dividend_rights_schedule(code)` - 除權息日程
-- `get_etf_regular_investment_ranking()` - ETF定期定額投資排行
-- `get_warrant_basic_info(code)` - 權證基本資料
-- `get_warrant_daily_trading(code)` - 權證每日交易量值
-- `get_warrant_trader_count()` - 權證每日交易人數
-
-### 市場數據（6個工具）
-- `get_market_index_info(category, count, format)` - 市場指數資訊（支援分類篩選、數量控制和格式選擇）
-  - **category**: 指數分類（major=主要指數, sector=產業別, esg=永續指數, leverage=槓桿指數, return=報酬指數, thematic=主題指數, dividend=高股息指數, all=全部）
-  - **count**: 返回數量（預設20，最多50）
-  - **format**: 輸出格式（detailed=詳細, summary=摘要, simple=簡單）
-- `get_margin_trading_info()` - 融資融券統計
-- `get_real_time_trading_stats()` - 即時交易統計（每 5 秒更新）
-- `get_market_historical_index()` - 發行量加權股價指數歷史資料
-- `get_foreign_investment_by_industry()` - 外資及陸資投資統計（依行業別）
-- `get_top_foreign_holdings()` - 外資及陸資投資統計（前20名）
 
 ## 🤝 參與貢獻
 

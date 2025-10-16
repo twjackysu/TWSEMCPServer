@@ -75,9 +75,9 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 Want to see our current API coverage? Check out our **[API TODO List](API_TODO.md)** to track implementation progress!
 
-Current Progress: **35/143 (24.5%)** Completed ✅
+Current Progress: **37/143 (25.9%)** Completed ✅
 
-- Corporate Governance: 8/56 (14.3%)
+- Corporate Governance: 10/56 (17.9%)
 - Securities Trading: 12/36 (33.3%)
 - Financial Statements: 9/30 (30%)
 - Warrants: 2/3 (66.7%)
@@ -168,51 +168,6 @@ Current Progress: **35/143 (24.5%)** Completed ✅
 - "Which stocks are currently favored by foreign investors?"
 
 **Using tools:** 12 tools for comprehensive screening and risk assessment
-
-## 📚 Available Tools
-
-### Company Information (13 tools)
-**Basic Information & News:**
-- `get_company_profile(code)` - Basic company information
-- `get_company_dividend(code)` - Dividend distribution data
-- `get_company_monthly_revenue(code)` - Monthly revenue reports
-- `get_company_major_news(code)` - Company major announcements
-- `get_twse_news(start_date, end_date)` - TWSE official news (with optional date filtering)
-- `get_twse_events(top=10)` - TWSE event announcements
-
-**Financial Reports:**
-- `get_company_income_statement(code)` - Comprehensive income statements (general industry)
-- `get_company_balance_sheet(code)` - Balance sheet data (general industry)
-
-**ESG & Governance:**
-- `get_company_governance_info(code)` - Corporate governance
-- `get_company_climate_management(code)` - Climate-related management
-- `get_company_risk_management(code)` - Risk management policies
-- `get_company_supply_chain_management(code)` - Supply chain data
-- `get_company_info_security(code)` - Information security metrics
-
-### Trading Data (10 tools)
-- `get_stock_daily_trading(code)` - Daily trading statistics
-- `get_stock_monthly_average(code)` - Monthly price averages
-- `get_stock_valuation_ratios(code)` - Valuation metrics (P/E, dividend yield, P/B ratios)
-- `get_stock_monthly_trading(code)` - Monthly trading data
-- `get_stock_yearly_trading(code)` - Annual trading statistics
-- `get_dividend_rights_schedule(code)` - Ex-dividend/rights schedule
-- `get_etf_regular_investment_ranking()` - ETF regular investment ranking
-- `get_warrant_basic_info(code)` - Warrant basic information
-- `get_warrant_daily_trading(code)` - Warrant daily trading data
-- `get_warrant_trader_count()` - Warrant daily trader count
-
-### Market Data (6 tools)
-- `get_market_index_info(category, count, format)` - Market index information (with category filtering, count control, and format selection)
-  - **category**: Index category (major=major indices, sector=industry sectors, esg=ESG indices, leverage=leveraged indices, return=total return indices, thematic=themed indices, dividend=high dividend indices, all=all indices)
-  - **count**: Number of results to return (default: 20, max: 50)
-  - **format**: Output format (detailed=full details, summary=compact summary, simple=name and change only)
-- `get_margin_trading_info()` - Margin trading statistics
-- `get_real_time_trading_stats()` - Real-time trading statistics (5-second updates)
-- `get_market_historical_index()` - Taiwan Capitalization Weighted Stock Index historical data
-- `get_foreign_investment_by_industry()` - Foreign and mainland China investment by industry
-- `get_top_foreign_holdings()` - Top 20 foreign and mainland China holdings
 
 ## 🤝 Contributing
 
