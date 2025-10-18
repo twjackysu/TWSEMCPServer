@@ -75,13 +75,7 @@ A comprehensive **Model Context Protocol (MCP) Server** for Taiwan Stock Exchang
 
 Want to see our current API coverage? Check out our **[API TODO List](API_TODO.md)** to track implementation progress!
 
-Current Progress: **37/143 (25.9%)** Completed ✅
-
-- Corporate Governance: 10/56 (17.9%)
-- Securities Trading: 12/36 (33.3%)
-- Financial Statements: 9/30 (30%)
-- Warrants: 2/3 (66.7%)
-- Other categories in progress...
+Current Progress: **38/143 (26.6%)** Completed ✅
 
 > 💡 **Update Progress**: Run `python generate_todo.py` to auto-scan and update implementation status
 
