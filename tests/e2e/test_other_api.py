@@ -25,12 +25,10 @@ class TestETFAPI:
         # 檢查基本欄位是否存在
         assert isinstance(first_item, dict), "每筆資料應該是 dict"
 
-        # ETF 通常有證券代號和證券名稱
-        has_code_field = any(field in first_item for field in ["證券代號", "Code", "證券代碼"])
-        has_name_field = any(field in first_item for field in ["證券名稱", "Name", "證券簡稱"])
-
-        assert has_code_field, "ETF 資料應該包含證券代號相關欄位"
-        assert has_name_field, "ETF 資料應該包含證券名稱相關欄位"
+        # 根據實際 API 回應檢查欄位
+        expected_fields = ["No", "ETFsSecurityCode", "ETFsName", "ETFsNumberofTradingAccounts"]
+        for field in expected_fields:
+            assert field in first_item, f"ETF 排名資料應該包含欄位 '{field}'"
 
     def test_etf_ranking_limit(self):
         """測試 ETF 排名筆數限制."""
@@ -38,23 +36,16 @@ class TestETFAPI:
         # ETF 排名通常有筆數限制（前 N 名）
         assert len(data) <= 50, f"ETF 排名資料筆數應該有合理限制，實際: {len(data)}"
 
-    def test_etf_codes_format(self):
-        """測試 ETF 代號格式."""
+    def test_etf_codes_exist(self):
+        """測試 ETF 代號欄位存在."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         for item in data[:5]:  # 檢查前 5 筆
-            # 找出代號欄位
-            code = None
-            for field in ["證券代號", "Code", "證券代碼"]:
-                if field in item:
-                    code = item[field]
-                    break
-
-            if code and code != "N/A":
-                assert isinstance(code, str), "ETF 代號應該是字串"
-                # ETF 代號可能是 4-6 碼
-                assert code.isdigit(), f"ETF 代號應該是數字: {code}"
-                assert 4 <= len(code) <= 6, f"ETF 代號長度應該是 4-6 碼: {code}"
+            etf_code = item.get("ETFsSecurityCode")
+            if etf_code and etf_code != "N/A":
+                assert isinstance(etf_code, str), "ETF 代號應該是字串"
+                assert etf_code.strip() != "", "ETF 代號不應為空字串"
+                # 不限制長度或格式，支援各種 ETF 代號
 
 
 class TestNewsAPIs:
@@ -99,12 +90,10 @@ class TestNewsAPIs:
 
         assert isinstance(first_item, dict), "每筆活動資料應該是 dict"
 
-        # 活動通常有標題、日期等基本欄位
-        has_title = any(field in first_item for field in ["標題", "title", "主旨", "Title", "活動名稱"])
-        has_date = any(field in first_item for field in ["日期", "date", "時間", "Date", "活動日期"])
-
-        assert has_title, "活動資料應該包含標題相關欄位"
-        assert has_date, "活動資料應該包含日期相關欄位"
+        # 根據實際 API 回應檢查欄位
+        expected_fields = ["No", "Title", "Details"]
+        for field in expected_fields:
+            assert field in first_item, f"活動資料應該包含欄位 '{field}'"
 
     def test_news_content_not_empty(self):
         """測試新聞內容不為空."""

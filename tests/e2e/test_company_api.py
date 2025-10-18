@@ -10,21 +10,18 @@ class TestCompanyDividendAPI:
     ENDPOINT = "/opendata/t187ap45_L"
     EXPECTED_FIELDS = [
         "出表日期",
-        "股利所屬年度",
         "公司代號",
         "公司名稱",
-        "股利政策",
-        "董事會決議日",
-        "股東會決議日",
-        "除息交易日",
-        "除息參考價",
-        "除權交易日",
-        "除權參考價",
-        "權息同除交易日",
-        "權息同除參考價",
-        "股東股利",
-        "現金股利",
-        "股票股利"
+        "決議（擬議）進度",
+        "股利年度",
+        "股利所屬年(季)度",
+        "股利所屬期間",
+        "期別",
+        "董事會（擬議）股利分派日",
+        "股東會日期",
+        "股東配發-盈餘分配之現金股利(元/股)",
+        "股東配發-股東配發之現金(股利)總金額(元)",
+        "摘錄公司章程-股利分派部分"
     ]
 
     def test_api_endpoint_is_accessible(self):
@@ -46,16 +43,16 @@ class TestCompanyDividendAPI:
         for field in self.EXPECTED_FIELDS:
             assert field in first_item, f"欄位 '{field}' 應該存在於回應中"
 
-    def test_company_code_format(self):
-        """測試公司代號格式正確."""
+    def test_company_code_exists(self):
+        """測試公司代號欄位存在且有效."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         for item in data[:10]:  # 檢查前 10 筆
             code = item.get("公司代號")
             assert code is not None, "公司代號不應為 None"
             assert isinstance(code, str), "公司代號應該是字串"
-            assert code.isdigit(), f"公司代號應該是數字: {code}"
-            assert len(code) == 4, f"公司代號應該是 4 碼: {code}"
+            assert code.strip() != "", "公司代號不應為空字串"
+            # 不限制長度或特定格式，支援一般股、特別股、ETF等各種代號
 
     def test_get_company_data_by_code(self, sample_stock_code):
         """測試依公司代號查詢資料."""

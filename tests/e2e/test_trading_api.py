@@ -127,8 +127,8 @@ class TestForeignInvestmentAPIs:
 class TestTradingDataIntegrity:
     """交易數據完整性測試."""
 
-    def test_stock_codes_are_valid_in_trading_apis(self):
-        """測試交易 APIs 中的股票代號格式正確."""
+    def test_stock_codes_exist_in_trading_apis(self):
+        """測試交易 APIs 中的股票代號欄位存在且有效."""
         # 測試日成交資訊作為代表
         endpoint = "/exchangeReport/STOCK_DAY_ALL"
         data = TWSEAPIClient.get_data(endpoint)
@@ -137,8 +137,8 @@ class TestTradingDataIntegrity:
             code = item.get("Code")
             if code and code != "N/A":  # 排除空值和 N/A
                 assert isinstance(code, str), "股票代號應該是字串"
-                assert code.isdigit(), f"股票代號應該是數字: {code}"
-                assert len(code) == 4, f"股票代號應該是 4 碼: {code}"
+                assert code.strip() != "", "股票代號不應為空字串"
+                # 支援各種證券代號格式：一般股票(4碼)、ETF(6碼)、特別股等
 
     def test_get_trading_data_by_code(self, sample_stock_code):
         """測試依股票代號查詢交易資料."""
