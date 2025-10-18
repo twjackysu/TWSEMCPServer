@@ -178,9 +178,88 @@ class TestInclusiveFinanceAPI:
                 f"過濾後的資料應該至少有一個欄位有意義: 貸放件數={loan_count}, 貸放餘額={loan_amount}, 教育人數={education_count}"
 
 
+class TestCommunityRelationsAPI:
+    """社區關係 API 測試."""
+
+    ENDPOINT = "/opendata/t187ap46_L_15"
+    EXPECTED_FIELDS = [
+        "出表日期",
+        "報告年度",
+        "公司代號",
+        "公司名稱",
+        "在人口密集地區的煉油廠數量(座)"
+    ]
+
+    def test_api_endpoint_is_accessible(self):
+        """測試 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        assert data is not None, "API 應該回傳資料"
+        assert isinstance(data, list), "API 應該回傳 list"
+        assert len(data) > 0, "API 應該回傳至少一筆資料"
+
+    def test_response_schema_matches_expected(self):
+        """測試回應 schema 符合預期."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        # 取第一筆資料檢查欄位
+        first_item = data[0]
+        assert isinstance(first_item, dict), "每筆資料應該是 dict"
+
+        # 檢查所有必要欄位都存在
+        for field in self.EXPECTED_FIELDS:
+            assert field in first_item, f"欄位 '{field}' 應該存在於回應中"
+
+    def test_company_code_format(self):
+        """測試公司代號格式正確."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        for item in data[:10]:  # 檢查前 10 筆
+            code = item.get("公司代號")
+            assert code is not None, "公司代號不應為 None"
+            assert isinstance(code, str), "公司代號應該是字串"
+            assert code.isdigit(), f"公司代號應該是數字: {code}"
+            assert len(code) == 4, f"公司代號應該是 4 碼: {code}"
+
+    def test_refinery_count_format(self):
+        """測試煉油廠數量格式正確."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        for item in data[:10]:
+            refinery_count = item.get("在人口密集地區的煉油廠數量(座)")
+            assert refinery_count is not None, "煉油廠數量欄位不應為 None"
+            # 應該是數字字串或 "0" 或 "N/A"
+            assert isinstance(refinery_count, str) or isinstance(refinery_count, (int, float)), \
+                f"煉油廠數量格式不正確: {refinery_count}"
+
+    def test_get_company_data_by_code(self, sample_stock_code):
+        """測試依公司代號查詢資料."""
+        data = TWSEAPIClient.get_company_data(self.ENDPOINT, sample_stock_code)
+
+        if data:
+            assert data.get("公司代號") == sample_stock_code, \
+                f"查詢結果應該是指定的公司代號 {sample_stock_code}"
+
+    def test_filter_non_zero_refineries(self):
+        """測試過濾非零煉油廠的邏輯."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        # 使用 has_meaningful_data helper 函數
+        filtered_data = [
+            item for item in data
+            if isinstance(item, dict) and
+            has_meaningful_data(item, "在人口密集地區的煉油廠數量(座)")
+        ]
+
+        # 檢查過濾後的資料都不是零或 N/A
+        for item in filtered_data:
+            refinery_count = item.get("在人口密集地區的煉油廠數量(座)")
+            assert refinery_count not in ["0", "N/A", "", None], \
+                f"過濾後不應包含零值或 N/A: {refinery_count}"
+
+
 class TestOtherESGAPIs:
     """其他 ESG API 測試."""
-    
+
     @pytest.mark.parametrize("endpoint,name", [
         ("/opendata/t187ap46_L_9", "功能性委員會"),
         ("/opendata/t187ap46_L_8", "氣候相關議題管理"),
@@ -189,6 +268,7 @@ class TestOtherESGAPIs:
         ("/opendata/t187ap46_L_16", "資訊安全"),
         ("/opendata/t187ap46_L_17", "普惠金融"),
         ("/opendata/t187ap46_L_20", "反競爭行為法律訴訟"),
+        ("/opendata/t187ap46_L_15", "社區關係"),
     ])
     def test_esg_api_endpoints_accessible(self, endpoint, name):
         """測試所有 ESG API 端點可訪問."""
@@ -196,7 +276,7 @@ class TestOtherESGAPIs:
         assert data is not None, f"{name} API 應該回傳資料"
         assert isinstance(data, list), f"{name} API 應該回傳 list"
         assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
-    
+
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap46_L_9",
         "/opendata/t187ap46_L_8",
@@ -205,6 +285,7 @@ class TestOtherESGAPIs:
         "/opendata/t187ap46_L_16",
         "/opendata/t187ap46_L_17",
         "/opendata/t187ap46_L_20",
+        "/opendata/t187ap46_L_15",
     ])
     def test_esg_apis_have_company_code_field(self, endpoint):
         """測試所有 ESG API 都有公司代號欄位."""
