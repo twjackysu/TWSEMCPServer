@@ -19,6 +19,11 @@ on:
         options:
           - all
           - esg
+          - company
+          - financials
+          - trading
+          - warrants
+          - other
           - api_client
 
 jobs:
@@ -46,13 +51,38 @@ jobs:
     - name: 🧪 Run all tests
       if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
       run: |
-        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=term
-    
+        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=term --maxfail=10
+
     - name: 🧪 Run ESG API tests only
       if: ${{ github.event.inputs.test_scope == 'esg' }}
       run: |
         uv run pytest tests/e2e/test_esg_api.py -v --tb=short
-    
+
+    - name: 🧪 Run Company API tests only
+      if: ${{ github.event.inputs.test_scope == 'company' }}
+      run: |
+        uv run pytest tests/e2e/test_company_api.py -v --tb=short
+
+    - name: 🧪 Run Financial API tests only
+      if: ${{ github.event.inputs.test_scope == 'financials' }}
+      run: |
+        uv run pytest tests/e2e/test_financials_api.py -v --tb=short
+
+    - name: 🧪 Run Trading API tests only
+      if: ${{ github.event.inputs.test_scope == 'trading' }}
+      run: |
+        uv run pytest tests/e2e/test_trading_api.py -v --tb=short
+
+    - name: 🧪 Run Warrants API tests only
+      if: ${{ github.event.inputs.test_scope == 'warrants' }}
+      run: |
+        uv run pytest tests/e2e/test_warrants_api.py -v --tb=short
+
+    - name: 🧪 Run Other API tests only
+      if: ${{ github.event.inputs.test_scope == 'other' }}
+      run: |
+        uv run pytest tests/e2e/test_other_api.py -v --tb=short
+
     - name: 🧪 Run API client tests only
       if: ${{ github.event.inputs.test_scope == 'api_client' }}
       run: |

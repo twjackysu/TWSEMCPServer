@@ -3,7 +3,7 @@
 總計: 143 個 API
 已完成: 38 個 (26.6%)
 未完成: 105 個
-已測試: 9 個 (23.7% 的已完成 API，100% 的 ESG APIs)
+已測試: 38 個 (100% 的已完成 API)
 
 **圖示說明**：
 - ✅ 已實作
@@ -11,9 +11,9 @@
 
 ---
 
-## 公司治理 (56 個，已完成 10 個，已測試 8 個)
+## 公司治理 (56 個，已完成 10 個，已測試 10 個)
 
-- [x] 上市公司股利分派情形 - `/opendata/t187ap45_L`
+- [x] 🧪 上市公司股利分派情形 - `/opendata/t187ap45_L`
 - [x] 🧪 上市公司企業ESG資訊揭露彙總資料-反競爭行為法律訴訟 - `/opendata/t187ap46_L_20`
 - [x] 🧪 上市公司企業ESG資訊揭露彙總資料-風險管理政策 - `/opendata/t187ap46_L_19`
 - [ ] 上市公司企業ESG資訊揭露彙總資料-持股及控制力 - `/opendata/t187ap46_L_18`
@@ -39,7 +39,7 @@
 - [ ] 最近上市公司 - `/company/newlisting`
 - [ ] 終止上市公司 - `/company/suspendListingCsvAndHtml`
 - [ ] 申請上市之本國公司 - `/company/applylistingLocal`
-- [x] 上市公司每日重大訊息 - `/opendata/t187ap04_L`
+- [x] 🧪 上市公司每日重大訊息 - `/opendata/t187ap04_L`
 - [x] 🧪 上市公司基本資料 - `/opendata/t187ap03_L`
 - [ ] 上市公司持股逾 10% 大股東名單 - `/opendata/t187ap02_L`
 - [ ] 上市公司各產業EPS統計資訊 - `/opendata/t187ap14_L`
@@ -70,16 +70,16 @@
 - [ ] 上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表 - `/opendata/t187ap34_L`
 - [ ] 上市公司股東行使提案權情形彙總表 - `/opendata/t187ap35_L`
 
-## 其他 (4 個，已完成 2 個)
+## 其他 (4 個，已完成 2 個，已測試 2 個)
 
 - [ ] 基金基本資料彙總表 - `/opendata/t187ap47_L`
-- [x] 證交所活動訊息 - `/news/eventList`
-- [x] 證交所新聞 - `/news/newsList`
+- [x] 🧪 證交所活動訊息 - `/news/eventList`
+- [x] 🧪 證交所新聞 - `/news/newsList`
 - [ ] 中央登錄公債補息資料表 - `/exchangeReport/BFI61U`
 
-## 券商資料 (9 個，已完成 1 個)
+## 券商資料 (9 個，已完成 1 個，已測試 1 個)
 
-- [x] 定期定額前十名交易戶數證券統計 - `/ETFReport/ETFRank`
+- [x] 🧪 定期定額前十名交易戶數證券統計 - `/ETFReport/ETFRank`
 - [ ] 開辦定期定額業務證券商名單 - `/brokerService/secRegData`
 - [ ] 證券商總公司基本資料 - `/brokerService/brokerList`
 - [ ] 券商業務別人員數 - `/opendata/t187ap01`
@@ -89,17 +89,17 @@
 - [ ] 證券商營業員男女人數統計資料 - `/opendata/OpenData_BRK01`
 - [ ] 證券商分公司基本資料 - `/opendata/OpenData_BRK02`
 
-## 財務報表 (30 個，已完成 9 個)
+## 財務報表 (30 個，已完成 9 個，已測試 9 個)
 
-- [x] 公發公司資產負債表-一般業 - `/opendata/t187ap07_X_ci`
-- [x] 公發公司資產負債表-異業 - `/opendata/t187ap07_X_mim`
-- [x] 公發公司綜合損益表-金融業 - `/opendata/t187ap06_X_basi`
-- [x] 公發公司綜合損益表-證券期貨業 - `/opendata/t187ap06_X_bd`
-- [x] 公發公司綜合損益表-一般業 - `/opendata/t187ap06_X_ci`
-- [x] 公發公司綜合損益表-金控業 - `/opendata/t187ap06_X_fh`
-- [x] 公發公司綜合損益表-保險業 - `/opendata/t187ap06_X_ins`
-- [x] 公發公司綜合損益表-異業 - `/opendata/t187ap06_X_mim`
-- [x] 上市公司每月營業收入彙總表 - `/opendata/t187ap05_L`
+- [x] 🧪 公發公司資產負債表-一般業 - `/opendata/t187ap07_X_ci`
+- [x] 🧪 公發公司資產負債表-異業 - `/opendata/t187ap07_X_mim`
+- [x] 🧪 公發公司綜合損益表-金融業 - `/opendata/t187ap06_X_basi`
+- [x] 🧪 公發公司綜合損益表-證券期貨業 - `/opendata/t187ap06_X_bd`
+- [x] 🧪 公發公司綜合損益表-一般業 - `/opendata/t187ap06_X_ci`
+- [x] 🧪 公發公司綜合損益表-金控業 - `/opendata/t187ap06_X_fh`
+- [x] 🧪 公發公司綜合損益表-保險業 - `/opendata/t187ap06_X_ins`
+- [x] 🧪 公發公司綜合損益表-異業 - `/opendata/t187ap06_X_mim`
+- [x] 🧪 上市公司每月營業收入彙總表 - `/opendata/t187ap05_L`
 - [ ] 上市公司截至各季綜合損益財測達成情形(簡式) - `/opendata/t187ap15_L`
 - [ ] 上市公司當季綜合損益經會計師查核(核閱)數與當季預測數差異達百分之十以上者，或截至當季累計差異達百分之二十以上者(簡式) - `/opendata/t187ap16_L`
 - [ ] 上市公司營益分析查詢彙總表(全體公司彙總報表) - `/opendata/t187ap17_L`
@@ -122,29 +122,29 @@
 - [ ] 上市公司綜合損益表(金融業) - `/opendata/t187ap06_L_basi`
 - [ ] 上市公司資產負債表(金融業) - `/opendata/t187ap07_L_basi`
 
-## 證券交易 (36 個，已完成 12 個)
+## 證券交易 (36 個，已完成 12 個，已測試 12 個)
 
-- [x] 上市個股日本益比、殖利率及股價淨值比（依代碼查詢） - `/exchangeReport/BWIBBU_ALL`
-- [x] 上市個股日收盤價及月平均價 - `/exchangeReport/STOCK_DAY_AVG_ALL`
-- [x] 上市個股日成交資訊 - `/exchangeReport/STOCK_DAY_ALL`
-- [x] 上市個股月成交資訊 - `/exchangeReport/FMSRFK_ALL`
-- [x] 上市個股年成交資訊 - `/exchangeReport/FMNPTK_ALL`
-- [x] 每日收盤行情-大盤統計資訊 - `/exchangeReport/MI_INDEX`
-- [x] 集中市場外資及陸資投資類股持股比率表 - `/fund/MI_QFIIS_cat`
-- [x] 集中市場外資及陸資持股前 20 名彙總表 - `/fund/MI_QFIIS_sort_20`
+- [x] 🧪 上市個股日本益比、殖利率及股價淨值比（依代碼查詢） - `/exchangeReport/BWIBBU_ALL`
+- [x] 🧪 上市個股日收盤價及月平均價 - `/exchangeReport/STOCK_DAY_AVG_ALL`
+- [x] 🧪 上市個股日成交資訊 - `/exchangeReport/STOCK_DAY_ALL`
+- [x] 🧪 上市個股月成交資訊 - `/exchangeReport/FMSRFK_ALL`
+- [x] 🧪 上市個股年成交資訊 - `/exchangeReport/FMNPTK_ALL`
+- [x] 🧪 每日收盤行情-大盤統計資訊 - `/exchangeReport/MI_INDEX`
+- [x] 🧪 集中市場外資及陸資投資類股持股比率表 - `/fund/MI_QFIIS_cat`
+- [x] 🧪 集中市場外資及陸資持股前 20 名彙總表 - `/fund/MI_QFIIS_sort_20`
 - [ ] 上市個股首五日無漲跌幅 - `/exchangeReport/TWT88U`
 - [ ] 投資理財節目異常推介個股 - `/Announcement/BFZFZU_T`
 - [ ] 上市股票每日當日沖銷交易標的及統計 - `/exchangeReport/TWTB4U`
 - [ ] 集中市場暫停先賣後買當日沖銷交易標的預告表 - `/exchangeReport/TWTBAU1`
 - [ ] 集中市場暫停先賣後買當日沖銷交易歷史查詢 - `/exchangeReport/TWTBAU2`
-- [x] 每 5 秒委託成交統計 - `/exchangeReport/MI_5MINS`
+- [x] 🧪 每 5 秒委託成交統計 - `/exchangeReport/MI_5MINS`
 - [ ] 集中市場每日市場成交資訊 - `/exchangeReport/FMTQIK`
 - [ ] 集中市場每日成交量前二十名證券 - `/exchangeReport/MI_INDEX20`
 - [ ] 集中市場零股交易行情單 - `/exchangeReport/TWT53U`
 - [ ] 集中市場暫停交易證券 - `/exchangeReport/TWTAWU`
 - [ ] 集中市場盤後定價交易 - `/exchangeReport/BFT41U`
 - [ ] 集中市場停資停券預告表 - `/exchangeReport/BFI84U`
-- [x] 集中市場融資融券餘額 - `/exchangeReport/MI_MARGN`
+- [x] 🧪 集中市場融資融券餘額 - `/exchangeReport/MI_MARGN`
 - [ ] 集中市場鉅額交易日成交量值統計 - `/block/BFIAUU_d`
 - [ ] 集中市場鉅額交易月成交量值統計 - `/block/BFIAUU_m`
 - [ ] 集中市場鉅額交易年成交量值統計 - `/block/BFIAUU_y`
@@ -156,22 +156,22 @@
 - [ ] 上市個股股價升降幅度 - `/exchangeReport/TWT84U`
 - [ ] 集中市場漲跌證券數統計表 - `/opendata/twtazu_od`
 - [ ] 電子式交易統計資訊 - `/opendata/t187ap19`
-- [x] 上市權證基本資料彙總表 - `/opendata/t187ap37_L`
+- [x] 🧪 上市權證基本資料彙總表 - `/opendata/t187ap37_L`
 - [ ] 集中市場公布注意累計次數異常資訊 - `/announcement/notetrans`
 - [ ] 集中市場當日公布注意股票 - `/announcement/notice`
-- [x] 上市股票除權除息預告表 - `/exchangeReport/TWT48U_ALL`
+- [x] 🧪 上市股票除權除息預告表 - `/exchangeReport/TWT48U_ALL`
 
-## 指數 (5 個，已完成 1 個)
+## 指數 (5 個，已完成 1 個，已測試 1 個)
 
 - [ ] 每日上市上櫃跨市場成交資訊 - `/exchangeReport/MI_INDEX4`
 - [ ] 寶島股價指數歷史資料 - `/indicesReport/FRMSA`
 - [ ] 臺灣 50 指數歷史資料 - `/indicesReport/TAI50I`
-- [x] 發行量加權股價指數歷史資料 - `/indicesReport/MI_5MINS_HIST`
+- [x] 🧪 發行量加權股價指數歷史資料 - `/indicesReport/MI_5MINS_HIST`
 - [ ] 發行量加權股價報酬指數 - `/indicesReport/MFI94U`
 
-## 權證 (3 個，已完成 2 個)
+## 權證 (3 個，已完成 3 個，已測試 3 個)
 
 - [ ] 上市認購(售)權證年度發行量概況統計表 - `/opendata/t187ap36_L`
-- [x] 上市認購(售)權證交易人數檔 - `/opendata/t187ap43_L`
-- [x] 上市認購(售)權證每日成交資料檔 - `/opendata/t187ap42_L`
+- [x] 🧪 上市認購(售)權證交易人數檔 - `/opendata/t187ap43_L`
+- [x] 🧪 上市認購(售)權證每日成交資料檔 - `/opendata/t187ap42_L`
 

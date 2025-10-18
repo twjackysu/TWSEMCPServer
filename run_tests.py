@@ -9,11 +9,18 @@ import webbrowser
 def run_tests(scope="all"):
     """Run tests based on scope."""
     commands = {
-        "all": ["pytest", "tests/", "-v", "--tb=short"],
+        "all": ["pytest", "tests/", "-v", "--tb=short", "--maxfail=10"],
         "esg": ["pytest", "tests/e2e/test_esg_api.py", "-v"],
+        "company": ["pytest", "tests/e2e/test_company_api.py", "-v"],
+        "financials": ["pytest", "tests/e2e/test_financials_api.py", "-v"],
+        "trading": ["pytest", "tests/e2e/test_trading_api.py", "-v"],
+        "warrants": ["pytest", "tests/e2e/test_warrants_api.py", "-v"],
+        "other": ["pytest", "tests/e2e/test_other_api.py", "-v"],
         "api": ["pytest", "tests/test_api_client.py", "-v"],
+        "e2e": ["pytest", "tests/e2e/", "-v", "--tb=short"],  # All E2E tests
         "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html", "--cov-report=term"],
         "quick": ["pytest", "tests/", "-x", "--tb=short"],  # Stop at first failure
+        "parallel": ["pytest", "tests/", "-v", "--tb=short", "-n", "auto", "--dist=worksteal"],  # Parallel execution
     }
     
     if scope not in commands:
@@ -22,7 +29,10 @@ def run_tests(scope="all"):
         return 1
     
     print(f"🧪 Running {scope} tests...\n")
-    result = subprocess.run(commands[scope])
+
+    # 使用 uv run 來執行 pytest
+    cmd = ["uv", "run"] + commands[scope]
+    result = subprocess.run(cmd)
     
     if scope == "cov" and result.returncode == 0:
         print("\n📊 Coverage report generated in htmlcov/index.html")
