@@ -1,6 +1,21 @@
 # 🚀 TWStockMCPServer
 
-[![License: MIT](https://## ⚙️ Installation
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
+[![API Tests](https://github.com/twjackysu/TWStockMCPServer/actions/workflows/api-tests.yml/badge.svg)](https://github.com/twjackysu/TWStockMCPServer/actions/workflows/api-tests.yml)
+
+A comprehensive **Model Context Protocol (MCP) server** designed for Taiwan Stock Exchange (TWSE) data analysis, providing real-time stock information, financial statements, ESG data, and trend analysis functionality.
+
+<a href="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer/badge" />
+</a>
+
+## 🌏 Language Versions
+
+- **English** | [繁體中文](README.md)
+
+## ⚙️ Installation
 
 ### 🚀 Option 1: Direct Online Usage (Recommended)
 
