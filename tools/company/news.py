@@ -20,14 +20,18 @@ def register_tools(mcp):
         Returns:
             Formatted string containing major announcements including:
             - Report date (出表日期)
-            - Announcement date (發言日期) 
+            - Announcement date (發言日期)
             - Announcement time (發言時間)
             - Company code (公司代號)
             - Company name (公司名稱)
-            - Subject/Title (主旨)
+            - Subject/Title (主旨 )
             - Applicable regulations (符合條款)
             - Event occurrence date (事實發生日)
             - Description/Details (說明)
+
+        Note:
+            This API provides basic announcement information without speaker/contact details.
+            For complete contact information, refer to company's official announcements.
         """
         try:
             if code:

@@ -53,24 +53,25 @@ class TWSEAPIClient:
     @classmethod
     def get_company_data(cls, endpoint: str, code: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
         """
-        Fetch company-specific data from TWSE API.
-        
+        Fetch company or warrant specific data from TWSE API.
+
         Args:
             endpoint: API endpoint path
-            code: Company stock code
+            code: Company stock code or warrant code
             timeout: Request timeout in seconds
-            
+
         Returns:
-            Dictionary containing company data or None if not found
+            Dictionary containing company/warrant data or None if not found
         """
         try:
             data = cls.get_data(endpoint, timeout)
-            # Filter data by company code
+            # Filter data by company/warrant code
             filtered_data = [
-                item for item in data 
+                item for item in data
                 if isinstance(item, dict) and (
-                    item.get("公司代號") == code or 
-                    item.get("Code") == code
+                    item.get("公司代號") == code or
+                    item.get("Code") == code or
+                    item.get("權證代號") == code
                 )
             ]
             return filtered_data[0] if filtered_data else None

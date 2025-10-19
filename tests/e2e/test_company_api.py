@@ -69,20 +69,14 @@ class TestCompanyNewsAPI:
     ENDPOINT = "/opendata/t187ap04_L"
     EXPECTED_FIELDS = [
         "出表日期",
+        "發言日期",
+        "發言時間",
         "公司代號",
         "公司名稱",
         "主旨 ",
         "符合條款",
         "事實發生日",
-        "說明",
-        "發言人",
-        "發言人職稱",
-        "發言人電話",
-        "發言人電子郵件",
-        "代理發言人",
-        "代理發言人職稱",
-        "代理發言人電話",
-        "代理發言人電子郵件"
+        "說明"
     ]
 
     def test_api_endpoint_is_accessible(self):

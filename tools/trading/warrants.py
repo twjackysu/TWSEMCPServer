@@ -28,7 +28,12 @@ def register_tools(mcp):
             - Exercise start date (履約開始日)
             - Last trading date (最後交易日)
             - Exercise deadline (履約截止日)
-            - And other warrant specifications
+            - Issue size in thousand units (發行單位數量(仟單位))
+            - Settlement method (結算方式(詳附註編號說明))
+            - Underlying securities/index (標的證券/指數)
+            - Latest exercise allocation per thousand units (最新標的履約配發數量(每仟單位權證))
+            - Original/latest exercise prices and price limits (原始/最新履約價格及上下限價格)
+            - Notes (備註)
         """
         try:
             if code:
@@ -55,11 +60,14 @@ def register_tools(mcp):
         Returns:
             Formatted string containing warrant daily trading data including:
             - Report date (出表日期)
-            - Trading date (交易日期)
             - Warrant code (權證代號)
             - Warrant name (權證名稱)
-            - Trading value (成交金額)
             - Trading volume in lots (成交張數)
+            - Trading value (成交金額)
+
+        Note:
+            This API may return empty data when there are no warrant trades for the day.
+            Check warrant basic info to see available warrants before querying trading data.
         """
         try:
             if code:
