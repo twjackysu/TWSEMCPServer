@@ -127,3 +127,30 @@ def register_tools(mcp):
             return format_multiple_records(data)
         except Exception:
             return ""
+
+    @mcp.tool
+    def get_taiwan_island_index_history() -> str:
+        """Obtain historical data for Taiwan Island Stock Price Index."""
+        try:
+            data = TWSEAPIClient.get_latest_market_data("/indicesReport/FRMSA", count=20)
+            return format_multiple_records(data)
+        except Exception:
+            return ""
+
+    @mcp.tool
+    def get_taiwan_50_index_history() -> str:
+        """Obtain historical data for Taiwan 50 Index."""
+        try:
+            data = TWSEAPIClient.get_latest_market_data("/indicesReport/TAI50I", count=20)
+            return format_multiple_records(data)
+        except Exception:
+            return ""
+
+    @mcp.tool
+    def get_taiwan_total_return_index() -> str:
+        """Obtain Taiwan Capitalization Weighted Stock Price Return Index."""
+        try:
+            data = TWSEAPIClient.get_latest_market_data("/indicesReport/MFI94U", count=20)
+            return format_multiple_records(data)
+        except Exception:
+            return ""

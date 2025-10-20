@@ -99,3 +99,23 @@ def register_tools(mcp):
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""
+
+    @mcp.tool
+    def get_warrant_yearly_issuance_statistics() -> str:
+        """
+        Get yearly issuance volume statistics for listed call/put warrants.
+        
+        Retrieves annual statistics on warrant issuance volumes by type and period.
+        
+        Returns:
+            Formatted string containing warrant yearly issuance statistics including:
+            - Year (年度)
+            - Warrant type (權證類型)
+            - Issuance volume (發行量)
+            - And other issuance-related statistics
+        """
+        try:
+            data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+            return format_multiple_records(data) if data else ""
+        except Exception:
+            return ""

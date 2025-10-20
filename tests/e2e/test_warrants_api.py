@@ -198,6 +198,62 @@ class TestWarrantTraderCountAPI:
                     f"人數格式不正確: {count}"
 
 
+class TestWarrantIssuanceAPI:
+    """權證年度發行量概況統計表測試."""
+
+    def test_warrant_issuance_api_accessible(self):
+        """測試權證年度發行量概況統計表 API 可訪問."""
+        data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+        assert data is not None, "權證年度發行量概況統計表 API 應該回傳資料"
+        assert isinstance(data, list), "權證年度發行量概況統計表 API 應該回傳 list"
+        assert len(data) > 0, "權證年度發行量概況統計表 API 應該回傳至少一筆資料"
+
+    def test_warrant_issuance_api_schema(self):
+        """測試權證年度發行量概況統計表 API 的數據結構."""
+        data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+        first_item = data[0]
+
+        # 檢查必要的欄位是否存在
+        required_fields = [
+            "出表日期", "發行人代號", "發行人名稱",
+            "權證代號", "名稱", "標的代號", "標的名稱", "申請發行日期"
+        ]
+
+        for field in required_fields:
+            assert field in first_item, f"權證年度發行量概況統計表應該包含 {field} 欄位"
+
+    def test_warrant_issuance_api_data_types(self):
+        """測試權證年度發行量概況統計表 API 的數據類型."""
+        data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+        first_item = data[0]
+
+        # 檢查數據類型
+        assert isinstance(first_item.get("出表日期"), str), "出表日期應該是字串"
+        assert isinstance(first_item.get("發行人代號"), str), "發行人代號應該是字串"
+        assert isinstance(first_item.get("發行人名稱"), str), "發行人名稱應該是字串"
+        assert isinstance(first_item.get("權證代號"), str), "權證代號應該是字串"
+        assert isinstance(first_item.get("名稱"), str), "名稱應該是字串"
+        assert isinstance(first_item.get("標的代號"), str), "標的代號應該是字串"
+        assert isinstance(first_item.get("標的名稱"), str), "標的名稱應該是字串"
+        assert isinstance(first_item.get("申請發行日期"), str), "申請發行日期應該是字串"
+
+    def test_warrant_issuance_api_data_consistency(self):
+        """測試權證年度發行量概況統計表 API 的數據一致性."""
+        data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+
+        # 檢查所有記錄都有相同的出表日期
+        report_dates = {item.get("出表日期") for item in data}
+        assert len(report_dates) == 1, "所有記錄應該有相同的出表日期"
+
+        # 檢查權證代號不為空
+        warrant_codes = [item.get("權證代號") for item in data]
+        assert all(code for code in warrant_codes), "所有權證代號都不應該為空"
+
+        # 檢查發行人代號不為空
+        issuer_codes = [item.get("發行人代號") for item in data]
+        assert all(code for code in issuer_codes), "所有發行人代號都不應該為空"
+
+
 class TestWarrantDataConsistency:
     """權證數據一致性測試."""
 
@@ -249,6 +305,7 @@ class TestWarrantAPIsOverview:
     """權證 APIs 整體測試."""
 
     @pytest.mark.parametrize("endpoint,name", [
+        ("/opendata/t187ap36_L", "權證年度發行量概況統計表"),
         ("/opendata/t187ap37_L", "權證基本資料"),
         ("/opendata/t187ap42_L", "權證每日成交資料"),
         ("/opendata/t187ap43_L", "權證交易人數"),
