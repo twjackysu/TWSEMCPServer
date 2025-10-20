@@ -42,9 +42,14 @@ class TWSEAPIClient:
             
             # 設定正確的編碼 (UTF-8)
             resp.encoding = 'utf-8'
-            data = resp.json()
-            
-            return data if isinstance(data, list) else [data] if data else []
+            # 嘗試解析 JSON；若格式異常（例如少數舊靜態 API 回傳非 JSON），則回傳空陣列避免拋錯
+            try:
+                data = resp.json()
+            except Exception as parse_err:
+                logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list for robustness")
+                return []
+
+            return data if isinstance(data, list) else ([data] if data else [])
             
         except Exception as e:
             logger.error(f"Failed to fetch data from {url}: {e}")

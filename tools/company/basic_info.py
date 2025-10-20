@@ -1,6 +1,6 @@
 """Company basic information tools."""
 
-from utils import TWSEAPIClient, format_properties_with_values_multiline
+from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
 
 def register_tools(mcp):
     """Register company basic info tools with the MCP instance."""
@@ -122,7 +122,7 @@ def register_tools(mcp):
             data = TWSEAPIClient.get_data("/opendata/t187ap30_L")
             if not data:
                 return "目前沒有資料。"
-            
+
             result = f"共有 {len(data)} 筆獨立董監事兼任情形資料：\n\n"
             for item in data:
                 company_code = item.get("公司代號", "N/A")
@@ -130,7 +130,7 @@ def register_tools(mcp):
                 total_directors = item.get("董監事總人數", "N/A")
                 independent_directors = item.get("獨立董監事人數", "N/A")
                 result += f"- {company_name} ({company_code}): {independent_directors}/{total_directors} 位獨立董監事\n"
-            
+
             return result
         except Exception as e:
             return f"查詢失敗: {str(e)}"
@@ -186,15 +186,34 @@ def register_tools(mcp):
         try:
             data = TWSEAPIClient.get_data("/static/20151104/CSR103")
             if not data:
-                return "目前沒有資料。"
-            
-            result = f"共有 {len(data)} 家公司需編製與申報103年度CSR報告書：\n\n"
-            for item in data:
+                return (
+                    "查無 103 年度 CSR 報告名單或資料格式不符（來源可能為舊式靜態頁）。\n"
+                    "建議改查近年永續報告（ESG）相關端點，或至公司官網/公告查詢。"
+                )
+
+            valid = [
+                it for it in data
+                if isinstance(it, dict) and has_meaningful_data(it, ["公司代號", "公司名稱"])
+            ]
+            total = len(valid)
+            if total == 0:
+                return (
+                    "查無有效的公司名單（欄位皆為空或 N/A）。\n"
+                    "請稍後再試或改查其他相關來源。"
+                )
+
+            limit = 50
+            head = valid[:limit]
+            lines = [f"共有 {total} 家公司需編製與申報 103 年度 CSR 報告書：\n"]
+            for item in head:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                result += f"- {company_name} ({company_code})\n"
-            
-            return result
+                lines.append(f"- {company_name} ({company_code})")
+
+            if total > limit:
+                lines.append(f"\n... 還有 {total - limit} 家未顯示。")
+
+            return "\n".join(lines)
         except Exception as e:
             return f"查詢失敗: {str(e)}"
 
@@ -252,18 +271,30 @@ def register_tools(mcp):
             data = TWSEAPIClient.get_data("/opendata/t187ap38_L")
             if not data:
                 return "目前沒有股東會公告資料。"
-            
-            result = f"共有 {len(data)} 筆股東會公告資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
+
+            filtered = [
+                it for it in data
+                if isinstance(it, dict) and has_meaningful_data(it, [
+                    "公司代號", "公司名稱", "股東會日期", "股東會種類"
+                ])
+            ]
+
+            if not filtered:
+                return "查無有效的股東會公告資料。"
+
+            limit = 20
+            head = filtered[:limit]
+            result = f"共有 {len(filtered)} 筆股東會公告資料（僅顯示前 {limit} 筆）：\n\n"
+            for item in head:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
                 meeting_date = item.get("股東會日期", "N/A")
                 meeting_type = item.get("股東會種類", "N/A")
                 result += f"- {company_name} ({company_code}): {meeting_type} - {meeting_date}\n"
-            
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
-            
+
+            if len(filtered) > limit:
+                result += f"\n... 還有 {len(filtered) - limit} 筆資料未顯示"
+
             return result
         except Exception as e:
             return f"查詢失敗: {str(e)}"
@@ -294,19 +325,31 @@ def register_tools(mcp):
             data = TWSEAPIClient.get_data("/opendata/t187ap41_L")
             if not data:
                 return "目前沒有股東會日期資料。"
-            
-            result = f"共有 {len(data)} 筆股東會日期、地點及電子投票資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
+
+            filtered = [
+                it for it in data
+                if isinstance(it, dict) and has_meaningful_data(it, [
+                    "公司代號", "公司名稱", "股東會日期", "股東會地點", "採用電子投票"
+                ])
+            ]
+
+            if not filtered:
+                return "查無有效的股東會日期/地點/電子投票資料。"
+
+            limit = 20
+            head = filtered[:limit]
+            result = f"共有 {len(filtered)} 筆股東會日期、地點及電子投票資料（僅顯示前 {limit} 筆）：\n\n"
+            for item in head:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
                 meeting_date = item.get("股東會日期", "N/A")
                 location = item.get("股東會地點", "N/A")
                 electronic_voting = item.get("採用電子投票", "N/A")
                 result += f"- {company_name} ({company_code}): {meeting_date} at {location}, 電子投票: {electronic_voting}\n"
-            
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
-            
+
+            if len(filtered) > limit:
+                result += f"\n... 還有 {len(filtered) - limit} 筆資料未顯示"
+
             return result
         except Exception as e:
             return f"查詢失敗: {str(e)}"
