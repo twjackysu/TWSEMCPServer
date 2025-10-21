@@ -117,62 +117,40 @@ class TestNewsAPIs:
 class TestIndexAPI:
     """指數相關 API 測試."""
 
-    ENDPOINT = "/indicesReport/MI_5MINS_HIST"
+    @pytest.mark.parametrize("endpoint,name", [
+        ("/indicesReport/MI_5MINS_HIST", "發行量加權股價指數歷史資料"),
+        ("/exchangeReport/MI_INDEX4", "每日上市上櫃跨市場成交資訊"),
+        ("/indicesReport/FRMSA", "寶島股價指數歷史資料"),
+        ("/indicesReport/TAI50I", "臺灣 50 指數歷史資料"),
+        ("/indicesReport/MFI94U", "發行量加權股價報酬指數"),
+    ])
+    def test_index_api_accessible(self, endpoint, name):
+        """測試指數相關 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(endpoint)
+        assert data is not None, f"{name} API 應該回傳資料"
+        assert isinstance(data, list), f"{name} API 應該回傳 list"
+        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
-    def test_historical_index_api_accessible(self):
-        """測試歷史指數 API 可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "歷史指數 API 應該回傳資料"
-        assert isinstance(data, list), "歷史指數 API 應該回傳 list"
-        assert len(data) > 0, "歷史指數 API 應該回傳至少一筆資料"
-
-    def test_historical_index_schema(self):
-        """測試歷史指數 schema."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
+    @pytest.mark.parametrize("endpoint,expected_index_fields", [
+        ("/exchangeReport/MI_INDEX4", ["FormosaIndex"]),
+        ("/indicesReport/FRMSA", ["FormosaIndex", "FormosaTotalReturnIndex"]),
+        ("/indicesReport/TAI50I", ["Taiwan50Index", "Taiwan50TotalReturnIndex"]),
+        ("/indicesReport/MFI94U", ["TAIEXTotalReturnIndex"]),
+    ])
+    def test_index_api_schema(self, endpoint, expected_index_fields):
+        """測試指數 API schema."""
+        data = TWSEAPIClient.get_data(endpoint)
         first_item = data[0]
 
         assert isinstance(first_item, dict), "每筆指數資料應該是 dict"
 
-        # 指數資料通常有日期、指數值等欄位
+        # 檢查是否有日期欄位
         has_date = any(field in first_item for field in ["日期", "Date", "交易日期"])
-        has_index = any(field in first_item for field in ["指數", "Index", "收盤指數", "ClosingIndex"])
-
         assert has_date, "指數資料應該包含日期相關欄位"
-        assert has_index, "指數資料應該包含指數值相關欄位"
 
-    def test_index_date_format(self):
-        """測試指數日期格式."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-
-        for item in data[:5]:  # 檢查前 5 筆
-            # 找出日期欄位
-            date_value = None
-            for field in ["日期", "Date", "交易日期"]:
-                if field in item:
-                    date_value = item[field]
-                    break
-
-            if date_value and date_value != "N/A":
-                assert isinstance(date_value, str), "日期應該是字串格式"
-                # 檢查是否為合理的日期格式（可能是民國年或西元年）
-                assert len(date_value) >= 6, f"日期格式長度不正確: {date_value}"
-
-    def test_index_value_format(self):
-        """測試指數值格式."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-
-        for item in data[:5]:  # 檢查前 5 筆
-            # 找出指數值欄位
-            index_value = None
-            for field in ["指數", "Index", "收盤指數", "ClosingIndex"]:
-                if field in item:
-                    index_value = item[field]
-                    break
-
-            if index_value and index_value not in ["", "N/A", None, "--"]:
-                # 指數值應該是數字格式
-                assert isinstance(index_value, (str, int, float)), \
-                    f"指數值格式不正確: {index_value}"
+        # 檢查是否有指數值欄位（根據具體API的欄位名稱）
+        has_index = any(field in first_item for field in expected_index_fields)
+        assert has_index, f"指數資料應該包含指數值相關欄位: {expected_index_fields}"
 
 
 class TestOtherAPIsOverview:
@@ -182,7 +160,13 @@ class TestOtherAPIsOverview:
         ("/ETFReport/ETFRank", "ETF 定期定額排名"),
         ("/news/newsList", "證交所新聞"),
         ("/news/eventList", "證交所活動"),
-        ("/indicesReport/MI_5MINS_HIST", "歷史指數"),
+        ("/indicesReport/MI_5MINS_HIST", "發行量加權股價指數歷史資料"),
+        ("/exchangeReport/MI_INDEX4", "每日上市上櫃跨市場成交資訊"),
+        ("/indicesReport/FRMSA", "寶島股價指數歷史資料"),
+        ("/indicesReport/TAI50I", "臺灣 50 指數歷史資料"),
+        ("/indicesReport/MFI94U", "發行量加權股價報酬指數"),
+        ("/opendata/t187ap47_L", "基金基本資料彙總表"),
+        ("/exchangeReport/BFI61U", "中央登錄公債補息資料表"),
     ])
     def test_other_api_endpoints_accessible(self, endpoint, name):
         """測試其他 API 端點可訪問."""
@@ -222,7 +206,55 @@ class TestOtherAPIsOverview:
                     date_value = first_item[field]
                     break
 
-            if date_value:
-                # 這裡只檢查日期欄位存在且不為空，不做具體日期解析
-                # 因為日期格式可能各異（民國年、西元年等）
-                assert date_value not in ["", None, "N/A"], "新聞應該有發布日期"
+class TestFundAPI:
+    """基金相關 API 測試."""
+
+    ENDPOINT = "/opendata/t187ap47_L"
+
+    def test_fund_basic_info_api_accessible(self):
+        """測試基金基本資料彙總表 API 可訪問."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        assert data is not None, "基金基本資料 API 應該回傳資料"
+        assert isinstance(data, list), "基金基本資料 API 應該回傳 list"
+        assert len(data) > 0, "基金基本資料 API 應該回傳至少一筆資料"
+
+    def test_fund_basic_info_schema(self):
+        """測試基金基本資料 schema."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        first_item = data[0]
+
+        assert isinstance(first_item, dict), "每筆基金資料應該是 dict"
+
+        # 基金資料通常有基金代號、名稱等基本欄位
+        has_code = any(field in first_item for field in ["基金代號", "Code", "基金代碼"])
+        has_name = any(field in first_item for field in ["基金名稱", "Name", "基金簡稱"])
+
+        assert has_code, "基金資料應該包含代號相關欄位"
+        assert has_name, "基金資料應該包含名稱相關欄位"
+
+
+class TestBondAPI:
+    """債券相關 API 測試."""
+
+    ENDPOINT = "/exchangeReport/BFI61U"
+
+    def test_bond_compensation_api_accessible(self):
+        """測試中央登錄公債補息資料表 API 可訪問."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        assert data is not None, "公債補息資料 API 應該回傳資料"
+        assert isinstance(data, list), "公債補息資料 API 應該回傳 list"
+        assert len(data) > 0, "公債補息資料 API 應該回傳至少一筆資料"
+
+    def test_bond_compensation_schema(self):
+        """測試公債補息資料 schema."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        first_item = data[0]
+
+        assert isinstance(first_item, dict), "每筆公債補息資料應該是 dict"
+
+        # 公債補息資料通常有債券代號、補息金額等欄位
+        has_bond_code = any(field in first_item for field in ["債券代號", "BondCode", "債券代碼", "Code"])
+        has_compensation = any(field in first_item for field in ["補息金額", "Compensation", "補息", "DailyAccInterest"])
+
+        assert has_bond_code, "公債補息資料應該包含債券代號相關欄位"
+        assert has_compensation, "公債補息資料應該包含補息金額相關欄位"

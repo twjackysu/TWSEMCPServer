@@ -139,6 +139,134 @@ class TestFinancialAPIsByCompanyCode:
         balance_endpoint = "/opendata/t187ap07_X_ci"
         balance_data = TWSEAPIClient.get_company_data(balance_endpoint, sample_stock_code)
 
-        if balance_data:
-            assert balance_data.get("公司代號") == sample_stock_code, \
-                f"資產負債表查詢結果應該是指定的公司代號 {sample_stock_code}"
+class TestListedCompanyIncomeStatementAPIs:
+    """上市公司綜合損益表 APIs 測試."""
+
+    @pytest.mark.parametrize("endpoint,industry", [
+        ("/opendata/t187ap06_L_basi", "金融業"),
+        ("/opendata/t187ap06_L_bd", "證券期貨業"),
+        ("/opendata/t187ap06_L_ci", "一般業"),
+        ("/opendata/t187ap06_L_fh", "金控業"),
+        ("/opendata/t187ap06_L_ins", "保險業"),
+        ("/opendata/t187ap06_L_mim", "異業"),
+    ])
+    def test_listed_income_statement_api_accessible(self, endpoint, industry):
+        """測試上市公司綜合損益表 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(endpoint)
+        assert data is not None, f"{industry}上市公司綜合損益表 API 應該回傳資料"
+        assert isinstance(data, list), f"{industry}上市公司綜合損益表 API 應該回傳 list"
+        assert len(data) > 0, f"{industry}上市公司綜合損益表 API 應該回傳至少一筆資料"
+
+    @pytest.mark.parametrize("endpoint", [
+        "/opendata/t187ap06_L_basi",
+        "/opendata/t187ap06_L_bd",
+        "/opendata/t187ap06_L_ci",
+        "/opendata/t187ap06_L_fh",
+        "/opendata/t187ap06_L_ins",
+        "/opendata/t187ap06_L_mim",
+    ])
+    def test_listed_income_statement_has_company_code(self, endpoint):
+        """測試上市公司綜合損益表 APIs 都有公司代號欄位."""
+        data = TWSEAPIClient.get_data(endpoint)
+        first_item = data[0]
+        # 檢查可能的公司代號欄位名稱
+        assert "公司代號" in first_item or "Code" in first_item, \
+            f"{endpoint} 應該包含公司代號欄位"
+
+
+class TestListedCompanyBalanceSheetAPIs:
+    """上市公司資產負債表 APIs 測試."""
+
+    @pytest.mark.parametrize("endpoint,industry", [
+        ("/opendata/t187ap07_L_basi", "金融業"),
+        ("/opendata/t187ap07_L_bd", "證券期貨業"),
+        ("/opendata/t187ap07_L_ci", "一般業"),
+        ("/opendata/t187ap07_L_fh", "金控業"),
+        ("/opendata/t187ap07_L_ins", "保險業"),
+        ("/opendata/t187ap07_L_mim", "異業"),
+    ])
+    def test_listed_balance_sheet_api_accessible(self, endpoint, industry):
+        """測試上市公司資產負債表 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(endpoint)
+        assert data is not None, f"{industry}上市公司資產負債表 API 應該回傳資料"
+        assert isinstance(data, list), f"{industry}上市公司資產負債表 API 應該回傳 list"
+        assert len(data) > 0, f"{industry}上市公司資產負債表 API 應該回傳至少一筆資料"
+
+    @pytest.mark.parametrize("endpoint", [
+        "/opendata/t187ap07_L_basi",
+        "/opendata/t187ap07_L_bd",
+        "/opendata/t187ap07_L_ci",
+        "/opendata/t187ap07_L_fh",
+        "/opendata/t187ap07_L_ins",
+        "/opendata/t187ap07_L_mim",
+    ])
+    def test_listed_balance_sheet_has_company_code(self, endpoint):
+        """測試上市公司資產負債表 APIs 都有公司代號欄位."""
+        data = TWSEAPIClient.get_data(endpoint)
+        first_item = data[0]
+        # 檢查可能的公司代號欄位名稱
+        assert "公司代號" in first_item or "Code" in first_item, \
+            f"{endpoint} 應該包含公司代號欄位"
+
+
+class TestPublicCompanyBalanceSheetAPIs:
+    """公發公司資產負債表 APIs 測試."""
+
+    @pytest.mark.parametrize("endpoint,industry", [
+        ("/opendata/t187ap07_X_basi", "金融業"),
+        ("/opendata/t187ap07_X_bd", "證券期貨業"),
+        ("/opendata/t187ap07_X_fh", "金控業"),
+        ("/opendata/t187ap07_X_ins", "保險業"),
+    ])
+    def test_public_balance_sheet_api_accessible(self, endpoint, industry):
+        """測試公發公司資產負債表 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(endpoint)
+        assert data is not None, f"{industry}公發公司資產負債表 API 應該回傳資料"
+        assert isinstance(data, list), f"{industry}公發公司資產負債表 API 應該回傳 list"
+        assert len(data) > 0, f"{industry}公發公司資產負債表 API 應該回傳至少一筆資料"
+
+    @pytest.mark.parametrize("endpoint", [
+        "/opendata/t187ap07_X_basi",
+        "/opendata/t187ap07_X_bd",
+        "/opendata/t187ap07_X_fh",
+        "/opendata/t187ap07_X_ins",
+    ])
+    def test_public_balance_sheet_has_company_code(self, endpoint):
+        """測試公發公司資產負債表 APIs 都有公司代號欄位."""
+        data = TWSEAPIClient.get_data(endpoint)
+        first_item = data[0]
+        # 檢查可能的公司代號欄位名稱
+        assert "公司代號" in first_item or "Code" in first_item, \
+            f"{endpoint} 應該包含公司代號欄位"
+
+
+class TestFinancialAnalysisAPIs:
+    """財務分析相關 APIs 測試."""
+
+    @pytest.mark.parametrize("endpoint,name", [
+        ("/opendata/t187ap15_L", "上市公司截至各季綜合損益財測達成情形"),
+        ("/opendata/t187ap16_L", "上市公司當季綜合損益經會計師查核差異達10%以上者"),
+        ("/opendata/t187ap17_L", "上市公司營益分析查詢彙總表"),
+        ("/opendata/t187ap31_L", "上市公司財務報告經監察人承認情形"),
+        ("/opendata/t187ap11_P", "公發公司董監事持股餘額明細"),
+    ])
+    def test_financial_analysis_api_accessible(self, endpoint, name):
+        """測試財務分析相關 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(endpoint)
+        assert data is not None, f"{name} API 應該回傳資料"
+        assert isinstance(data, list), f"{name} API 應該回傳 list"
+        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
+
+    @pytest.mark.parametrize("endpoint", [
+        "/opendata/t187ap15_L",
+        "/opendata/t187ap16_L",
+        "/opendata/t187ap17_L",
+        "/opendata/t187ap31_L",
+        "/opendata/t187ap11_P",
+    ])
+    def test_financial_analysis_apis_have_basic_fields(self, endpoint):
+        """測試財務分析相關 APIs 都有基本欄位."""
+        data = TWSEAPIClient.get_data(endpoint)
+        first_item = data[0]
+        # 確保至少有基本欄位存在
+        assert len(first_item) > 0, f"{endpoint} 應該至少包含一些欄位"

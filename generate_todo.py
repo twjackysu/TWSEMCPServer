@@ -32,7 +32,7 @@ def scan_directory(directory):
                             if any(match.startswith(f'/{prefix}/') for prefix in 
                                    ['opendata', 'exchangeReport', 'indicesReport', 'news', 
                                     'company', 'fund', 'block', 'ETFReport', 'brokerService', 
-                                    'Announcement', 'SBL', 'holidaySchedule', 'static']):
+                                    'announcement', 'Announcement', 'SBL', 'holidaySchedule', 'static']):
                                 # 忽略包含 {suffix} 或 f-string 標記的路徑
                                 if '{' not in match and '}' not in match:
                                     implemented_apis.add(match)
@@ -46,8 +46,8 @@ scan_directory('tools')
 # 處理動態生成的 endpoints（如 t187ap06_L, t187ap07_L 等）
 # 這些是通過程式碼動態選擇的 API endpoints
 dynamic_patterns = {
-    '/opendata/t187ap06_L': ['_X_ci', '_X_basi', '_X_bd', '_X_fh', '_X_ins', '_X_mim'],  # 綜合損益表
-    '/opendata/t187ap07_L': ['_X_ci', '_X_mim'],  # 資產負債表
+    '/opendata/t187ap06_L': ['_X_ci', '_X_basi', '_X_bd', '_X_fh', '_X_ins', '_X_mim', '_L_bd', '_L_ci', '_L_fh', '_L_ins', '_L_mim', '_L_basi'],  # 綜合損益表
+    '/opendata/t187ap07_L': ['_X_ci', '_X_mim', '_X_basi', '_X_bd', '_X_fh', '_X_ins', '_L_bd', '_L_ci', '_L_fh', '_L_ins', '_L_mim', '_L_basi'],  # 資產負債表
 }
 
 # 添加動態生成的 endpoints
