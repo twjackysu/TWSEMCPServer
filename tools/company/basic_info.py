@@ -1,6 +1,6 @@
 """Company basic information tools."""
 
-from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
+from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data, format_meaningful_fields_only
 
 def register_tools(mcp):
     """Register company basic info tools with the MCP instance."""
@@ -266,16 +266,17 @@ def register_tools(mcp):
 
     @mcp.tool
     def get_company_shareholder_meeting_announcements() -> str:
-        """Get shareholder meeting announcements (since 2008)."""
+        """Get comprehensive shareholder meeting announcements with all available information (since 2008)."""
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap38_L")
             if not data:
                 return "目前沒有股東會公告資料。"
 
+            # Use the correct field names from the actual API response
             filtered = [
                 it for it in data
                 if isinstance(it, dict) and has_meaningful_data(it, [
-                    "公司代號", "公司名稱", "股東會日期", "股東會種類"
+                    "公司代號", "公司名稱", "股東常(臨時)會日期-日期", "股東常(臨時)會日期-常或臨時"
                 ])
             ]
 
@@ -285,15 +286,58 @@ def register_tools(mcp):
             limit = 20
             head = filtered[:limit]
             result = f"共有 {len(filtered)} 筆股東會公告資料（僅顯示前 {limit} 筆）：\n\n"
-            for item in head:
+
+            for i, item in enumerate(head, 1):
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                meeting_date = item.get("股東會日期", "N/A")
-                meeting_type = item.get("股東會種類", "N/A")
-                result += f"- {company_name} ({company_code}): {meeting_type} - {meeting_date}\n"
+
+                result += f"【{i}】{company_name} ({company_code})\n"
+
+                # Use centralized utils to format only meaningful fields
+                # Exclude basic fields we already show in the header
+                meaningful_fields = format_meaningful_fields_only(item, ["公司代號", "公司名稱", "出表日期"])
+
+                if meaningful_fields:
+                    # Add indentation to each line
+                    indented_fields = "\n".join(f"   {line}" for line in meaningful_fields.split("\n") if line.strip())
+                    result += f"{indented_fields}\n"
+
+                result += "\n"
 
             if len(filtered) > limit:
-                result += f"\n... 還有 {len(filtered) - limit} 筆資料未顯示"
+                result += f"... 還有 {len(filtered) - limit} 筆資料未顯示"
+
+            return result
+        except Exception as e:
+            return f"查詢失敗: {str(e)}"
+
+    @mcp.tool
+    def get_company_shareholder_meeting_announcements_by_code(code: str) -> str:
+        """Get comprehensive shareholder meeting announcements for a specific company by stock code."""
+        try:
+            data = TWSEAPIClient.get_company_data("/opendata/t187ap38_L", code)
+            if not data:
+                return f"查無股票代碼 {code} 的股東會公告資料。"
+
+            # Check if the returned data has meaningful information
+            if not has_meaningful_data(data, [
+                "公司代號", "公司名稱", "股東常(臨時)會日期-日期", "股東常(臨時)會日期-常或臨時"
+            ]):
+                return f"股票代碼 {code} 的股東會公告資料無效或不完整。"
+
+            company_name = data.get("公司名稱", "N/A")
+            company_code = data.get("公司代號", code)
+
+            result = f"{company_name} ({company_code}) 股東會公告資訊：\n\n"
+
+            # Use centralized utils to format only meaningful fields
+            # Exclude basic fields we already show in the header
+            meaningful_fields = format_meaningful_fields_only(data, ["公司代號", "公司名稱", "出表日期"])
+
+            if meaningful_fields:
+                result += meaningful_fields
+            else:
+                result += "無其他詳細資訊。"
 
             return result
         except Exception as e:
@@ -326,10 +370,11 @@ def register_tools(mcp):
             if not data:
                 return "目前沒有股東會日期資料。"
 
+            # Use the correct field names from the actual API response
             filtered = [
                 it for it in data
                 if isinstance(it, dict) and has_meaningful_data(it, [
-                    "公司代號", "公司名稱", "股東會日期", "股東會地點", "採用電子投票"
+                    "公司代號", "公司名稱", "開會日期", "開會地點", "是否採電子投票"
                 ])
             ]
 
@@ -342,10 +387,11 @@ def register_tools(mcp):
             for item in head:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                meeting_date = item.get("股東會日期", "N/A")
-                location = item.get("股東會地點", "N/A")
-                electronic_voting = item.get("採用電子投票", "N/A")
-                result += f"- {company_name} ({company_code}): {meeting_date} at {location}, 電子投票: {electronic_voting}\n"
+                meeting_date = item.get("開會日期", "N/A")
+                location = item.get("開會地點", "N/A")
+                electronic_voting = item.get("是否採電子投票", "N/A")
+                meeting_type = item.get("股東常(臨時)會", "N/A")
+                result += f"- {company_name} ({company_code}): {meeting_type} - {meeting_date} at {location}, 電子投票: {electronic_voting}\n"
 
             if len(filtered) > limit:
                 result += f"\n... 還有 {len(filtered) - limit} 筆資料未顯示"

@@ -385,3 +385,114 @@ class TestCompanyListingAPIs:
         first_item = data[0]
         # 確保至少有基本欄位存在
         assert len(first_item) > 0, f"{endpoint} 應該至少包含一些欄位"
+
+
+class TestShareholderMeetingAnnouncementsAPI:
+    """股東會公告 API 測試."""
+
+    ENDPOINT = "/opendata/t187ap38_L"
+    EXPECTED_FIELDS = [
+        "出表日期",
+        "公司代號",
+        "公司名稱",
+        "股東常(臨時)會日期-常或臨時",
+        "股東常(臨時)會日期-日期",
+        "停止過戶起訖日期-起",
+        "停止過戶起訖日期-訖",
+        "預擬配發現金(股利)(元/股)-盈餘",
+        "預擬配發現金(股利)(元/股)-法定盈餘公積、資本公積",
+        "預擬配股(元/股)-盈餘",
+        "預擬配股(元/股)-法定盈餘公積、資本公積",
+        "擬現金增資金額(元)",
+        "現金增資認購率(%)",
+        "員工紅利-現金紅利(元)",
+        "員工紅利-股票紅利(股)",
+        "特別股股利(元/股)",
+        "董監酬勞(元)",
+        "公告日期",
+        "公告時間",
+        "種類"
+    ]
+
+    def test_api_endpoint_is_accessible(self):
+        """測試 API 端點可訪問."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        assert data is not None, "API 應該回傳資料"
+        assert isinstance(data, list), "API 應該回傳 list"
+        assert len(data) > 0, "API 應該回傳至少一筆資料"
+
+    def test_response_schema_matches_expected(self):
+        """測試回應 schema 符合預期."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        # 取第一筆資料檢查欄位
+        first_item = data[0]
+        assert isinstance(first_item, dict), "每筆資料應該是 dict"
+
+        # 檢查所有必要欄位都存在
+        for field in self.EXPECTED_FIELDS:
+            assert field in first_item, f"欄位 '{field}' 應該存在於回應中"
+
+    def test_hardcoded_fields_exist(self):
+        """測試程式碼中寫死的欄位確實存在於 API 回應中."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        first_item = data[0]
+
+        # 這些是我們在 get_company_shareholder_meeting_announcements 函數中寫死的欄位
+        hardcoded_fields = [
+            "公司代號",
+            "公司名稱",
+            "股東常(臨時)會日期-日期",
+            "股東常(臨時)會日期-常或臨時"
+        ]
+
+        for field in hardcoded_fields:
+            assert field in first_item, f"寫死欄位 '{field}' 必須存在於 API 回應中"
+
+    def test_meaningful_data_filtering_fields(self):
+        """測試用於過濾有意義資料的欄位確實存在."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+        first_item = data[0]
+
+        # 這些是我們用 has_meaningful_data 檢查的關鍵欄位
+        filtering_fields = [
+            "公司代號",
+            "公司名稱",
+            "股東常(臨時)會日期-日期",
+            "股東常(臨時)會日期-常或臨時"
+        ]
+
+        for field in filtering_fields:
+            assert field in first_item, f"過濾欄位 '{field}' 必須存在於 API 回應中"
+
+    def test_company_code_format(self):
+        """測試公司代號格式正確."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        for item in data[:10]:  # 檢查前 10 筆
+            code = item.get("公司代號")
+            assert code is not None, "公司代號不應為 None"
+            assert isinstance(code, str), "公司代號應該是字串"
+            assert code.strip() != "", "公司代號不應為空字串"
+            # 股票代號通常是 4 碼數字，但也可能有其他格式
+            assert len(code) >= 3, f"公司代號長度應該至少 3 碼: {code}"
+
+    def test_get_company_data_by_code(self, sample_stock_code):
+        """測試依公司代號查詢資料."""
+        data = TWSEAPIClient.get_company_data(self.ENDPOINT, sample_stock_code)
+
+        if data:
+            assert data.get("公司代號") == sample_stock_code, \
+                f"查詢結果應該是指定的公司代號 {sample_stock_code}"
+
+    def test_meeting_type_values(self):
+        """測試股東會類型的值符合預期."""
+        data = TWSEAPIClient.get_data(self.ENDPOINT)
+
+        valid_meeting_types = ["常會", "臨時會"]
+
+        for item in data[:20]:  # 檢查前 20 筆
+            meeting_type = item.get("股東常(臨時)會日期-常或臨時")
+            if meeting_type and meeting_type.strip():
+                assert meeting_type in valid_meeting_types, \
+                    f"股東會類型應該是 '常會' 或 '臨時會'，實際值：'{meeting_type}'"
