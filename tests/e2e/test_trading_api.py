@@ -84,13 +84,36 @@ class TestMarketStatisticsAPIs:
         assert isinstance(data, list), "大盤統計資訊 API 應該回傳 list"
         assert len(data) > 0, "大盤統計資訊 API 應該回傳至少一筆資料"
 
-    def test_real_time_stats_api(self):
-        """測試 5 秒委託成交統計 API."""
+    def test_real_time_stats_schema(self):
+        """測試 5 秒委託成交統計 API schema."""
         endpoint = "/exchangeReport/MI_5MINS"
         data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, "5秒統計 API 應該回傳資料"
-        assert isinstance(data, list), "5秒統計 API 應該回傳 list"
-        assert len(data) > 0, "5秒統計 API 應該回傳至少一筆資料"
+        
+        assert len(data) > 0, "應該至少有一筆5秒統計資料"
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "Time",              # 時間 (HHMMSS 格式)
+            "AccBidOrders",      # 累計委買筆數
+            "AccBidVolume",      # 累計委買數量
+            "AccAskOrders",      # 累計委賣筆數
+            "AccAskVolume",      # 累計委賣數量
+            "AccTransaction",    # 累計成交筆數
+            "AccTradeVolume",    # 累計成交數量
+            "AccTradeValue",     # 累計成交金額(百萬)
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於5秒統計資料中"
+        
+        # 驗證 Time 格式 (應該是 6 位數字的字串，HHMMSS)
+        time_value = first_item.get("Time")
+        if time_value:  # 可能是空字串
+            assert len(time_value) == 6, f"Time 欄位應該是 6 位數字 (HHMMSS)，但得到 '{time_value}'"
+            assert time_value.isdigit(), f"Time 欄位應該是數字字串，但得到 '{time_value}'"
+
 
     def test_margin_trading_api(self):
         """測試融資融券餘額 API."""
