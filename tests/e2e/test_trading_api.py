@@ -46,11 +46,34 @@ class TestStockTradingAPIs:
         """測試個股月成交資訊 schema."""
         endpoint = "/exchangeReport/FMSRFK_ALL"
         data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆月成交資訊"
+        
         first_item = data[0]
 
-        expected_fields = ["Code", "Name"]  # 基本必要欄位
+        # 檢查所有必要欄位
+        expected_fields = [
+            "Month",              # 月份 (民國年月 YYMM)
+            "Code",               # 股票代號
+            "Name",               # 股票名稱
+            "HighestPrice",       # 最高價
+            "LowestPrice",        # 最低價
+            "WeightedAvgPriceAB", # 加權平均價
+            "Transaction",        # 成交筆數
+            "TradeValueA",        # 成交金額
+            "TradeVolumeB",       # 成交股數
+            "TurnoverRatio",      # 週轉率
+        ]
+        
         for field in expected_fields:
             assert field in first_item, f"欄位 '{field}' 應該存在於月成交資訊中"
+        
+        # 驗證 Month 格式 (應該是 5 位數字，民國年月 YYMM，如 11409)
+        month_value = first_item.get("Month")
+        if month_value:
+            assert isinstance(month_value, str), "Month 應該是字串"
+            assert month_value.isdigit(), f"Month 應該是數字字串，但得到 '{month_value}'"
+            assert len(month_value) == 5, f"Month 應該是 5 位數（民國年月 YYMM），但得到 '{month_value}'"
 
     def test_yearly_trading_schema(self):
         """測試個股年成交資訊 schema."""
