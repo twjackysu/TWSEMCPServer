@@ -61,9 +61,46 @@ def register_tools(mcp):
 
     @mcp.tool
     def get_stock_yearly_trading(code: str) -> str:
-        """Obtain yearly trading information for a listed company stock based on its stock code."""
+        """Obtain yearly trading information for a listed company stock based on its stock code.
+        
+        Returns information including:
+        - Year: Trading year (ROC calendar YYY)
+        - Code: Stock code
+        - Name: Stock name
+        - TradeVolume: Total trade volume (in shares)
+        - TradeValue: Total trade value (in TWD)
+        - Transaction: Total transaction count
+        - HighestPrice: Highest price in the year
+        - HDate: Date of highest price
+        - LowestPrice: Lowest price in the year
+        - LDate: Date of lowest price
+        - AvgClosingPrice: Average closing price
+        """
         try:
             data = TWSEAPIClient.get_company_data("/exchangeReport/FMNPTK_ALL", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+            if not data:
+                return f"查無股票代號 {code} 的年成交資訊"
+            
+            result = f"【{data.get('Name', 'N/A')} ({data.get('Code', code)})】年成交資訊\n\n"
+            
+            year = data.get("Year", "N/A")
+            trade_volume = data.get("TradeVolume", "N/A")
+            trade_value = data.get("TradeValue", "N/A")
+            transaction = data.get("Transaction", "N/A")
+            highest = data.get("HighestPrice", "N/A")
+            h_date = data.get("HDate", "N/A")
+            lowest = data.get("LowestPrice", "N/A")
+            l_date = data.get("LDate", "N/A")
+            avg_closing = data.get("AvgClosingPrice", "N/A")
+            
+            result += f"年度: {year}\n"
+            result += f"成交股數: {trade_volume}\n"
+            result += f"成交金額: {trade_value}\n"
+            result += f"成交筆數: {transaction}\n"
+            result += f"最高價: {highest} (日期: {h_date})\n"
+            result += f"最低價: {lowest} (日期: {l_date})\n"
+            result += f"平均收盤價: {avg_closing}\n"
+            
+            return result
+        except Exception as e:
+            return f"查詢股票代號 {code} 的年成交資訊時發生錯誤: {str(e)}"

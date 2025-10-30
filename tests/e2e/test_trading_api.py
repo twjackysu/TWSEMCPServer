@@ -79,11 +79,35 @@ class TestStockTradingAPIs:
         """測試個股年成交資訊 schema."""
         endpoint = "/exchangeReport/FMNPTK_ALL"
         data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆年成交資訊"
+        
         first_item = data[0]
 
-        expected_fields = ["Code", "Name"]  # 基本必要欄位
+        # 檢查所有必要欄位
+        expected_fields = [
+            "Year",            # 年度 (民國年 YYY)
+            "Code",            # 股票代號
+            "Name",            # 股票名稱
+            "TradeVolume",     # 成交股數
+            "TradeValue",      # 成交金額
+            "Transaction",     # 成交筆數
+            "HighestPrice",    # 最高價
+            "HDate",           # 最高價日期
+            "LowestPrice",     # 最低價
+            "LDate",           # 最低價日期
+            "AvgClosingPrice", # 平均收盤價
+        ]
+        
         for field in expected_fields:
             assert field in first_item, f"欄位 '{field}' 應該存在於年成交資訊中"
+        
+        # 驗證 Year 格式 (應該是 3 位數字，民國年 YYY，如 113)
+        year_value = first_item.get("Year")
+        if year_value:
+            assert isinstance(year_value, str), "Year 應該是字串"
+            assert year_value.isdigit(), f"Year 應該是數字字串，但得到 '{year_value}'"
+            assert len(year_value) == 3, f"Year 應該是 3 位數（民國年 YYY），但得到 '{year_value}'"
 
     def test_dividend_schedule_schema(self):
         """測試除權除息預告表 schema."""
