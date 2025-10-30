@@ -280,7 +280,6 @@ class TestMarketTradingAPIs:
 
     @pytest.mark.parametrize("endpoint", [
         "/exchangeReport/FMTQIK",
-        "/exchangeReport/MI_INDEX20",
         "/exchangeReport/TWT53U",
         "/exchangeReport/TWTAWU",
         "/exchangeReport/BFT41U",
@@ -318,6 +317,50 @@ class TestMarketTradingAPIs:
         assert isinstance(first_item["Date"], str), "Date 應該是字串"
         assert first_item["Date"].isdigit(), "Date 應該是數字字串"
         assert len(first_item["Date"]) == 7, "Date 應該是 7 位數（民國年 YYYMMDD）"
+
+
+    def test_top_20_volume_stocks_schema(self):
+        """測試集中市場每日成交量前二十名證券 (MI_INDEX20) schema."""
+        endpoint = "/exchangeReport/MI_INDEX20"
+        data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆成交量前二十名證券資料"
+        assert len(data) <= 20, f"成交量前二十名應該最多 20 筆，但得到 {len(data)} 筆"
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "Date",          # 交易日期
+            "Rank",          # 排名
+            "Code",          # 股票代號
+            "Name",          # 股票名稱
+            "TradeVolume",   # 成交量
+            "Transaction",   # 成交筆數
+            "OpeningPrice",  # 開盤價
+            "HighestPrice",  # 最高價
+            "LowestPrice",   # 最低價
+            "ClosingPrice",  # 收盤價
+            "Dir",           # 漲跌方向
+            "Change",        # 漲跌價差
+            "LastBestBidPrice",  # 最後最佳買價
+            "LastBestAskPrice",  # 最後最佳賣價
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於成交量前二十名證券資料中"
+        
+        # 驗證 Date 格式（西元年格式，如 20251029）
+        date_value = first_item.get("Date")
+        if date_value:
+            assert isinstance(date_value, str), "Date 應該是字串"
+            assert date_value.isdigit(), f"Date 應該是數字字串，但得到 '{date_value}'"
+            assert len(date_value) == 8, f"Date 應該是 8 位數（YYYYMMDD），但得到 '{date_value}'"
+        
+        # 驗證 Rank 是數字字串
+        rank_value = first_item.get("Rank")
+        if rank_value:
+            assert rank_value.isdigit(), f"Rank 應該是數字字串，但得到 '{rank_value}'"
 
 
 class TestBlockTradingAPIs:

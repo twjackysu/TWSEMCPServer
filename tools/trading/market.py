@@ -139,20 +139,50 @@ def register_tools(mcp):
 
     @mcp.tool
     def get_top_20_volume_stocks() -> str:
-        """Get top 20 stocks by trading volume in the centralized market."""
+        """Get top 20 stocks by trading volume in the centralized market.
+        
+        Returns information including:
+        - Date: Trading date
+        - Rank: Volume ranking
+        - Code: Stock code
+        - Name: Stock name
+        - TradeVolume: Trading volume
+        - Transaction: Transaction count
+        - OpeningPrice: Opening price
+        - HighestPrice: Highest price
+        - LowestPrice: Lowest price
+        - ClosingPrice: Closing price
+        - Dir: Direction (+/-)
+        - Change: Price change
+        """
         try:
             data = TWSEAPIClient.get_data("/exchangeReport/MI_INDEX20")
             if not data:
                 return "目前沒有集中市場每日成交量前二十名證券資料。"
             
-            result = "集中市場每日成交量前二十名證券：\n\n"
-            for i, item in enumerate(data[:20], 1):
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                volume = item.get("成交量", "N/A")
-                result += f"{i}. {stock_name} ({stock_code}): 成交量 {volume}\n"
+            # Get the date from first item
+            date = data[0].get("Date", "N/A") if data else "N/A"
             
-            return result
+            result = f"集中市場每日成交量前二十名證券 (日期: {date}):\n\n"
+            
+            for item in data[:20]:
+                rank = item.get("Rank", "N/A")
+                code = item.get("Code", "N/A")
+                name = item.get("Name", "N/A")
+                volume = item.get("TradeVolume", "N/A")
+                transaction = item.get("Transaction", "N/A")
+                closing_price = item.get("ClosingPrice", "N/A")
+                direction = item.get("Dir", "")
+                change = item.get("Change", "N/A")
+                
+                # Format price change with direction
+                change_str = f"{direction}{change}" if direction and change != "N/A" else change
+                
+                result += f"{rank}. {name} ({code})\n"
+                result += f"   成交量: {volume} | 成交筆數: {transaction}\n"
+                result += f"   收盤價: {closing_price} | 漲跌: {change_str}\n\n"
+            
+            return result.strip()
         except Exception as e:
             return f"查詢失敗: {str(e)}"
 
