@@ -478,23 +478,40 @@ def register_tools(mcp):
 
     @mcp.tool
     def get_abnormal_accumulated_notice_stocks() -> str:
-        """Get stocks with abnormal accumulated notice counts."""
+        """Get stocks with abnormal accumulated notice counts.
+        
+        Returns information including:
+        - Number: Record number (0 means no data)
+        - Code: Stock code
+        - Name: Stock name
+        - RecentlyMetAttentionSecuritiesCriteria: Recently met attention securities criteria
+        """
         try:
             data = TWSEAPIClient.get_data("/announcement/notetrans")
             if not data:
                 return "目前沒有集中市場公布注意累計次數異常資訊資料。"
             
-            result = f"共有 {len(data)} 筆集中市場公布注意累計次數異常資訊資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                notice_count = item.get("注意累計次數", "N/A")
-                result += f"- {stock_name} ({stock_code}): 注意累計次數 {notice_count}\n"
+            # Filter out empty records (Number="0" with empty Code)
+            valid_data = [item for item in data if item.get("Code", "") != ""]
             
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
+            if not valid_data:
+                return "目前沒有集中市場公布注意累計次數異常資訊資料。"
             
-            return result
+            result = f"共有 {len(valid_data)} 筆集中市場公布注意累計次數異常資訊資料：\n\n"
+            
+            for item in valid_data[:20]:  # Limit to first 20 for readability
+                number = item.get("Number", "N/A")
+                code = item.get("Code", "N/A")
+                name = item.get("Name", "N/A")
+                criteria = item.get("RecentlyMetAttentionSecuritiesCriteria", "N/A")
+                
+                result += f"{number}. {name} ({code})\n"
+                result += f"   符合注意標準: {criteria}\n\n"
+            
+            if len(valid_data) > 20:
+                result += f"... 還有 {len(valid_data) - 20} 筆資料\n"
+            
+            return result.strip()
         except Exception as e:
             return f"查詢失敗: {str(e)}"
 

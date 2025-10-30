@@ -440,10 +440,32 @@ class TestAnnouncementAPIs:
             assert date_value.isdigit(), f"出表日期應該是數字字串，但得到 '{date_value}'"
             assert len(date_value) == 7, f"出表日期應該是 7 位數（民國年 YYYMMDD），但得到 '{date_value}'"
 
+    def test_abnormal_accumulated_notice_stocks_schema(self):
+        """測試集中市場公布注意累計次數異常資訊 schema."""
+        endpoint = "/announcement/notetrans"
+        data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆資料"
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "Number",                                   # 編號
+            "Code",                                     # 股票代號
+            "Name",                                     # 股票名稱
+            "RecentlyMetAttentionSecuritiesCriteria",  # 符合注意標準
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於注意累計次數異常資訊中"
+        
+        # 注意：當沒有異常資料時，API 會回傳 Number="0" 且 Code 為空字串
+        # 這是正常情況，不是錯誤
+
     @pytest.mark.parametrize("endpoint", [
         "/holidaySchedule/holidaySchedule",
         "/opendata/t187ap19",
-        "/announcement/notetrans",
         "/announcement/notice",
     ])
     def test_announcement_apis_have_basic_fields(self, endpoint):
