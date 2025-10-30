@@ -365,9 +365,40 @@ class TestAnnouncementAPIs:
         assert isinstance(data, list), f"{name} API 應該回傳 list"
         assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
+    def test_market_gain_loss_statistics_schema(self):
+        """測試集中市場漲跌證券數統計表 schema."""
+        endpoint = "/opendata/twtazu_od"
+        data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆漲跌證券數統計資料"
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "出表日期",  # 報表日期
+            "類型",      # 類型（整體市場/股票/等）
+            "上漲",      # 上漲家數
+            "漲停",      # 漲停家數
+            "下跌",      # 下跌家數
+            "跌停",      # 跌停家數
+            "持平",      # 持平家數
+            "未成交",    # 未成交家數
+            "無比價",    # 無比價家數
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於漲跌證券數統計資料中"
+        
+        # 驗證出表日期格式（民國年格式，如 1141029）
+        date_value = first_item.get("出表日期")
+        if date_value:
+            assert isinstance(date_value, str), "出表日期應該是字串"
+            assert date_value.isdigit(), f"出表日期應該是數字字串，但得到 '{date_value}'"
+            assert len(date_value) == 7, f"出表日期應該是 7 位數（民國年 YYYMMDD），但得到 '{date_value}'"
+
     @pytest.mark.parametrize("endpoint", [
         "/holidaySchedule/holidaySchedule",
-        "/opendata/twtazu_od",
         "/opendata/t187ap19",
         "/announcement/notetrans",
         "/announcement/notice",

@@ -404,24 +404,45 @@ def register_tools(mcp):
 
     @mcp.tool
     def get_market_gain_loss_statistics() -> str:
-        """Get market statistics of rising and falling securities."""
+        """Get market statistics of rising and falling securities.
+        
+        Returns statistics including:
+        - 出表日期: Report date (ROC calendar format)
+        - 類型: Type (整體市場/股票/etc.)
+        - 上漲: Number of rising securities
+        - 漲停: Number of securities at upper limit
+        - 下跌: Number of falling securities
+        - 跌停: Number of securities at lower limit
+        - 持平: Number of unchanged securities
+        - 未成交: Number of non-traded securities
+        - 無比價: Number of securities without comparison
+        """
         try:
             data = TWSEAPIClient.get_data("/opendata/twtazu_od")
             if not data:
                 return "目前沒有集中市場漲跌證券數統計表資料。"
             
-            result = f"共有 {len(data)} 筆集中市場漲跌證券數統計表資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
-                date = item.get("日期", "N/A")
-                rising_count = item.get("上漲家數", "N/A")
-                falling_count = item.get("下跌家數", "N/A")
-                unchanged_count = item.get("平盤家數", "N/A")
-                result += f"- {date}: 上漲 {rising_count} 家, 下跌 {falling_count} 家, 平盤 {unchanged_count} 家\n"
+            result = f"集中市場漲跌證券數統計表 (共 {len(data)} 筆):\n\n"
             
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
+            for item in data:
+                date = item.get("出表日期", "N/A")
+                category = item.get("類型", "N/A")
+                rising = item.get("上漲", "N/A")
+                limit_up = item.get("漲停", "N/A")
+                falling = item.get("下跌", "N/A")
+                limit_down = item.get("跌停", "N/A")
+                unchanged = item.get("持平", "N/A")
+                no_trade = item.get("未成交", "N/A")
+                no_comparison = item.get("無比價", "N/A")
+                
+                result += f"【{category}】 日期: {date}\n"
+                result += f"  上漲: {rising} 家 (漲停: {limit_up})\n"
+                result += f"  下跌: {falling} 家 (跌停: {limit_down})\n"
+                result += f"  持平: {unchanged} 家\n"
+                result += f"  未成交: {no_trade} 家\n"
+                result += f"  無比價: {no_comparison} 家\n\n"
             
-            return result
+            return result.strip()
         except Exception as e:
             return f"查詢失敗: {str(e)}"
 
