@@ -26,11 +26,30 @@ class TestStockTradingAPIs:
         """測試個股本益比等評價指標 schema."""
         endpoint = "/exchangeReport/BWIBBU_ALL"
         data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆本益比等評價指標資料"
+        
         first_item = data[0]
 
-        expected_fields = ["Code", "Name"]  # 基本必要欄位
+        # 檢查所有必要欄位
+        expected_fields = [
+            "Date",           # 日期 (民國年 YYYMMDD)
+            "Code",           # 股票代號
+            "Name",           # 股票名稱
+            "PEratio",        # 本益比
+            "DividendYield",  # 殖利率
+            "PBratio",        # 股價淨值比
+        ]
+        
         for field in expected_fields:
             assert field in first_item, f"欄位 '{field}' 應該存在於本益比資料中"
+        
+        # 驗證 Date 格式 (應該是 7 位數字，民國年 YYYMMDD，如 1141029)
+        date_value = first_item.get("Date")
+        if date_value:
+            assert isinstance(date_value, str), "Date 應該是字串"
+            assert date_value.isdigit(), f"Date 應該是數字字串，但得到 '{date_value}'"
+            assert len(date_value) == 7, f"Date 應該是 7 位數（民國年 YYYMMDD），但得到 '{date_value}'"
 
     def test_daily_trading_schema(self):
         """測試個股日成交資訊 schema."""
