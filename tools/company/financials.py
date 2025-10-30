@@ -91,22 +91,107 @@ def register_tools(mcp):
             return ""
 
     @mcp.tool
-    def get_company_profitability_analysis_summary() -> str:
-        """Get profitability analysis query summary table (all companies aggregate report)."""
+    def get_company_profitability_analysis(code: str) -> str:
+        """Get profitability analysis for a specific listed company based on its stock code."""
+        try:
+            data = TWSEAPIClient.get_company_data("/opendata/t187ap17_L", code)
+            return format_properties_with_values_multiline(data) if data else ""
+        except Exception:
+            return ""
+
+    @mcp.tool
+    def get_company_profitability_analysis_summary(
+        page_size: int = 20, 
+        page_number: int = 1,
+        order_by: str = "稅後純益率(%)(稅後純益)/(營業收入)",
+        order_direction: str = "desc"
+    ) -> str:
+        """Get profitability analysis query summary table (all companies aggregate report).
+        
+        Args:
+            page_size: Number of records per page (default: 20, max: 100)
+            page_number: Page number to retrieve (default: 1, starts from 1)
+            order_by: Field name to sort by. Available fields:
+                - "公司代號" (Company Code)
+                - "公司名稱" (Company Name)
+                - "營業收入(百萬元)" (Revenue in millions)
+                - "毛利率(%)(營業毛利)/(營業收入)" (Gross Margin %)
+                - "營業利益率(%)(營業利益)/(營業收入)" (Operating Margin %)
+                - "稅前純益率(%)(稅前純益)/(營業收入)" (Pre-tax Margin %)
+                - "稅後純益率(%)(稅後純益)/(營業收入)" (Net Margin %)
+                - "年度" (Year)
+                - "季別" (Quarter)
+            order_direction: Sort direction, "asc" for ascending or "desc" for descending (default: "asc")
+        """
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap17_L")
             if not data:
                 return "目前沒有營益分析查詢彙總表資料。"
             
-            result = f"共有 {len(data)} 筆營益分析資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
-                industry = item.get("產業別", "N/A")
-                company_count = item.get("公司家數", "N/A")
-                avg_roe = item.get("平均ROE", "N/A")
-                result += f"- {industry}: {company_count} 家公司, 平均ROE {avg_roe}%\n"
+            # Validate and adjust parameters
+            page_size = min(max(1, page_size), 100)  # Between 1 and 100
+            page_number = max(1, page_number)  # At least 1
+            order_direction = order_direction.lower()
+            if order_direction not in ["asc", "desc"]:
+                order_direction = "asc"
             
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
+            # Valid sortable fields
+            valid_fields = [
+                "公司代號", "公司名稱", "年度", "季別",
+                "營業收入(百萬元)", 
+                "毛利率(%)(營業毛利)/(營業收入)",
+                "營業利益率(%)(營業利益)/(營業收入)",
+                "稅前純益率(%)(稅前純益)/(營業收入)",
+                "稅後純益率(%)(稅後純益)/(營業收入)"
+            ]
+            
+            if order_by not in valid_fields:
+                order_by = "公司代號"  # Default to company code
+            
+            # Sort data
+            def get_sort_key(item):
+                value = item.get(order_by, "")
+                # Try to convert to float for numeric fields
+                if order_by in ["營業收入(百萬元)", "毛利率(%)(營業毛利)/(營業收入)",
+                               "營業利益率(%)(營業利益)/(營業收入)", "稅前純益率(%)(稅前純益)/(營業收入)",
+                               "稅後純益率(%)(稅後純益)/(營業收入)", "年度", "季別"]:
+                    try:
+                        return float(value) if value and value != "N/A" else float('-inf')
+                    except (ValueError, TypeError):
+                        return float('-inf')
+                return str(value)
+            
+            sorted_data = sorted(data, key=get_sort_key, reverse=(order_direction == "desc"))
+            
+            # Calculate pagination
+            total_records = len(sorted_data)
+            start_index = (page_number - 1) * page_size
+            end_index = start_index + page_size
+            total_pages = (total_records + page_size - 1) // page_size
+            
+            if start_index >= total_records:
+                return f"頁碼超出範圍。共有 {total_records} 筆資料，{total_pages} 頁。"
+            
+            page_data = sorted_data[start_index:end_index]
+            
+            # Build result
+            sort_indicator = "↑" if order_direction == "asc" else "↓"
+            result = f"共有 {total_records} 筆營益分析資料 (第 {page_number}/{total_pages} 頁，依 {order_by} {sort_indicator} 排序)：\n\n"
+            
+            for item in page_data:
+                date = item.get("出表日期", "N/A")
+                year = item.get("年度", "N/A")
+                quarter = item.get("季別", "N/A")
+                code = item.get("公司代號", "N/A")
+                name = item.get("公司名稱", "N/A")
+                revenue = item.get("營業收入(百萬元)", "N/A")
+                gross_margin = item.get("毛利率(%)(營業毛利)/(營業收入)", "N/A")
+                operating_margin = item.get("營業利益率(%)(營業利益)/(營業收入)", "N/A")
+                pretax_margin = item.get("稅前純益率(%)(稅前純益)/(營業收入)", "N/A")
+                net_margin = item.get("稅後純益率(%)(稅後純益)/(營業收入)", "N/A")
+                
+                result += f"- {code} {name} ({year}年Q{quarter}):\n"
+                result += f"  營收: {revenue}百萬, 毛利率: {gross_margin}%, 營益率: {operating_margin}%, 稅後淨利率: {net_margin}%\n"
             
             return result
         except Exception as e:

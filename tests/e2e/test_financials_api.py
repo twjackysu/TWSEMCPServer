@@ -257,16 +257,30 @@ class TestFinancialAnalysisAPIs:
         assert isinstance(data, list), f"{name} API 應該回傳 list"
         assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
-    @pytest.mark.parametrize("endpoint", [
-        "/opendata/t187ap15_L",
-        "/opendata/t187ap16_L",
-        "/opendata/t187ap17_L",
-        "/opendata/t187ap31_L",
-        "/opendata/t187ap11_P",
-    ])
-    def test_financial_analysis_apis_have_basic_fields(self, endpoint):
-        """測試財務分析相關 APIs 都有基本欄位."""
+    def test_profitability_analysis_schema(self):
+        """測試營益分析查詢彙總表 (t187ap17_L) schema."""
+        endpoint = "/opendata/t187ap17_L"
         data = TWSEAPIClient.get_data(endpoint)
         first_item = data[0]
-        # 確保至少有基本欄位存在
-        assert len(first_item) > 0, f"{endpoint} 應該至少包含一些欄位"
+
+        # 檢查所有必要欄位
+        expected_fields = [
+            "出表日期",
+            "年度",
+            "季別",
+            "公司代號",
+            "公司名稱",
+            "營業收入(百萬元)",
+            "毛利率(%)(營業毛利)/(營業收入)",
+            "營業利益率(%)(營業利益)/(營業收入)",
+            "稅前純益率(%)(稅前純益)/(營業收入)",
+            "稅後純益率(%)(稅後純益)/(營業收入)",
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於營益分析查詢彙總表中"
+        
+        # 檢查數值欄位的格式
+        assert isinstance(first_item["公司代號"], str), "公司代號應該是字串"
+        assert first_item["公司代號"].isdigit(), "公司代號應該是數字字串"
+        assert len(first_item["公司代號"]) == 4, "公司代號應該是 4 碼"
