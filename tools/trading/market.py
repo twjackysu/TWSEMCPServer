@@ -479,10 +479,13 @@ def register_tools(mcp):
             
             result = f"共有 {len(data)} 筆集中市場每日市場成交資訊：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                date = item.get("日期", "N/A")
-                total_volume = item.get("總成交量", "N/A")
-                total_value = item.get("總成交金額", "N/A")
-                result += f"- {date}: 總成交量 {total_volume}, 總成交金額 {total_value}\n"
+                date = item.get("Date", "N/A")
+                trade_volume = item.get("TradeVolume", "N/A")
+                trade_value = item.get("TradeValue", "N/A")
+                transaction = item.get("Transaction", "N/A")
+                taiex = item.get("TAIEX", "N/A")
+                change = item.get("Change", "N/A")
+                result += f"- {date}: 成交量 {trade_volume}, 成交金額 {trade_value}, 成交筆數 {transaction}, 加權指數 {taiex}, 漲跌 {change}\n"
             
             if len(data) > 20:
                 result += f"\n... 還有 {len(data) - 20} 筆資料"

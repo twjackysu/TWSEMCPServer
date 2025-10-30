@@ -272,6 +272,30 @@ class TestMarketTradingAPIs:
         # 確保至少有基本欄位存在
         assert len(first_item) > 0, f"{endpoint} 應該至少包含一些欄位"
 
+    def test_daily_market_trading_info_schema(self):
+        """測試集中市場每日市場成交資訊 (FMTQIK) schema."""
+        endpoint = "/exchangeReport/FMTQIK"
+        data = TWSEAPIClient.get_data(endpoint)
+        first_item = data[0]
+
+        # 檢查所有必要欄位
+        expected_fields = [
+            "Date",
+            "TradeVolume",
+            "TradeValue",
+            "Transaction",
+            "TAIEX",
+            "Change",
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於每日市場成交資訊中"
+        
+        # 檢查日期格式（民國年格式，如 1141030）
+        assert isinstance(first_item["Date"], str), "Date 應該是字串"
+        assert first_item["Date"].isdigit(), "Date 應該是數字字串"
+        assert len(first_item["Date"]) == 7, "Date 應該是 7 位數（民國年 YYYMMDD）"
+
 
 class TestBlockTradingAPIs:
     """鉅額交易相關 APIs 測試."""
