@@ -398,8 +398,6 @@ class TestAnnouncementAPIs:
         ("/holidaySchedule/holidaySchedule", "有價證券集中交易市場開（休）市日期"),
         ("/opendata/twtazu_od", "集中市場漲跌證券數統計表"),
         ("/opendata/t187ap19", "電子式交易統計資訊"),
-        ("/announcement/notetrans", "集中市場公布注意累計次數異常資訊"),
-        ("/announcement/notice", "集中市場當日公布注意股票"),
     ])
     def test_announcement_api_accessible(self, endpoint, name):
         """測試公告相關 API 端點可訪問."""
@@ -463,10 +461,36 @@ class TestAnnouncementAPIs:
         # 注意：當沒有異常資料時，API 會回傳 Number="0" 且 Code 為空字串
         # 這是正常情況，不是錯誤
 
+    def test_today_notice_stocks_schema(self):
+        """測試集中市場當日公布注意股票 schema."""
+        endpoint = "/announcement/notice"
+        data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆資料"
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "Number",                    # 編號
+            "Code",                      # 股票代號
+            "Name",                      # 股票名稱
+            "NumberOfAnnouncement",      # 公布次數
+            "TradingInfoForAttention",   # 交易資訊注意事項
+            "Date",                      # 日期
+            "ClosingPrice",              # 收盤價
+            "PE",                        # 本益比
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於當日公布注意股票資料中"
+        
+        # 注意：當沒有注意股票時，API 會回傳 Number="0" 且 Code 為空字串
+        # 這是正常情況，不是錯誤
+
     @pytest.mark.parametrize("endpoint", [
         "/holidaySchedule/holidaySchedule",
         "/opendata/t187ap19",
-        "/announcement/notice",
     ])
     def test_announcement_apis_have_basic_fields(self, endpoint):
         """測試公告相關 APIs 都有基本欄位."""
