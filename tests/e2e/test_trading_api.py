@@ -36,11 +36,35 @@ class TestStockTradingAPIs:
         """測試個股日成交資訊 schema."""
         endpoint = "/exchangeReport/STOCK_DAY_ALL"
         data = TWSEAPIClient.get_data(endpoint)
+        
+        assert len(data) > 0, "應該至少有一筆日成交資訊"
+        
         first_item = data[0]
 
-        expected_fields = ["Code", "Name"]  # 基本必要欄位
+        # 檢查所有必要欄位
+        expected_fields = [
+            "Date",          # 日期 (民國年 YYYMMDD)
+            "Code",          # 股票代號
+            "Name",          # 股票名稱
+            "TradeVolume",   # 成交股數
+            "TradeValue",    # 成交金額
+            "OpeningPrice",  # 開盤價
+            "HighestPrice",  # 最高價
+            "LowestPrice",   # 最低價
+            "ClosingPrice",  # 收盤價
+            "Change",        # 漲跌
+            "Transaction",   # 成交筆數
+        ]
+        
         for field in expected_fields:
             assert field in first_item, f"欄位 '{field}' 應該存在於日成交資訊中"
+        
+        # 驗證 Date 格式 (應該是 7 位數字，民國年 YYYMMDD，如 1141029)
+        date_value = first_item.get("Date")
+        if date_value:
+            assert isinstance(date_value, str), "Date 應該是字串"
+            assert date_value.isdigit(), f"Date 應該是數字字串，但得到 '{date_value}'"
+            assert len(date_value) == 7, f"Date 應該是 7 位數（民國年 YYYMMDD），但得到 '{date_value}'"
 
     def test_monthly_trading_schema(self):
         """測試個股月成交資訊 schema."""
