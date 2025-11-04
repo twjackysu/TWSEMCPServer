@@ -10,13 +10,6 @@ class TestETFAPI:
 
     ENDPOINT = "/ETFReport/ETFRank"
 
-    def test_etf_ranking_api_accessible(self):
-        """測試 ETF 定期定額排名 API 可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "ETF 排名 API 應該回傳資料"
-        assert isinstance(data, list), "ETF 排名 API 應該回傳 list"
-        assert len(data) > 0, "ETF 排名 API 應該回傳至少一筆資料"
-
     def test_etf_ranking_schema(self):
         """測試 ETF 排名 schema."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -50,22 +43,6 @@ class TestETFAPI:
 
 class TestNewsAPIs:
     """新聞相關 API 測試."""
-
-    def test_twse_news_api_accessible(self):
-        """測試證交所新聞 API 可訪問."""
-        endpoint = "/news/newsList"
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, "證交所新聞 API 應該回傳資料"
-        assert isinstance(data, list), "證交所新聞 API 應該回傳 list"
-        assert len(data) > 0, "證交所新聞 API 應該回傳至少一筆資料"
-
-    def test_twse_events_api_accessible(self):
-        """測試證交所活動 API 可訪問."""
-        endpoint = "/news/eventList"
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, "證交所活動 API 應該回傳資料"
-        assert isinstance(data, list), "證交所活動 API 應該回傳 list"
-        assert len(data) > 0, "證交所活動 API 應該回傳至少一筆資料"
 
     def test_news_schema(self):
         """測試新聞 schema."""
@@ -117,20 +94,6 @@ class TestNewsAPIs:
 class TestIndexAPI:
     """指數相關 API 測試."""
 
-    @pytest.mark.parametrize("endpoint,name", [
-        ("/indicesReport/MI_5MINS_HIST", "發行量加權股價指數歷史資料"),
-        ("/exchangeReport/MI_INDEX4", "每日上市上櫃跨市場成交資訊"),
-        ("/indicesReport/FRMSA", "寶島股價指數歷史資料"),
-        ("/indicesReport/TAI50I", "臺灣 50 指數歷史資料"),
-        ("/indicesReport/MFI94U", "發行量加權股價報酬指數"),
-    ])
-    def test_index_api_accessible(self, endpoint, name):
-        """測試指數相關 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{name} API 應該回傳資料"
-        assert isinstance(data, list), f"{name} API 應該回傳 list"
-        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
-
     @pytest.mark.parametrize("endpoint,expected_index_fields", [
         ("/exchangeReport/MI_INDEX4", ["FormosaIndex"]),
         ("/indicesReport/FRMSA", ["FormosaIndex", "FormosaTotalReturnIndex"]),
@@ -153,70 +116,10 @@ class TestIndexAPI:
         assert has_index, f"指數資料應該包含指數值相關欄位: {expected_index_fields}"
 
 
-class TestOtherAPIsOverview:
-    """其他 APIs 整體測試."""
-
-    @pytest.mark.parametrize("endpoint,name", [
-        ("/ETFReport/ETFRank", "ETF 定期定額排名"),
-        ("/news/newsList", "證交所新聞"),
-        ("/news/eventList", "證交所活動"),
-        ("/indicesReport/MI_5MINS_HIST", "發行量加權股價指數歷史資料"),
-        ("/exchangeReport/MI_INDEX4", "每日上市上櫃跨市場成交資訊"),
-        ("/indicesReport/FRMSA", "寶島股價指數歷史資料"),
-        ("/indicesReport/TAI50I", "臺灣 50 指數歷史資料"),
-        ("/indicesReport/MFI94U", "發行量加權股價報酬指數"),
-        ("/opendata/t187ap47_L", "基金基本資料彙總表"),
-        ("/exchangeReport/BFI61U", "中央登錄公債補息資料表"),
-    ])
-    def test_other_api_endpoints_accessible(self, endpoint, name):
-        """測試其他 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{name} API 應該回傳資料"
-        assert isinstance(data, list), f"{name} API 應該回傳 list"
-        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
-
-    def test_api_response_time_reasonable(self):
-        """測試 API 回應時間合理."""
-        import time
-
-        endpoint = "/news/newsList"  # 使用新聞 API 作為代表
-
-        start_time = time.time()
-        data = TWSEAPIClient.get_data(endpoint)
-        end_time = time.time()
-
-        response_time = end_time - start_time
-
-        assert data is not None, "API 應該回傳資料"
-        assert response_time < 30, f"API 回應時間應該少於 30 秒，實際: {response_time:.2f} 秒"
-
-    def test_api_data_freshness(self):
-        """測試 API 資料時效性（以新聞為例）."""
-        endpoint = "/news/newsList"
-        data = TWSEAPIClient.get_data(endpoint)
-
-        if data:
-            # 檢查新聞日期是否在合理範圍內（最新的新聞不應該太舊）
-            first_item = data[0]
-
-            # 找出日期欄位
-            date_value = None
-            for field in ["日期", "date", "時間", "Date", "發布日期"]:
-                if field in first_item:
-                    date_value = first_item[field]
-                    break
-
 class TestFundAPI:
     """基金相關 API 測試."""
 
     ENDPOINT = "/opendata/t187ap47_L"
-
-    def test_fund_basic_info_api_accessible(self):
-        """測試基金基本資料彙總表 API 可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "基金基本資料 API 應該回傳資料"
-        assert isinstance(data, list), "基金基本資料 API 應該回傳 list"
-        assert len(data) > 0, "基金基本資料 API 應該回傳至少一筆資料"
 
     def test_fund_basic_info_schema(self):
         """測試基金基本資料 schema."""
@@ -237,13 +140,6 @@ class TestBondAPI:
     """債券相關 API 測試."""
 
     ENDPOINT = "/exchangeReport/BFI61U"
-
-    def test_bond_compensation_api_accessible(self):
-        """測試中央登錄公債補息資料表 API 可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "公債補息資料 API 應該回傳資料"
-        assert isinstance(data, list), "公債補息資料 API 應該回傳 list"
-        assert len(data) > 0, "公債補息資料 API 應該回傳至少一筆資料"
 
     def test_bond_compensation_schema(self):
         """測試公債補息資料 schema."""

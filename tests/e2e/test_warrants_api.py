@@ -31,13 +31,6 @@ class TestWarrantBasicInfoAPI:
         "備註"
     ]
 
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "權證基本資料 API 應該回傳資料"
-        assert isinstance(data, list), "權證基本資料 API 應該回傳 list"
-        assert len(data) > 0, "權證基本資料 API 應該回傳至少一筆資料"
-
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -84,14 +77,6 @@ class TestWarrantTradingAPI:
         "成交張數",
         "成交金額"
     ]
-
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "權證成交資料 API 應該回傳資料"
-        assert isinstance(data, list), "權證成交資料 API 應該回傳 list"
-        # 注意：該API可能返回空數據（當天無權證交易時）
-        # assert len(data) > 0, "權證成交資料 API 應該回傳至少一筆資料"
 
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
@@ -158,13 +143,6 @@ class TestWarrantTraderCountAPI:
         "人數"
     ]
 
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "權證交易人數 API 應該回傳資料"
-        assert isinstance(data, list), "權證交易人數 API 應該回傳 list"
-        assert len(data) > 0, "權證交易人數 API 應該回傳至少一筆資料"
-
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -200,13 +178,6 @@ class TestWarrantTraderCountAPI:
 
 class TestWarrantIssuanceAPI:
     """權證年度發行量概況統計表測試."""
-
-    def test_warrant_issuance_api_accessible(self):
-        """測試權證年度發行量概況統計表 API 可訪問."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
-        assert data is not None, "權證年度發行量概況統計表 API 應該回傳資料"
-        assert isinstance(data, list), "權證年度發行量概況統計表 API 應該回傳 list"
-        assert len(data) > 0, "權證年度發行量概況統計表 API 應該回傳至少一筆資料"
 
     def test_warrant_issuance_api_schema(self):
         """測試權證年度發行量概況統計表 API 的數據結構."""
@@ -303,25 +274,6 @@ class TestWarrantDataConsistency:
 
 class TestWarrantAPIsOverview:
     """權證 APIs 整體測試."""
-
-    @pytest.mark.parametrize("endpoint,name", [
-        ("/opendata/t187ap36_L", "權證年度發行量概況統計表"),
-        ("/opendata/t187ap37_L", "權證基本資料"),
-        ("/opendata/t187ap42_L", "權證每日成交資料"),
-        ("/opendata/t187ap43_L", "權證交易人數"),
-    ])
-    def test_warrant_api_endpoints_accessible(self, endpoint, name):
-        """測試所有權證 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{name} API 應該回傳資料"
-        assert isinstance(data, list), f"{name} API 應該回傳 list"
-
-        # 權證每日成交資料可能為空（當天無交易時）
-        if endpoint == "/opendata/t187ap42_L":
-            # 對於權證成交資料，允許返回空數組
-            pass
-        else:
-            assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap37_L",

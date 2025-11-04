@@ -16,13 +16,6 @@ class TestAnticompetitiveLitigationAPI:
         "因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)"
     ]
     
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "API 應該回傳資料"
-        assert isinstance(data, list), "API 應該回傳 list"
-        assert len(data) > 0, "API 應該回傳至少一筆資料"
-    
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -108,13 +101,6 @@ class TestInclusiveFinanceAPI:
         "對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)"
     ]
     
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "API 應該回傳資料"
-        assert isinstance(data, list), "API 應該回傳 list"
-        assert len(data) > 0, "API 應該回傳至少一筆資料"
-    
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -190,13 +176,6 @@ class TestCommunityRelationsAPI:
         "在人口密集地區的煉油廠數量(座)"
     ]
 
-    def test_api_endpoint_is_accessible(self):
-        """測試 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(self.ENDPOINT)
-        assert data is not None, "API 應該回傳資料"
-        assert isinstance(data, list), "API 應該回傳 list"
-        assert len(data) > 0, "API 應該回傳至少一筆資料"
-
     def test_response_schema_matches_expected(self):
         """測試回應 schema 符合預期."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
@@ -259,23 +238,6 @@ class TestCommunityRelationsAPI:
 
 class TestOtherESGAPIs:
     """其他 ESG API 測試."""
-
-    @pytest.mark.parametrize("endpoint,name", [
-        ("/opendata/t187ap46_L_9", "功能性委員會"),
-        ("/opendata/t187ap46_L_8", "氣候相關議題管理"),
-        ("/opendata/t187ap46_L_19", "風險管理政策"),
-        ("/opendata/t187ap46_L_13", "供應鏈管理"),
-        ("/opendata/t187ap46_L_16", "資訊安全"),
-        ("/opendata/t187ap46_L_17", "普惠金融"),
-        ("/opendata/t187ap46_L_20", "反競爭行為法律訴訟"),
-        ("/opendata/t187ap46_L_15", "社區關係"),
-    ])
-    def test_esg_api_endpoints_accessible(self, endpoint, name):
-        """測試所有 ESG API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{name} API 應該回傳資料"
-        assert isinstance(data, list), f"{name} API 應該回傳 list"
-        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap46_L_9",

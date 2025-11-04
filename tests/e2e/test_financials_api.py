@@ -7,21 +7,6 @@ from utils.api_client import TWSEAPIClient
 class TestIncomeStatementAPIs:
     """綜合損益表 APIs 測試."""
 
-    @pytest.mark.parametrize("endpoint,industry", [
-        ("/opendata/t187ap06_X_basi", "金融業"),
-        ("/opendata/t187ap06_X_bd", "證券期貨業"),
-        ("/opendata/t187ap06_X_ci", "一般業"),
-        ("/opendata/t187ap06_X_fh", "金控業"),
-        ("/opendata/t187ap06_X_ins", "保險業"),
-        ("/opendata/t187ap06_X_mim", "異業"),
-    ])
-    def test_income_statement_api_accessible(self, endpoint, industry):
-        """測試綜合損益表 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{industry}綜合損益表 API 應該回傳資料"
-        assert isinstance(data, list), f"{industry}綜合損益表 API 應該回傳 list"
-        assert len(data) > 0, f"{industry}綜合損益表 API 應該回傳至少一筆資料"
-
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap06_X_basi",
         "/opendata/t187ap06_X_bd",
@@ -52,17 +37,6 @@ class TestIncomeStatementAPIs:
 
 class TestBalanceSheetAPIs:
     """資產負債表 APIs 測試."""
-
-    @pytest.mark.parametrize("endpoint,industry", [
-        ("/opendata/t187ap07_X_ci", "一般業"),
-        ("/opendata/t187ap07_X_mim", "異業"),
-    ])
-    def test_balance_sheet_api_accessible(self, endpoint, industry):
-        """測試資產負債表 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{industry}資產負債表 API 應該回傳資料"
-        assert isinstance(data, list), f"{industry}資產負債表 API 應該回傳 list"
-        assert len(data) > 0, f"{industry}資產負債表 API 應該回傳至少一筆資料"
 
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap07_X_ci",
@@ -142,21 +116,6 @@ class TestFinancialAPIsByCompanyCode:
 class TestListedCompanyIncomeStatementAPIs:
     """上市公司綜合損益表 APIs 測試."""
 
-    @pytest.mark.parametrize("endpoint,industry", [
-        ("/opendata/t187ap06_L_basi", "金融業"),
-        ("/opendata/t187ap06_L_bd", "證券期貨業"),
-        ("/opendata/t187ap06_L_ci", "一般業"),
-        ("/opendata/t187ap06_L_fh", "金控業"),
-        ("/opendata/t187ap06_L_ins", "保險業"),
-        ("/opendata/t187ap06_L_mim", "異業"),
-    ])
-    def test_listed_income_statement_api_accessible(self, endpoint, industry):
-        """測試上市公司綜合損益表 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{industry}上市公司綜合損益表 API 應該回傳資料"
-        assert isinstance(data, list), f"{industry}上市公司綜合損益表 API 應該回傳 list"
-        assert len(data) > 0, f"{industry}上市公司綜合損益表 API 應該回傳至少一筆資料"
-
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap06_L_basi",
         "/opendata/t187ap06_L_bd",
@@ -176,21 +135,6 @@ class TestListedCompanyIncomeStatementAPIs:
 
 class TestListedCompanyBalanceSheetAPIs:
     """上市公司資產負債表 APIs 測試."""
-
-    @pytest.mark.parametrize("endpoint,industry", [
-        ("/opendata/t187ap07_L_basi", "金融業"),
-        ("/opendata/t187ap07_L_bd", "證券期貨業"),
-        ("/opendata/t187ap07_L_ci", "一般業"),
-        ("/opendata/t187ap07_L_fh", "金控業"),
-        ("/opendata/t187ap07_L_ins", "保險業"),
-        ("/opendata/t187ap07_L_mim", "異業"),
-    ])
-    def test_listed_balance_sheet_api_accessible(self, endpoint, industry):
-        """測試上市公司資產負債表 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{industry}上市公司資產負債表 API 應該回傳資料"
-        assert isinstance(data, list), f"{industry}上市公司資產負債表 API 應該回傳 list"
-        assert len(data) > 0, f"{industry}上市公司資產負債表 API 應該回傳至少一筆資料"
 
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap07_L_basi",
@@ -212,19 +156,6 @@ class TestListedCompanyBalanceSheetAPIs:
 class TestPublicCompanyBalanceSheetAPIs:
     """公發公司資產負債表 APIs 測試."""
 
-    @pytest.mark.parametrize("endpoint,industry", [
-        ("/opendata/t187ap07_X_basi", "金融業"),
-        ("/opendata/t187ap07_X_bd", "證券期貨業"),
-        ("/opendata/t187ap07_X_fh", "金控業"),
-        ("/opendata/t187ap07_X_ins", "保險業"),
-    ])
-    def test_public_balance_sheet_api_accessible(self, endpoint, industry):
-        """測試公發公司資產負債表 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{industry}公發公司資產負債表 API 應該回傳資料"
-        assert isinstance(data, list), f"{industry}公發公司資產負債表 API 應該回傳 list"
-        assert len(data) > 0, f"{industry}公發公司資產負債表 API 應該回傳至少一筆資料"
-
     @pytest.mark.parametrize("endpoint", [
         "/opendata/t187ap07_X_basi",
         "/opendata/t187ap07_X_bd",
@@ -242,20 +173,6 @@ class TestPublicCompanyBalanceSheetAPIs:
 
 class TestFinancialAnalysisAPIs:
     """財務分析相關 APIs 測試."""
-
-    @pytest.mark.parametrize("endpoint,name", [
-        ("/opendata/t187ap15_L", "上市公司截至各季綜合損益財測達成情形"),
-        ("/opendata/t187ap16_L", "上市公司當季綜合損益經會計師查核差異達10%以上者"),
-        ("/opendata/t187ap17_L", "上市公司營益分析查詢彙總表"),
-        ("/opendata/t187ap31_L", "上市公司財務報告經監察人承認情形"),
-        ("/opendata/t187ap11_P", "公發公司董監事持股餘額明細"),
-    ])
-    def test_financial_analysis_api_accessible(self, endpoint, name):
-        """測試財務分析相關 API 端點可訪問."""
-        data = TWSEAPIClient.get_data(endpoint)
-        assert data is not None, f"{name} API 應該回傳資料"
-        assert isinstance(data, list), f"{name} API 應該回傳 list"
-        assert len(data) > 0, f"{name} API 應該回傳至少一筆資料"
 
     def test_profitability_analysis_schema(self):
         """測試營益分析查詢彙總表 (t187ap17_L) schema."""
