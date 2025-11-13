@@ -30,6 +30,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     
+    env:
+      # API 請求之間的延遲（秒）
+      API_REQUEST_DELAY: '1.0'
+      # 測試之間的延遲（秒）
+      PYTEST_DELAY_SECONDS: '1.5'
+    
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4

@@ -2,6 +2,8 @@
 
 import requests
 import logging
+import time
+import os
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -11,6 +13,9 @@ class TWSEAPIClient:
     
     BASE_URL = "https://openapi.twse.com.tw/v1"
     USER_AGENT = "stock-mcp/1.0"
+    _last_request_time = 0
+    # 從環境變數讀取 API 請求間隔，預設為 0.5 秒
+    _min_request_interval = float(os.getenv('API_REQUEST_DELAY', '0.5'))
     
     @classmethod
     def get_data(cls, endpoint: str, timeout: float = 30.0) -> List[Dict[str, Any]]:
@@ -27,6 +32,14 @@ class TWSEAPIClient:
         Raises:
             Exception: If API request fails
         """
+        # 實施速率限制，避免被視為 DDOS 攻擊
+        current_time = time.time()
+        time_since_last_request = current_time - cls._last_request_time
+        if time_since_last_request < cls._min_request_interval:
+            sleep_time = cls._min_request_interval - time_since_last_request
+            logger.debug(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
+            time.sleep(sleep_time)
+        
         url = f"{cls.BASE_URL}{endpoint}"
         logger.info(f"Fetching TWSE data from {url}")
         
@@ -39,6 +52,9 @@ class TWSEAPIClient:
                 timeout=timeout
             )
             resp.raise_for_status()
+            
+            # 更新最後請求時間
+            cls._last_request_time = time.time()
             
             # 設定正確的編碼 (UTF-8)
             resp.encoding = 'utf-8'
