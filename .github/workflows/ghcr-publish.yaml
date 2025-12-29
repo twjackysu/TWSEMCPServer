@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - master
+      - cicd
     tags:
       - 'v*'
   pull_request:
