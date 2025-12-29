@@ -1,18 +1,21 @@
-# 使用 Python 3.13 作为基础镜像
+# Use Python 3.13 as base image
 FROM python:3.13-slim
 
-# 设置工作目录
+# Set working directory
 WORKDIR /app
 
-# 安装系统依赖
+# Install system dependencies and Node.js
 RUN apt-get update && apt-get install -y \
     curl \
+    gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 uv
+# Install uv
 RUN pip install --no-cache-dir uv
 
-# 复制项目文件
+# Copy project files
 COPY pyproject.toml uv.lock ./
 COPY requirements.txt ./
 COPY server.py ./
@@ -21,12 +24,12 @@ COPY utils/ ./utils/
 COPY prompts/ ./prompts/
 COPY staticFiles/ ./staticFiles/
 
-# 使用 uv 安装依赖
+# Install dependencies using uv
 RUN uv sync --frozen
 
-# 暴露端口（如果需要 HTTP 传输）
+# Expose port for HTTP transport
 EXPOSE 8000
 
-# 运行 MCP 服务器
-CMD ["uv", "run", "fastmcp", "dev", "server.py"]
+# Run MCP server (direct execution to use HTTP config from server.py)
+CMD ["uv", "run", "python", "server.py"]
 
