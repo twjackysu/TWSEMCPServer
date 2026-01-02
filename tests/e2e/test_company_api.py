@@ -29,6 +29,10 @@ class TestCompanyDividendAPI:
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         # 取第一筆資料檢查欄位
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert isinstance(first_item, dict), "每筆資料應該是 dict"
 
@@ -77,6 +81,10 @@ class TestCompanyNewsAPI:
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         # 取第一筆資料檢查欄位
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert isinstance(first_item, dict), "每筆資料應該是 dict"
 
@@ -130,6 +138,10 @@ class TestCompanyRevenueAPI:
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         # 取第一筆資料檢查欄位
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert isinstance(first_item, dict), "每筆資料應該是 dict"
 
@@ -179,6 +191,10 @@ class TestOtherESGAPIs:
             data = TWSEAPIClient.get_data(endpoint)
             # 只測試 schema，檢查有數據時的欄位結構
             if data and len(data) > 0:
+                # 跳過空資料的測試
+                if not data:
+                    pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+                
                 first_item = data[0]
                 assert isinstance(first_item, dict), f"{name} 資料應該是 dict"
         except Exception as e:
@@ -196,6 +212,10 @@ class TestCompanyBasicInfoAPI:
     def test_response_has_company_code(self):
         """測試回應包含公司代號欄位."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert "公司代號" in first_item or "Code" in first_item, "應該包含公司代號欄位"
 
@@ -217,6 +237,11 @@ class TestCompanyMajorShareholdersAPI:
     def test_response_has_company_code(self):
         """測試回應包含公司代號欄位."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
+        
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert "公司代號" in first_item or "Code" in first_item, "應該包含公司代號欄位"
 
@@ -251,6 +276,10 @@ class TestCompanyDirectorShareholdingAPIs:
         data = TWSEAPIClient.get_data(endpoint)
         # 只測試 schema，檢查有數據時的欄位結構
         if data and len(data) > 0:
+            # 跳過空資料的測試
+            if not data:
+                pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+            
             first_item = data[0]
             assert isinstance(first_item, dict), f"{name} 資料應該是 dict"
 
@@ -285,6 +314,10 @@ class TestCompanyGovernanceAPIs:
             data = TWSEAPIClient.get_data(endpoint)
             # 只測試 schema，檢查有數據時的欄位結構
             if data and len(data) > 0:
+                # 跳過空資料的測試
+                if not data:
+                    pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+                
                 first_item = data[0]
                 assert isinstance(first_item, dict), f"{name} 資料應該是 dict"
         except Exception as e:
@@ -307,6 +340,10 @@ class TestCompanyListingAPIs:
     def test_listing_apis_have_basic_fields(self, endpoint):
         """測試公司上市相關 APIs 都有基本欄位."""
         data = TWSEAPIClient.get_data(endpoint)
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         # 確保至少有基本欄位存在
         assert len(first_item) > 0, f"{endpoint} 應該至少包含一些欄位"
@@ -344,6 +381,10 @@ class TestShareholderMeetingAnnouncementsAPI:
         data = TWSEAPIClient.get_data(self.ENDPOINT)
 
         # 取第一筆資料檢查欄位
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
         assert isinstance(first_item, dict), "每筆資料應該是 dict"
 
@@ -354,6 +395,10 @@ class TestShareholderMeetingAnnouncementsAPI:
     def test_hardcoded_fields_exist(self):
         """測試程式碼中寫死的欄位確實存在於 API 回應中."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
 
         # 這些是我們在 get_company_shareholder_meeting_announcements 函數中寫死的欄位
@@ -370,6 +415,10 @@ class TestShareholderMeetingAnnouncementsAPI:
     def test_meaningful_data_filtering_fields(self):
         """測試用於過濾有意義資料的欄位確實存在."""
         data = TWSEAPIClient.get_data(self.ENDPOINT)
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {self.ENDPOINT} 目前返回空資料")
+        
         first_item = data[0]
 
         # 這些是我們用 has_meaningful_data 檢查的關鍵欄位
