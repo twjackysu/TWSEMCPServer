@@ -1,7 +1,9 @@
 """Constants for TWSE Stock MCP Server."""
 
-# Display limits
-DEFAULT_DISPLAY_LIMIT = 20
+from .config import DisplayConfig
+
+# Display limits (imported from config for backward compatibility)
+DEFAULT_DISPLAY_LIMIT = DisplayConfig.DEFAULT_DISPLAY_LIMIT
 
 # Error messages
 MSG_NO_DATA = "目前沒有{data_type}資料。"

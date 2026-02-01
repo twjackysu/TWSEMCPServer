@@ -2,6 +2,7 @@
 
 from .api_client import TWSEAPIClient
 from .types import TWSEDataItem, DataFormatter
+from .config import APIConfig, DisplayConfig, TestConfig
 from .constants import (
     DEFAULT_DISPLAY_LIMIT,
     MSG_NO_DATA,
@@ -28,6 +29,9 @@ __all__ = [
     "TWSEAPIClient",
     "TWSEDataItem",
     "DataFormatter",
+    "APIConfig",
+    "DisplayConfig",
+    "TestConfig",
     "DEFAULT_DISPLAY_LIMIT",
     "MSG_NO_DATA",
     "MSG_QUERY_FAILED",

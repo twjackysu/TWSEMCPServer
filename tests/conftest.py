@@ -3,7 +3,8 @@
 import pytest
 import logging
 import time
-import os
+
+from utils.config import TestConfig, APIConfig
 
 # 設定測試日誌
 logging.basicConfig(
@@ -11,9 +12,8 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
-# 從環境變數讀取延遲時間，預設為 1 秒
-# 在 CI 環境中可以設定更長的延遲時間
-TEST_DELAY = float(os.getenv('PYTEST_DELAY_SECONDS', '1.0'))
+# 使用集中管理的配置
+TEST_DELAY = TestConfig.TEST_DELAY
 
 @pytest.fixture
 def sample_stock_code():
@@ -28,7 +28,7 @@ def sample_stock_code_with_data():
 @pytest.fixture(scope="session")
 def api_timeout():
     """API 請求超時時間."""
-    return 30.0
+    return APIConfig.DEFAULT_TIMEOUT
 
 @pytest.fixture(autouse=True)
 def rate_limit_delay():
