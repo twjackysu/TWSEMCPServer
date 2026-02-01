@@ -1,6 +1,11 @@
 """Stock valuation tools."""
 
-from utils import TWSEAPIClient, format_properties_with_values_multiline
+from utils import (
+    TWSEAPIClient,
+    format_properties_with_values_multiline,
+    MSG_NO_DATA_FOR_CODE,
+    MSG_QUERY_FAILED_WITH_CODE,
+)
 
 def register_tools(mcp):
     """Register valuation tools with the MCP instance."""
@@ -20,7 +25,7 @@ def register_tools(mcp):
         try:
             data = TWSEAPIClient.get_company_data("/exchangeReport/BWIBBU_ALL", code)
             if not data:
-                return f"查無股票代號 {code} 的本益比等評價指標資料"
+                return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="本益比等評價指標資料")
             
             result = f"【{data.get('Name', 'N/A')} ({data.get('Code', code)})】評價指標\n\n"
             
@@ -32,8 +37,8 @@ def register_tools(mcp):
             result += f"日期: {date}\n"
             result += f"本益比 (P/E): {pe_ratio}\n"
             result += f"殖利率 (%): {dividend_yield}\n"
-            result += f"股價淨值比 (P/B): {pb_ratio}\n"
+            result += f"股價淊值比 (P/B): {pb_ratio}\n"
             
             return result
         except Exception as e:
-            return f"查詢股票代號 {code} 的評價指標時發生錯誤: {str(e)}"
+            return MSG_QUERY_FAILED_WITH_CODE.format(query_target=f"股票代號 {code} 的評價指標", error=str(e))

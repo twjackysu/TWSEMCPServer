@@ -1,6 +1,11 @@
 """Periodic trading data tools (monthly, yearly)."""
 
-from utils import TWSEAPIClient, format_properties_with_values_multiline
+from utils import (
+    TWSEAPIClient,
+    format_properties_with_values_multiline,
+    MSG_NO_DATA_FOR_CODE,
+    MSG_QUERY_FAILED_WITH_CODE,
+)
 
 def register_tools(mcp):
     """Register periodic trading tools with the MCP instance."""
@@ -33,7 +38,7 @@ def register_tools(mcp):
         try:
             data = TWSEAPIClient.get_company_data("/exchangeReport/FMSRFK_ALL", code)
             if not data:
-                return f"查無股票代號 {code} 的月成交資訊"
+                return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="月成交資訊")
             
             result = f"【{data.get('Name', 'N/A')} ({data.get('Code', code)})】月成交資訊\n\n"
             
@@ -57,7 +62,7 @@ def register_tools(mcp):
             
             return result
         except Exception as e:
-            return f"查詢股票代號 {code} 的月成交資訊時發生錯誤: {str(e)}"
+            return MSG_QUERY_FAILED_WITH_CODE.format(query_target=f"股票代號 {code} 的月成交資訊", error=str(e))
 
     @mcp.tool
     def get_stock_yearly_trading(code: str) -> str:
@@ -79,7 +84,7 @@ def register_tools(mcp):
         try:
             data = TWSEAPIClient.get_company_data("/exchangeReport/FMNPTK_ALL", code)
             if not data:
-                return f"查無股票代號 {code} 的年成交資訊"
+                return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="年成交資訊")
             
             result = f"【{data.get('Name', 'N/A')} ({data.get('Code', code)})】年成交資訊\n\n"
             
@@ -103,4 +108,4 @@ def register_tools(mcp):
             
             return result
         except Exception as e:
-            return f"查詢股票代號 {code} 的年成交資訊時發生錯誤: {str(e)}"
+            return MSG_QUERY_FAILED_WITH_CODE.format(query_target=f"股票代號 {code} 的年成交資訊", error=str(e))

@@ -1,6 +1,14 @@
 """Company basic information tools."""
 
-from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data, format_meaningful_fields_only
+from utils import (
+    TWSEAPIClient,
+    format_properties_with_values_multiline,
+    has_meaningful_data,
+    format_meaningful_fields_only,
+    MSG_NO_DATA,
+    MSG_QUERY_FAILED,
+    MSG_TOTAL_RECORDS,
+)
 
 def register_tools(mcp):
     """Register company basic info tools with the MCP instance."""
@@ -65,9 +73,9 @@ def register_tools(mcp):
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap08_L")
             if not data:
-                return "目前沒有資料。"
+                return MSG_NO_DATA.format(data_type="")
             
-            result = f"共有 {len(data)} 筆董監事持股不足法定成數的資料：\n\n"
+            result = MSG_TOTAL_RECORDS.format(count=len(data), data_type="董監事持股不足法定成數的資料") + "\n\n"
             for item in data:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
@@ -77,7 +85,7 @@ def register_tools(mcp):
             
             return result
         except Exception as e:
-            return f"查詢失敗: {str(e)}"
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_board_shareholdings(code: str) -> str:
