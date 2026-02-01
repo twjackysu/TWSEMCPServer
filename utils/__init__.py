@@ -7,8 +7,9 @@ from .formatters import (
     is_empty_or_na,
     has_meaningful_data,
     filter_meaningful_fields,
-    format_meaningful_fields_only
+    format_meaningful_fields_only,
 )
+from .tool_factory import create_company_tool
 
 __all__ = [
     "TWSEAPIClient",
@@ -17,5 +18,6 @@ __all__ = [
     "is_empty_or_na",
     "has_meaningful_data",
     "filter_meaningful_fields",
-    "format_meaningful_fields_only"
+    "format_meaningful_fields_only",
+    "create_company_tool",
 ]
