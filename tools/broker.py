@@ -1,5 +1,6 @@
 """Broker tools for TWSE data."""
 
+from typing import Dict
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
@@ -20,7 +21,13 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="券商業務別人員數")
         
-        formatter = create_simple_list_formatter("券商名稱", "券商代號", "總人數")
+        def formatter(item):
+            position = item.get("職位", "N/A")
+            total = item.get("合計", "N/A")
+            trading = item.get("受託買賣", "N/A")
+            self_trading = item.get("自行買賣", "N/A")
+            return f"- {position}: 總人數 {total} (受託買賣 {trading}, 自行買賣 {self_trading})\n"
+        
         return format_list_response(data, "券商業務別人員數資料", formatter)
 
     @mcp.tool
@@ -31,7 +38,14 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="券商每月月計表")
         
-        formatter = create_simple_list_formatter("券商名稱", "券商代號", "月份")
+        def formatter(item: Dict[str, str]) -> str:
+            name = item.get("券商名稱", "N/A")
+            code = item.get("券商代號", "N/A")
+            date = item.get("出表日期", "N/A")
+            subject = item.get("會計科目名稱", "N/A")
+            debit = item.get("借方餘額", "N/A")
+            return f"- {name} ({code}) [{date}] {subject}: {debit}\n"
+        
         return format_list_response(data, "券商每月月計表資料", formatter)
 
     @mcp.tool
@@ -42,7 +56,14 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="券商收支概況表")
         
-        formatter = create_simple_list_formatter("券商名稱", "券商代號", "期間")
+        def formatter(item: Dict[str, str]) -> str:
+            name = item.get("券商名稱", "N/A")
+            code = item.get("券商代號", "N/A")
+            date = item.get("出表日期", "N/A")
+            subject = item.get("會計科目名稱", "N/A")
+            amount = item.get("本月金額", "N/A")
+            return f"- {name} ({code}) [{date}] {subject}: {amount}\n"
+        
         return format_list_response(data, "券商收支概況表資料", formatter)
 
     @mcp.tool
@@ -53,7 +74,7 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="證券商基本")
         
-        formatter = create_simple_list_formatter("券商名稱", "券商代號", "設立日期")
+        formatter = create_simple_list_formatter("券商(證券IB)簡稱", "證券代號", "設立日期")
         return format_list_response(data, "證券商基本資料", formatter)
 
     @mcp.tool
@@ -64,11 +85,12 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="電子式交易統計")
         
-        def formatter(item):
-            date = item.get("日期", "N/A")
-            total_volume = item.get("總成交量", "N/A")
-            electronic_volume = item.get("電子式成交量", "N/A")
-            return f"- {date}: 總成交量 {total_volume}, 電子式成交量 {electronic_volume}\n"
+        def formatter(item: Dict[str, str]) -> str:
+            date = item.get("出表日期", "N/A")
+            month = item.get("成交月份", "N/A")
+            total_trades = item.get("公司總成交筆數", "N/A")
+            electronic_trades = item.get("成交筆數", "N/A")
+            return f"- [{date}] 月份 {month}: 總成交筆數 {total_trades}, 電子式成交筆數 {electronic_trades}\n"
         
         return format_list_response(data, "電子式交易統計資訊", formatter)
 
@@ -80,12 +102,12 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="證券商營業員男女人數統計")
         
-        def formatter(item):
-            broker_code = item.get("券商代號", "N/A")
-            broker_name = item.get("券商名稱", "N/A")
-            male_count = item.get("男營業員人數", "N/A")
-            female_count = item.get("女營業員人數", "N/A")
-            return f"- {broker_name} ({broker_code}): 男 {male_count} 人, 女 {female_count} 人\n"
+        def formatter(item: Dict[str, str]) -> str:
+            broker_code = item.get("證券商代號", "N/A")
+            male_count = item.get("男性員工人數", "N/A")
+            female_count = item.get("女性員工人數", "N/A")
+            total = item.get("總人數", "N/A")
+            return f"- 券商代號 {broker_code}: 男 {male_count} 人, 女 {female_count} 人, 總計 {total} 人\n"
         
         return format_list_response(data, "證券商營業員男女人數統計資料", formatter)
 
@@ -97,7 +119,13 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="證券商分公司基本")
         
-        formatter = create_simple_list_formatter("分公司名稱", "分公司代號", "總公司名稱")
+        def formatter(item: Dict[str, str]) -> str:
+            code = item.get("證券商代號", "N/A")
+            name = item.get("證券商名稱", "N/A")
+            address = item.get("地址", "N/A")
+            phone = item.get("電話", "N/A")
+            return f"- {name} ({code}): {address}, 電話 {phone}\n"
+        
         return format_list_response(data, "證券商分公司基本資料", formatter)
 
     @mcp.tool
@@ -108,7 +136,13 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="開辦定期定額業務證券商名單")
         
-        formatter = create_simple_list_formatter("券商名稱", "券商代號", "開辦日期")
+        def formatter(item: Dict[str, str]) -> str:
+            code = item.get("SecuritiesFirmCode", "N/A")
+            name = item.get("Name", "N/A")
+            start_date = item.get("BrokerageBusinessStartingDate", "N/A")
+            wealth_date = item.get("WealthManagementBusinessStartingDate", "N/A")
+            return f"- {name} ({code}): 經紀業務 {start_date}, 財富管理 {wealth_date}\n"
+        
         return format_list_response(data, "開辦定期定額業務證券商", formatter)
 
     @mcp.tool
@@ -119,11 +153,12 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="證券商總公司基本")
         
-        def formatter(item):
-            broker_code = item.get("券商代號", "N/A")
-            broker_name = item.get("券商名稱", "N/A")
-            establishment_date = item.get("設立日期", "N/A")
-            capital = item.get("資本額", "N/A")
-            return f"- {broker_name} ({broker_code}): 設立日期 {establishment_date}, 資本額 {capital}\n"
+        def formatter(item: Dict[str, str]) -> str:
+            code = item.get("Code", "N/A")
+            name = item.get("Name", "N/A")
+            establishment_date = item.get("EstablishmentDate", "N/A")
+            address = item.get("Address", "N/A")
+            phone = item.get("Telephone", "N/A")
+            return f"- {name} ({code}): 設立 {establishment_date}, 地址 {address}, 電話 {phone}\n"
         
         return format_list_response(data, "證券商總公司基本資料", formatter)

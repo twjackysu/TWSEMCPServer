@@ -69,9 +69,17 @@ def register_tools(mcp: FastMCP) -> None:
         for item in data:
             company_code = item.get("公司代號", "N/A")
             company_name = item.get("公司名稱", "N/A")
-            director_count = item.get("董監事人數", "N/A")
-            insufficient_count = item.get("持股不足法定成數人數", "N/A")
-            result += f"- {company_name} ({company_code}): {insufficient_count}/{director_count} 人持股不足\n"
+            director_insufficient = item.get("全體董事不足股數", "")
+            supervisor_insufficient = item.get("全體監察人不足股數", "")
+            
+            # 只顯示有不足情況的公司
+            if director_insufficient or supervisor_insufficient:
+                parts = []
+                if director_insufficient:
+                    parts.append(f"董事不足 {director_insufficient} 股")
+                if supervisor_insufficient:
+                    parts.append(f"監察人不足 {supervisor_insufficient} 股")
+                result += f"- {company_name} ({company_code}): {', '.join(parts)}\n"
         
         return result
 
@@ -115,13 +123,18 @@ def register_tools(mcp: FastMCP) -> None:
             if not data:
                 return "目前沒有資料。"
 
-            result = f"共有 {len(data)} 筆獨立董監事兼任情形資料：\n\n"
+            # This API returns individual person records, need to group by company
+            from collections import defaultdict
+            companies = defaultdict(list)
             for item in data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                total_directors = item.get("董監事總人數", "N/A")
-                independent_directors = item.get("獨立董監事人數", "N/A")
-                result += f"- {company_name} ({company_code}): {independent_directors}/{total_directors} 位獨立董監事\n"
+                code = item.get("公司代號", "N/A")
+                name = item.get("公司名稱", "N/A")
+                if code != "N/A":
+                    companies[code] = name
+            
+            result = f"共有 {len(companies)} 家公司具有獨立董監事資料：\n\n"
+            for code, name in sorted(companies.items()):
+                result += f"- {name} ({code})\n"
 
             return result
         except Exception as e:
@@ -228,10 +241,11 @@ def register_tools(mcp: FastMCP) -> None:
             
             result = f"集中市場公布處置股票共 {len(data)} 筆：\n\n"
             for item in data:
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                disposal_type = item.get("處置種類", "N/A")
-                result += f"- {stock_name} ({stock_code}): {disposal_type}\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                disposal_measures = item.get("DispositionMeasures", "N/A")
+                reasons = item.get("ReasonsOfDisposition", "N/A")
+                result += f"- {stock_name} ({stock_code}): {disposal_measures} - {reasons}\n"
             
             return result
         except Exception as e:
@@ -245,12 +259,17 @@ def register_tools(mcp: FastMCP) -> None:
             if not data:
                 return "目前沒有資料。"
             
-            result = f"共有 {len(data)} 筆董監事持股不足法定成數連續達3個月以上的資料：\n\n"
+            result = "董監事持股不足法定成數連續達 3 個月以上的公司：\n\n"
+            
+            # 按月份顯示
             for item in data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                consecutive_months = item.get("連續達3個月以上之月數", "N/A")
-                result += f"- {company_name} ({company_code}): 連續 {consecutive_months} 個月\n"
+                for month_field in ["連續不足達3個月", "連續不足達4個月", "連續不足達5個月", 
+                                    "連續不足達6個月", "連續不足達7個月", "連續不足達8個月",
+                                    "連續不足達9個月", "連續不足達10個月", "連續不足達11個月",
+                                    "連續不足達12個月", "連續不足逾1年以上"]:
+                    codes = item.get(month_field, "")
+                    if codes and codes.strip():
+                        result += f"{month_field}: {codes}\n"
             
             return result
         except Exception as e:
@@ -347,8 +366,11 @@ def register_tools(mcp: FastMCP) -> None:
             for item in data:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                change_date = item.get("異動日期", "N/A")
+                change_date = item.get("經營權異動日期", "N/A")
+                change_desc = item.get("經營權異動說明", "")
                 result += f"- {company_name} ({company_code}): {change_date}\n"
+                if change_desc:
+                    result += f"  說明: {change_desc[:100]}...\n" if len(change_desc) > 100 else f"  說明: {change_desc}\n"
             
             return result
         except Exception as e:
@@ -400,12 +422,25 @@ def register_tools(mcp: FastMCP) -> None:
             if not data:
                 return "目前沒有營業範圍重大變更公司資料。"
             
-            result = f"共有 {len(data)} 筆營業範圍重大變更公司資料：\n\n"
-            for item in data:
+            # Filter out empty records
+            valid_data = [
+                item for item in data 
+                if item.get("公司代號") and item.get("公司名稱")
+            ]
+            
+            if not valid_data:
+                return "目前沒有營業範圍重大變更公司資料。"
+            
+            result = f"共有 {len(valid_data)} 筆營業範圍重大變更公司資料：\n\n"
+            for item in valid_data:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                change_date = item.get("變更日期", "N/A")
-                result += f"- {company_name} ({company_code}): {change_date}\n"
+                year = item.get("年度", "N/A")
+                quarter = item.get("季別", "N/A")
+                description = item.get("營業範圍重大變更說明", "")
+                result += f"- {company_name} ({company_code}): {year}Q{quarter}\n"
+                if description:
+                    result += f"  變更說明: {description[:100]}...\n" if len(description) > 100 else f"  變更說明: {description}\n"
             
             return result
         except Exception as e:
@@ -485,12 +520,12 @@ def register_tools(mcp: FastMCP) -> None:
             if not data:
                 return "目前沒有資料。"
             
-            result = f"共有 {len(data)} 筆董監事質權設定占實際持有股數資料：\n\n"
+            result = "董監事質權設定占實際持有股數資料：\n\n"
             for item in data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                pledged_percentage = item.get("質權設定占實際持有股數百分比", "N/A")
-                result += f"- {company_name} ({company_code}): {pledged_percentage}%\n"
+                percentage_range = item.get("百分比", "N/A")
+                companies_text = item.get("公司名稱", "")
+                if companies_text:
+                    result += f"質權比例 {percentage_range}%：\n{companies_text}\n\n"
             
             return result
         except Exception as e:
@@ -508,8 +543,12 @@ def register_tools(mcp: FastMCP) -> None:
             for item in data:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                voting_system = item.get("選任方式", "N/A")
-                result += f"- {company_name} ({company_code}): {voting_system}\n"
+                voting_system = item.get("董監事選任方式", "N/A")
+                meeting_date = item.get("株東常(臨時)會日期-日期", "")
+                result += f"- {company_name} ({company_code}): {voting_system}"
+                if meeting_date:
+                    result += f" (股東會日期: {meeting_date})"
+                result += "\n"
             
             return result
         except Exception as e:
@@ -527,9 +566,14 @@ def register_tools(mcp: FastMCP) -> None:
             for item in data:
                 company_code = item.get("公司代號", "N/A")
                 company_name = item.get("公司名稱", "N/A")
-                proposal_count = item.get("提案總件數", "N/A")
-                adopted_count = item.get("通過件數", "N/A")
-                result += f"- {company_name} ({company_code}): {adopted_count}/{proposal_count} 件通過\n"
+                meeting_date = item.get("召開株東會日期", "N/A")
+                proposal_period = item.get("株東依公司法第172條之1行使提案權-提案受理期間", "")
+                proposal_content = item.get("提案內容", "")
+                result += f"- {company_name} ({company_code}): 股東會 {meeting_date}\n"
+                if proposal_period:
+                    result += f"  提案受理期間: {proposal_period}\n"
+                if proposal_content:
+                    result += f"  提案內容: {proposal_content[:100]}...\n" if len(proposal_content) > 100 else f"  提案內容: {proposal_content}\n"
             
             return result
         except Exception as e:

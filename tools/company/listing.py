@@ -16,10 +16,12 @@ def register_tools(mcp: FastMCP) -> None:
             
             result = f"共有 {len(data)} 筆外國公司申請第一上市資料：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                company_name = item.get("公司名稱", "N/A")
-                application_date = item.get("申請日期", "N/A")
-                status = item.get("狀態", "N/A")
-                result += f"- {company_name}: 申請日期 {application_date}, 狀態 {status}\n"
+                code = item.get("Code", "N/A")
+                company_name = item.get("Company", "N/A")
+                application_date = item.get("ApplicationDate", "N/A")
+                approved_date = item.get("ApprovedDate", "N/A")
+                listing_date = item.get("ListingDate", "N/A")
+                result += f"- {company_name} ({code}): 申請日期 {application_date}, 核准日期 {approved_date}, 上市日期 {listing_date}\n"
             
             if len(data) > 20:
                 result += f"\n... 還有 {len(data) - 20} 筆資料"
@@ -38,9 +40,9 @@ def register_tools(mcp: FastMCP) -> None:
             
             result = f"共有 {len(data)} 筆最近上市公司資料：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                listing_date = item.get("上市日期", "N/A")
+                company_code = item.get("Code", "N/A")
+                company_name = item.get("Company", "N/A")
+                listing_date = item.get("ListingDate", "N/A")
                 result += f"- {company_name} ({company_code}): 上市日期 {listing_date}\n"
             
             if len(data) > 20:
@@ -60,11 +62,10 @@ def register_tools(mcp: FastMCP) -> None:
             
             result = f"共有 {len(data)} 筆終止上市公司資料：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                suspension_date = item.get("終止日期", "N/A")
-                reason = item.get("終止原因", "N/A")
-                result += f"- {company_name} ({company_code}): 終止日期 {suspension_date}, 原因 {reason}\n"
+                company_code = item.get("Code", "N/A")
+                company_name = item.get("Company", "N/A")
+                delisting_date = item.get("DelistingDate", "N/A")
+                result += f"- {company_name} ({company_code}): 終止日期 {delisting_date}\n"
             
             if len(data) > 20:
                 result += f"\n... 還有 {len(data) - 20} 筆資料"
@@ -83,10 +84,12 @@ def register_tools(mcp: FastMCP) -> None:
             
             result = f"共有 {len(data)} 筆申請上市之本國公司資料：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                company_name = item.get("公司名稱", "N/A")
-                application_date = item.get("申請日期", "N/A")
-                status = item.get("狀態", "N/A")
-                result += f"- {company_name}: 申請日期 {application_date}, 狀態 {status}\n"
+                code = item.get("Code", "N/A")
+                company_name = item.get("Company", "N/A")
+                application_date = item.get("ApplicationDate", "N/A")
+                approved_date = item.get("ApprovedDate", "N/A")
+                listing_date = item.get("ListingDate", "N/A")
+                result += f"- {company_name} ({code}): 申請日期 {application_date}, 核准日期 {approved_date}, 上市日期 {listing_date}\n"
             
             if len(data) > 20:
                 result += f"\n... 還有 {len(data) - 20} 筆資料"
