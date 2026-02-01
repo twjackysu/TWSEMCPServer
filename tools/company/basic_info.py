@@ -8,102 +8,85 @@ from utils import (
     MSG_NO_DATA,
     MSG_QUERY_FAILED,
     MSG_TOTAL_RECORDS,
+    handle_api_errors,
 )
 
 def register_tools(mcp):
     """Register company basic info tools with the MCP instance."""
     
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_profile(code: str) -> str:
         """Obtain the basic information of a listed company as a JSON string object based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap03_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap03_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_dividend(code: str) -> str:
         """Obtain the dividend distribution information of a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap45_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap45_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_monthly_revenue(code: str) -> str:
         """Obtain monthly revenue information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap05_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap05_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_public_company_monthly_revenue(code: str) -> str:
         """Obtain monthly revenue summary for a public company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap05_P", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap05_P", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_major_shareholders(code: str) -> str:
         """Obtain major shareholders (over 10% ownership) information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap02_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap02_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_eps_statistics(code: str) -> str:
         """Obtain EPS statistics by industry for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap14_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap14_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(data_type="董監事持股不足法定成數")
     def get_company_board_insufficient_shares() -> str:
         """Get all listed companies where board members hold insufficient shares as required by law."""
-        try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap08_L")
-            if not data:
-                return MSG_NO_DATA.format(data_type="")
-            
-            result = MSG_TOTAL_RECORDS.format(count=len(data), data_type="董監事持股不足法定成數的資料") + "\n\n"
-            for item in data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                director_count = item.get("董監事人數", "N/A")
-                insufficient_count = item.get("持股不足法定成數人數", "N/A")
-                result += f"- {company_name} ({company_code}): {insufficient_count}/{director_count} 人持股不足\n"
-            
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = TWSEAPIClient.get_data("/opendata/t187ap08_L")
+        if not data:
+            return MSG_NO_DATA.format(data_type="")
+        
+        result = MSG_TOTAL_RECORDS.format(count=len(data), data_type="董監事持股不足法定成數的資料") + "\n\n"
+        for item in data:
+            company_code = item.get("公司代號", "N/A")
+            company_name = item.get("公司名稱", "N/A")
+            director_count = item.get("董監事人數", "N/A")
+            insufficient_count = item.get("持股不足法定成數人數", "N/A")
+            result += f"- {company_name} ({company_code}): {insufficient_count}/{director_count} 人持股不足\n"
+        
+        return result
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_board_shareholdings(code: str) -> str:
         """Obtain board members' shareholding details for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap11_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap11_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_daily_insider_trades_preannounced(code: str) -> str:
         """Obtain daily insider share transfer pre-announcements for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap12_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        data = TWSEAPIClient.get_company_data("/opendata/t187ap12_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     def get_company_daily_insider_trades_untransferred(code: str) -> str:
