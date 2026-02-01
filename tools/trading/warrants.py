@@ -1,9 +1,10 @@
 """Warrants related tools for Taiwan Stock Exchange MCP server."""
 
+from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline
 
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     @mcp.tool
     def get_warrant_basic_info(code: str = "") -> str:
         """

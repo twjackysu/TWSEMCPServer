@@ -1,5 +1,6 @@
 """Other tools for TWSE data."""
 
+from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
@@ -8,7 +9,7 @@ from utils import (
     create_simple_list_formatter,
 )
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     """Register other tools with the MCP instance."""
     
     @mcp.tool

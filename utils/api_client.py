@@ -4,7 +4,9 @@ import requests
 import logging
 import time
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
+
+from .types import TWSEDataItem
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,7 @@ class TWSEAPIClient:
     _min_request_interval = float(os.getenv('API_REQUEST_DELAY', '0.5'))
     
     @classmethod
-    def get_data(cls, endpoint: str, timeout: float = 30.0) -> List[Dict[str, Any]]:
+    def get_data(cls, endpoint: str, timeout: float = 30.0) -> List[TWSEDataItem]:
         """
         Fetch data from TWSE API endpoint.
         
@@ -72,7 +74,7 @@ class TWSEAPIClient:
             raise
     
     @classmethod
-    def get_company_data(cls, endpoint: str, code: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+    def get_company_data(cls, endpoint: str, code: str, timeout: float = 30.0) -> Optional[TWSEDataItem]:
         """
         Fetch company or warrant specific data from TWSE API.
 
@@ -102,7 +104,7 @@ class TWSEAPIClient:
             return None
     
     @classmethod
-    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = 30.0) -> List[Dict[str, Any]]:
+    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = 30.0) -> List[TWSEDataItem]:
         """
         Fetch latest market data from TWSE API.
         

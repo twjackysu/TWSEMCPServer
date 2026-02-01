@@ -1,9 +1,10 @@
 """Data formatting utilities."""
 
-from typing import Dict, Any, List, Union, Callable, Optional
+from typing import List, Union, Sequence
 from .constants import MSG_TOTAL_RECORDS, MSG_MORE_RECORDS, DEFAULT_DISPLAY_LIMIT
+from .types import TWSEDataItem, DataFormatter
 
-def format_properties_with_values_multiline(data: Dict[str, Any]) -> str:
+def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
     """
     Format dictionary properties as multiline string.
     
@@ -19,7 +20,7 @@ def format_properties_with_values_multiline(data: Dict[str, Any]) -> str:
     description_items = [f"{key}: {value}" for key, value in data.items()]
     return "\n".join(description_items)
 
-def format_multiple_records(records: List[Dict[str, Any]], separator: str = "-" * 30) -> str:
+def format_multiple_records(records: List[TWSEDataItem], separator: str = "-" * 30) -> str:
     """
     Format multiple records as a single string with separators.
     
@@ -42,7 +43,7 @@ def format_multiple_records(records: List[Dict[str, Any]], separator: str = "-" 
     
     return "\n".join(formatted_items)
 
-def is_empty_or_na(value: Any) -> bool:
+def is_empty_or_na(value: str | None) -> bool:
     """
     Check if a value is considered empty or N/A.
     
@@ -54,7 +55,7 @@ def is_empty_or_na(value: Any) -> bool:
     """
     return value in ["0.000", "0", "N/A", "", None]
 
-def has_meaningful_data(item: Dict[str, Any], fields: Union[str, List[str]]) -> bool:
+def has_meaningful_data(item: TWSEDataItem, fields: Union[str, Sequence[str]]) -> bool:
     """
     Check if any of the specified fields has meaningful (non-empty, non-N/A) data.
 
@@ -73,7 +74,7 @@ def has_meaningful_data(item: Dict[str, Any], fields: Union[str, List[str]]) -> 
         for field in fields
     )
 
-def filter_meaningful_fields(item: Dict[str, Any], exclude_fields: Union[str, List[str], None] = None) -> Dict[str, Any]:
+def filter_meaningful_fields(item: TWSEDataItem, exclude_fields: Union[str, Sequence[str], None] = None) -> TWSEDataItem:
     """
     Filter a dictionary to only include fields with meaningful values.
 
@@ -96,7 +97,7 @@ def filter_meaningful_fields(item: Dict[str, Any], exclude_fields: Union[str, Li
 
     return result
 
-def format_meaningful_fields_only(item: Dict[str, Any], exclude_fields: Union[str, List[str], None] = None) -> str:
+def format_meaningful_fields_only(item: TWSEDataItem, exclude_fields: Union[str, Sequence[str], None] = None) -> str:
     """
     Format only fields with meaningful values as a multiline string.
 
@@ -112,9 +113,9 @@ def format_meaningful_fields_only(item: Dict[str, Any], exclude_fields: Union[st
 
 
 def format_list_response(
-    data: List[Dict[str, Any]], 
+    data: List[TWSEDataItem], 
     data_type: str,
-    formatter: Optional[Callable[[Dict[str, Any]], str]] = None,
+    formatter: DataFormatter | None = None,
     limit: int = DEFAULT_DISPLAY_LIMIT
 ) -> str:
     """
@@ -160,7 +161,7 @@ def create_simple_list_formatter(
     name_field: str = "名稱",
     code_field: str = "代號", 
     *extra_fields: str
-) -> Callable[[Dict[str, Any]], str]:
+) -> DataFormatter:
     """
     Create a simple formatter for list items with name, code, and optional extra fields.
     
@@ -177,7 +178,7 @@ def create_simple_list_formatter(
         >>> formatter({"券商名稱": "ABC", "券商代號": "001", "總人數": "100"})
         '- ABC (001): 總人數 100\\n'
     """
-    def formatter(item: Dict[str, Any]) -> str:
+    def formatter(item: TWSEDataItem) -> str:
         name = item.get(name_field, "N/A")
         code = item.get(code_field, "N/A")
         

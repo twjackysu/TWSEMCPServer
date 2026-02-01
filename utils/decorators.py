@@ -1,12 +1,15 @@
 """Decorators for error handling and common patterns."""
 
 from functools import wraps
-from typing import Callable, Any
+from typing import Callable, TypeVar, ParamSpec
 import logging
 
 from .constants import MSG_QUERY_FAILED, MSG_NO_DATA
 
 logger = logging.getLogger(__name__)
+
+P = ParamSpec('P')
+R = TypeVar('R')
 
 
 def handle_api_errors(data_type: str = "", use_code_param: bool = False):
@@ -27,9 +30,9 @@ def handle_api_errors(data_type: str = "", use_code_param: bool = False):
         def get_stock_info(code: str) -> str:
             ...
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
@@ -70,9 +73,9 @@ def handle_empty_response(data_type: str):
                 return None  # Will be caught by decorator
             return format_data(data)
     """
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: Callable[P, R]) -> Callable[P, R]:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             result = func(*args, **kwargs)
             if result is None or result == "":
                 return MSG_NO_DATA.format(data_type=data_type)

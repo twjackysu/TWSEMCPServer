@@ -1,8 +1,9 @@
 """Company listing related tools."""
 
+from fastmcp import FastMCP
 from utils import TWSEAPIClient
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     """Register company listing tools with the MCP instance."""
     
     @mcp.tool

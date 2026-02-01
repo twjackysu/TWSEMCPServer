@@ -1,5 +1,6 @@
 """Stock valuation tools."""
 
+from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     format_properties_with_values_multiline,
@@ -8,7 +9,7 @@ from utils import (
     handle_api_errors,
 )
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     """Register valuation tools with the MCP instance."""
     
     @mcp.tool
