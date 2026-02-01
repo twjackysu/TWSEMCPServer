@@ -1,49 +1,53 @@
 """MCP tools for TWStockMCPServer."""
 
-def register_all_tools(mcp):
-    """Register all MCP tools from different modules."""
-    # Import tool registration functions
-    from .company.basic_info import register_tools as register_company_basic_tools
-    from .company.financials import register_tools as register_company_financial_tools
-    from .company.esg import register_tools as register_company_esg_tools
-    from .company.news import register_tools as register_company_news_tools
-    from .company.listing import register_tools as register_company_listing_tools
-    from .trading.daily import register_tools as register_trading_daily_tools
-    from .trading.periodic import register_tools as register_trading_periodic_tools
-    from .trading.valuation import register_tools as register_trading_valuation_tools
-    from .trading.etf import register_tools as register_trading_etf_tools
-    from .trading.warrants import register_tools as register_trading_warrants_tools
-    from .trading.dividend_schedule import register_tools as register_trading_dividend_schedule_tools
-    from .trading.market import register_tools as register_trading_market_tools
-    from .market.indices import register_tools as register_market_indices_tools
-    from .market.statistics import register_tools as register_market_statistics_tools
-    from .market.foreign import register_tools as register_market_foreign_tools
+import importlib
+import pkgutil
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fastmcp import FastMCP
+
+
+def register_all_tools(mcp: "FastMCP") -> None:
+    """
+    Automatically discover and register all MCP tools from submodules.
     
-    # Other tools
-    from .other import register_tools as register_other_tools
-    from .broker import register_tools as register_broker_tools
+    This function scans all Python modules in the tools package and its subpackages,
+    looking for modules that have a register_tools function. It then calls each
+    register_tools function to register the tools with the MCP instance.
     
-    # Company tools
-    register_company_basic_tools(mcp)
-    register_company_financial_tools(mcp)
-    register_company_esg_tools(mcp)
-    register_company_news_tools(mcp)
-    register_company_listing_tools(mcp)
+    Args:
+        mcp: FastMCP instance to register tools with
+    """
+    tools_package = Path(__file__).parent
     
-    # Trading tools
-    register_trading_daily_tools(mcp)
-    register_trading_periodic_tools(mcp)
-    register_trading_valuation_tools(mcp)
-    register_trading_etf_tools(mcp)
-    register_trading_warrants_tools(mcp)
-    register_trading_dividend_schedule_tools(mcp)
-    register_trading_market_tools(mcp)
+    # Get all subpackages and modules
+    modules_to_register = []
     
-    # Market tools
-    register_market_indices_tools(mcp)
-    register_market_statistics_tools(mcp)
-    register_market_foreign_tools(mcp)
+    # Scan direct modules in tools/
+    for module_info in pkgutil.iter_modules([str(tools_package)]):
+        if not module_info.ispkg and module_info.name != '__init__':
+            modules_to_register.append(f"tools.{module_info.name}")
     
-    # Other tools
-    register_other_tools(mcp)
-    register_broker_tools(mcp)
+    # Scan subpackages (company, trading, market)
+    for subpackage_info in pkgutil.iter_modules([str(tools_package)]):
+        if subpackage_info.ispkg:
+            subpackage_path = tools_package / subpackage_info.name
+            for module_info in pkgutil.iter_modules([str(subpackage_path)]):
+                if not module_info.ispkg and module_info.name != '__init__':
+                    modules_to_register.append(f"tools.{subpackage_info.name}.{module_info.name}")
+    
+    # Import and register tools from each module
+    for module_path in sorted(modules_to_register):
+        try:
+            module = importlib.import_module(module_path)
+            if hasattr(module, 'register_tools'):
+                module.register_tools(mcp)
+        except Exception as e:
+            # Log warning but continue with other modules
+            import logging
+            logging.warning(f"Failed to register tools from {module_path}: {e}")
+
+
+__all__ = ['register_all_tools']

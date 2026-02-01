@@ -1,8 +1,9 @@
 """Market statistics tools."""
 
+from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     """Register market statistics tools with the MCP instance."""
     
     @mcp.tool

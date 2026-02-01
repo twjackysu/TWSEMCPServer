@@ -1,9 +1,10 @@
 """Warrants related tools for Taiwan Stock Exchange MCP server."""
 
+from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline
 
 
-def register_tools(mcp):
+def register_tools(mcp: FastMCP) -> None:
     @mcp.tool
     def get_warrant_basic_info(code: str = "") -> str:
         """
@@ -103,16 +104,21 @@ def register_tools(mcp):
     @mcp.tool
     def get_warrant_yearly_issuance_statistics() -> str:
         """
-        Get yearly issuance volume statistics for listed call/put warrants.
+        Get yearly issuance statistics for listed call/put warrants.
         
-        Retrieves annual statistics on warrant issuance volumes by type and period.
+        Retrieves annual issuance statistics and overview for listed call and put warrants,
+        as published by Taiwan Stock Exchange (上市認購(售)權證年度發行量概況統計表).
         
         Returns:
             Formatted string containing warrant yearly issuance statistics including:
-            - Year (年度)
-            - Warrant type (權證類型)
-            - Issuance volume (發行量)
-            - And other issuance-related statistics
+            - Report date (出表日期)
+            - Issuer code (發行人代號)
+            - Issuer name (發行人名稱)
+            - Warrant code (權證代號)
+            - Warrant name (名稱)
+            - Underlying asset code (標的代號)
+            - Underlying asset name (標的名稱)
+            - Application date (申請發行日期)
         """
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap36_L")

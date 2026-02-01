@@ -3,22 +3,23 @@
 import requests
 import logging
 import time
-import os
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
+
+from .types import TWSEDataItem
+from .config import APIConfig
 
 logger = logging.getLogger(__name__)
 
 class TWSEAPIClient:
     """Client for Taiwan Stock Exchange API."""
     
-    BASE_URL = "https://openapi.twse.com.tw/v1"
-    USER_AGENT = "stock-mcp/1.0"
+    BASE_URL = APIConfig.BASE_URL
+    USER_AGENT = APIConfig.USER_AGENT
     _last_request_time = 0
-    # 從環境變數讀取 API 請求間隔，預設為 0.5 秒
-    _min_request_interval = float(os.getenv('API_REQUEST_DELAY', '0.5'))
+    _min_request_interval = APIConfig.REQUEST_INTERVAL
     
     @classmethod
-    def get_data(cls, endpoint: str, timeout: float = 30.0) -> List[Dict[str, Any]]:
+    def get_data(cls, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
         """
         Fetch data from TWSE API endpoint.
         
@@ -44,11 +45,11 @@ class TWSEAPIClient:
         logger.info(f"Fetching TWSE data from {url}")
         
         try:
-            # 透過 verify=False 跳過 SSL 憑證驗證
+            # 透過 verify 參數控制 SSL 憑證驗證
             resp = requests.get(
                 url, 
                 headers={"User-Agent": cls.USER_AGENT, "Accept": "application/json"}, 
-                verify=False, 
+                verify=APIConfig.VERIFY_SSL, 
                 timeout=timeout
             )
             resp.raise_for_status()
@@ -72,7 +73,7 @@ class TWSEAPIClient:
             raise
     
     @classmethod
-    def get_company_data(cls, endpoint: str, code: str, timeout: float = 30.0) -> Optional[Dict[str, Any]]:
+    def get_company_data(cls, endpoint: str, code: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Optional[TWSEDataItem]:
         """
         Fetch company or warrant specific data from TWSE API.
 
@@ -102,7 +103,7 @@ class TWSEAPIClient:
             return None
     
     @classmethod
-    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = 30.0) -> List[Dict[str, Any]]:
+    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
         """
         Fetch latest market data from TWSE API.
         

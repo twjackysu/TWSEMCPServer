@@ -1,70 +1,68 @@
 """Company ESG and governance tools."""
 
+from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
+from utils.tool_factory import create_company_tool
 
-def register_tools(mcp):
+# Simple company data tools: (endpoint, name, docstring)
+SIMPLE_ESG_TOOLS = [
+    ("/opendata/t187ap46_L_9", "get_company_governance_info",
+     "Obtain corporate governance information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_8", "get_company_climate_management",
+     "Obtain climate-related management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_19", "get_company_risk_management",
+     "Obtain risk management policy information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_13", "get_company_supply_chain_management",
+     "Obtain supply chain management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_16", "get_company_info_security",
+     "Obtain information security data for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_20", "get_company_anticompetitive_litigation",
+     "Obtain anti-competitive litigation losses information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_17", "get_company_inclusive_finance",
+     "Obtain inclusive finance information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_15", "get_company_community_relations",
+     "Obtain community relations information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_18", "get_company_ownership_and_control",
+     "Obtain ownership and control information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_14", "get_company_product_quality_safety",
+     "Obtain product quality and safety information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_12", "get_company_food_safety",
+     "Obtain food safety information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_11", "get_company_product_lifecycle",
+     "Obtain product lifecycle information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_10", "get_company_fuel_management",
+     "Obtain fuel management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_7", "get_company_investor_communications",
+     "Obtain investor communications information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_6", "get_company_board_info",
+     "Obtain board information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_5", "get_company_human_development",
+     "Obtain human development information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_4", "get_company_waste_management",
+     "Obtain waste management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_3", "get_company_water_management",
+     "Obtain water resource management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_2", "get_company_energy_management",
+     "Obtain energy management information for a listed company based on its stock code."),
+    ("/opendata/t187ap46_L_1", "get_company_greenhouse_gas_emissions",
+     "Obtain greenhouse gas emissions information for a listed company based on its stock code."),
+]
+
+
+def register_tools(mcp: FastMCP) -> None:
     """Register company ESG tools with the MCP instance."""
     
-    @mcp.tool
-    def get_company_governance_info(code: str) -> str:
-        """Obtain corporate governance information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_9", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_climate_management(code: str) -> str:
-        """Obtain climate-related management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_8", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_risk_management(code: str) -> str:
-        """Obtain risk management policy information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_19", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_supply_chain_management(code: str) -> str:
-        """Obtain supply chain management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_13", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_info_security(code: str) -> str:
-        """Obtain information security data for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_16", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_anticompetitive_litigation(code: str) -> str:
-        """Obtain anti-competitive litigation losses information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_20", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
+    # Register simple tools via factory
+    for endpoint, name, doc in SIMPLE_ESG_TOOLS:
+        create_company_tool(mcp, endpoint, name, doc)
+    
+    # Complex tools with custom logic below
+    
     @mcp.tool
     def get_companies_with_anticompetitive_losses() -> str:
         """Get all listed companies that have reported monetary losses from anti-competitive litigation (excluding zero or N/A values)."""
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap46_L_20")
-            # Filter companies with actual losses (non-zero and non-N/A)
             filtered_data = [
                 item for item in data 
                 if isinstance(item, dict) and 
@@ -74,7 +72,6 @@ def register_tools(mcp):
             if not filtered_data:
                 return "目前沒有公司報告反競爭行為法律訴訟的金錢損失。"
             
-            # Format the output
             result = f"共有 {len(filtered_data)} 家公司報告反競爭行為法律訴訟的金錢損失：\n\n"
             for item in filtered_data:
                 company_code = item.get("公司代號", "N/A")
@@ -88,20 +85,10 @@ def register_tools(mcp):
             return f"查詢失敗: {str(e)}"
 
     @mcp.tool
-    def get_company_inclusive_finance(code: str) -> str:
-        """Obtain inclusive finance information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_17", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
     def get_companies_with_inclusive_finance_data() -> str:
         """Get all listed companies that have reported inclusive finance activities (excluding zero or N/A values)."""
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap46_L_17")
-            # Filter companies with meaningful data in any of the three fields
             filtered_data = [
                 item for item in data
                 if isinstance(item, dict) and
@@ -115,7 +102,6 @@ def register_tools(mcp):
             if not filtered_data:
                 return "目前沒有公司報告普惠金融相關數據。"
 
-            # Format the output
             result = f"共有 {len(filtered_data)} 家公司報告普惠金融相關數據：\n\n"
             for item in filtered_data:
                 company_code = item.get("公司代號", "N/A")
@@ -135,20 +121,10 @@ def register_tools(mcp):
             return f"查詢失敗: {str(e)}"
 
     @mcp.tool
-    def get_company_community_relations(code: str) -> str:
-        """Obtain community relations information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_15", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
     def get_companies_with_refineries_in_populated_areas() -> str:
         """Get all listed companies that have reported refineries in populated areas (excluding zero or N/A values)."""
         try:
             data = TWSEAPIClient.get_data("/opendata/t187ap46_L_15")
-            # Filter companies with meaningful data (non-zero and non-N/A refinery count)
             filtered_data = [
                 item for item in data
                 if isinstance(item, dict) and
@@ -158,7 +134,6 @@ def register_tools(mcp):
             if not filtered_data:
                 return "目前沒有公司報告在人口密集地區設有煉油廠。"
 
-            # Format the output
             result = f"共有 {len(filtered_data)} 家公司報告在人口密集地區設有煉油廠：\n\n"
             for item in filtered_data:
                 company_code = item.get("公司代號", "N/A")
@@ -170,111 +145,3 @@ def register_tools(mcp):
             return result
         except Exception as e:
             return f"查詢失敗: {str(e)}"
-
-    @mcp.tool
-    def get_company_ownership_and_control(code: str) -> str:
-        """Obtain ownership and control information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_18", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_product_quality_safety(code: str) -> str:
-        """Obtain product quality and safety information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_14", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_food_safety(code: str) -> str:
-        """Obtain food safety information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_12", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_product_lifecycle(code: str) -> str:
-        """Obtain product lifecycle information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_11", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_fuel_management(code: str) -> str:
-        """Obtain fuel management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_10", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_investor_communications(code: str) -> str:
-        """Obtain investor communications information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_7", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_board_info(code: str) -> str:
-        """Obtain board information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_6", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_human_development(code: str) -> str:
-        """Obtain human development information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_5", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_waste_management(code: str) -> str:
-        """Obtain waste management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_4", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_water_management(code: str) -> str:
-        """Obtain water resource management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_3", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_energy_management(code: str) -> str:
-        """Obtain energy management information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_2", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
-
-    @mcp.tool
-    def get_company_greenhouse_gas_emissions(code: str) -> str:
-        """Obtain greenhouse gas emissions information for a listed company based on its stock code."""
-        try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap46_L_1", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
