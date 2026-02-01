@@ -5,6 +5,7 @@ These tests verify that the TWSE listing APIs return the expected field names.
 
 import pytest
 from utils.api_client import TWSEAPIClient
+from .schema_definitions import API_SCHEMA_MAP
 
 
 class TestListingAPISchema:
@@ -12,14 +13,13 @@ class TestListingAPISchema:
 
     def test_applylistingForeign_schema(self):
         """Test /company/applylistingForeign API schema."""
-        data = TWSEAPIClient.get_data("/company/applylistingForeign")
+        endpoint = "/company/applylistingForeign"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert isinstance(data, list), "Expected list response"
         assert len(data) > 0, "Expected non-empty list"
 
-        required_fields = ["No", "Code", "Company", "ApplicationDate", "Chairman", 
-                          "AmountofCapital ", "CommitteeDate", "ApprovedDate", 
-                          "AgreementDate", "ListingDate", "Underwriter", 
-                          "UnderwritingPrice", "Note"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         first_item = data[0]
         assert isinstance(first_item, dict), "Expected dict items"
@@ -30,14 +30,13 @@ class TestListingAPISchema:
 
     def test_newlisting_schema(self):
         """Test /company/newlisting API schema."""
-        data = TWSEAPIClient.get_data("/company/newlisting")
+        endpoint = "/company/newlisting"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert isinstance(data, list), "Expected list response"
         assert len(data) > 0, "Expected non-empty list"
 
-        required_fields = ["Code", "Company", "ApplicationDate", "Chairman", 
-                          "AmountofCapital ", "CommitteeDate", "ApprovedDate", 
-                          "AgreementDate", "ListingDate", "ApprovedListingDate", 
-                          "Underwriter", "UnderwritingPrice", "Note"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         first_item = data[0]
         assert isinstance(first_item, dict), "Expected dict items"
@@ -48,11 +47,13 @@ class TestListingAPISchema:
 
     def test_suspendListingCsvAndHtml_schema(self):
         """Test /company/suspendListingCsvAndHtml API schema."""
-        data = TWSEAPIClient.get_data("/company/suspendListingCsvAndHtml")
+        endpoint = "/company/suspendListingCsvAndHtml"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert isinstance(data, list), "Expected list response"
         assert len(data) > 0, "Expected non-empty list"
 
-        required_fields = ["DelistingDate", "Company", "Code"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         first_item = data[0]
         assert isinstance(first_item, dict), "Expected dict items"
@@ -63,14 +64,13 @@ class TestListingAPISchema:
 
     def test_applylistingLocal_schema(self):
         """Test /company/applylistingLocal API schema."""
-        data = TWSEAPIClient.get_data("/company/applylistingLocal")
+        endpoint = "/company/applylistingLocal"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert isinstance(data, list), "Expected list response"
         assert len(data) > 0, "Expected non-empty list"
 
-        required_fields = ["Code", "Company", "ApplicationDate", "Chairman", 
-                          "AmountofCapital ", "CommitteeDate", "ApprovedDate", 
-                          "AgreementDate", "ListingDate", "ApprovedListingDate", 
-                          "Underwriter", "UnderwritingPrice", "Note"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         first_item = data[0]
         assert isinstance(first_item, dict), "Expected dict items"

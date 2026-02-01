@@ -20,7 +20,7 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="基金基本")
         
-        formatter = create_simple_list_formatter("基金名稱", "基金代號", "基金種類")
+        formatter = create_simple_list_formatter("基金名稱", "基金代號", "基金類型")
         return format_list_response(data, "基金基本資料", formatter)
 
     @mcp.tool
@@ -31,7 +31,7 @@ def register_tools(mcp: FastMCP) -> None:
         if not data:
             return MSG_NO_DATA.format(data_type="中央登錄公債補息")
         
-        formatter = create_simple_list_formatter("債券名稱", "債券代號", "補息日期")
+        formatter = create_simple_list_formatter("Name", "Code", "StartingDate")
         return format_list_response(data, "中央登錄公債補息資料", formatter)
 
     @mcp.tool
@@ -43,9 +43,10 @@ def register_tools(mcp: FastMCP) -> None:
             return MSG_NO_DATA.format(data_type="有價證券集中交易市場開（休）市日期")
         
         def formatter(item):
-            date = item.get("日期", "N/A")
-            is_holiday = item.get("是否為假期", "N/A")
-            description = item.get("說明", "N/A")
-            return f"- {date}: {is_holiday} - {description}\n"
+            name = item.get("Name", "N/A")
+            date = item.get("Date", "N/A")
+            weekday = item.get("Weekday", "N/A")
+            description = item.get("Description", "N/A")
+            return f"- {date} ({weekday}) {name}: {description}\n"
         
         return format_list_response(data, "有價證券集中交易市場開（休）市日期", formatter, limit=50)

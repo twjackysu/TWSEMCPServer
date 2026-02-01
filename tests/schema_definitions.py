@@ -60,9 +60,9 @@ API_SCHEMA_MAP: Dict[str, List[str]] = {
                             "名稱", "標的代號", "標的名稱", "申請發行日期"],
     
     # Other APIs
-    "/opendata/t187ap47_L": ["基金名稱", "基金代號", "基金種類"],
-    "/exchangeReport/BFI61U": ["債券名稱", "債券代號", "補息日期"],
-    "/holidaySchedule/holidaySchedule": ["日期", "是否為假期", "說明"],
+    "/opendata/t187ap47_L": ["基金名稱", "基金代號", "基金類型"],
+    "/exchangeReport/BFI61U": ["Name", "Code", "StartingDate"],
+    "/holidaySchedule/holidaySchedule": ["Name", "Date", "Weekday", "Description"],
     
     # Trading APIs (daily)
     "/exchangeReport/STOCK_DAY_ALL": ["Code", "Name", "Date", "TradeVolume", "TradeValue", 

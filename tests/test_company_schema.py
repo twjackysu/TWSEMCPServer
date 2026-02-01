@@ -2,6 +2,7 @@
 
 import pytest
 from utils import TWSEAPIClient
+from .schema_definitions import API_SCHEMA_MAP
 
 
 class TestCompanyAPISchema:
@@ -9,62 +10,73 @@ class TestCompanyAPISchema:
 
     def test_board_insufficient_shares_schema(self):
         """Test /opendata/t187ap08_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap08_L")
+        endpoint = "/opendata/t187ap08_L"
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "全體董事不足股數", "全體監察人不足股數"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_independent_directors_schema(self):
         """Test /opendata/t187ap30_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap30_L")
+        endpoint = "/opendata/t187ap30_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "職稱", "姓名"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_disposal_stocks_schema(self):
         """Test /announcement/punish has required fields."""
-        data = TWSEAPIClient.get_data("/announcement/punish")
+        endpoint = "/announcement/punish"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["Code", "Name", "DispositionMeasures", "ReasonsOfDisposition"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_board_insufficient_consecutive_schema(self):
         """Test /opendata/t187ap10_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap10_L")
+        endpoint = "/opendata/t187ap10_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["連續不足達3個月", "連續不足達4個月", "連續不足逾1年以上"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_ownership_changes_schema(self):
         """Test /opendata/t187ap24_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap24_L")
+        endpoint = "/opendata/t187ap24_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "經營權異動日期", "經營權異動說明"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_business_scope_changes_schema(self):
         """Test /opendata/t187ap25_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap25_L")
+        endpoint = "/opendata/t187ap25_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         # Filter out empty records
@@ -73,51 +85,59 @@ class TestCompanyAPISchema:
             pytest.skip("No valid data with company code and name")
         
         first_item = valid_data[0]
-        required_fields = ["公司代號", "公司名稱", "年度", "季別", "營業範圍重大變更說明"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_board_pledged_shares_schema(self):
         """Test /opendata/t187ap09_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap09_L")
+        endpoint = "/opendata/t187ap09_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["百分比", "公司名稱"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_cumulative_voting_schema(self):
         """Test /opendata/t187ap34_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap34_L")
+        endpoint = "/opendata/t187ap34_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "董監事選任方式"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_shareholder_proposal_schema(self):
         """Test /opendata/t187ap35_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap35_L")
+        endpoint = "/opendata/t187ap35_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "召開股東會日期", "提案內容"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
 
     def test_ceo_dual_role_schema(self):
         """Test /opendata/t187ap33_L has required fields."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap33_L")
+        endpoint = "/opendata/t187ap33_L"
+
+        data = TWSEAPIClient.get_data(endpoint)
         assert len(data) > 0, "API should return data"
         
         first_item = data[0]
-        required_fields = ["公司代號", "公司名稱", "董事長是否兼任總經理"]
+        required_fields = API_SCHEMA_MAP[endpoint]
         
         for field in required_fields:
             assert field in first_item, f"Missing field: {field}. Available fields: {list(first_item.keys())}"
