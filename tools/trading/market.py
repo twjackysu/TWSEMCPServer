@@ -467,14 +467,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆上市個股日本益比、殖利率及股價淨值比（依日期查詢）資料：\n\n"
             for item in data[:20]:  # Limit to first 20 for readability
-                date = item.get("日期", "N/A")
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                pe_ratio = item.get("本益比", "N/A")
-                result += f"- {date} {stock_name} ({stock_code}): 本益比 {pe_ratio}\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                dividend_yield = item.get("DividendYield", "N/A")
+                dividend_year = item.get("DividendYear", "N/A")
+                pe_ratio = item.get("PEratio", "N/A")
+                pb_ratio = item.get("PBratio", "N/A")
+                fiscal_year_quarter = item.get("FiscalYearQuarter", "N/A")
+                
+                result += f"- {stock_name} ({stock_code})\n"
+                result += f"  本益比: {pe_ratio} | 殖利率: {dividend_yield}% (股利年度: {dividend_year})\n"
+                result += f"  股價淨值比: {pb_ratio} | 財報季度: {fiscal_year_quarter}\n\n"
             
             if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
+                result += f"... 還有 {len(data) - 20} 筆資料"
             
             return result
         except Exception as e:
