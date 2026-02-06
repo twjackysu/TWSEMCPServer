@@ -1,10 +1,6 @@
 name: TWSE API E2E Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
   schedule:
     # 每天早上 9 點執行 (UTC 1:00 = 台灣時間 9:00)
     - cron: '0 1 * * *'
