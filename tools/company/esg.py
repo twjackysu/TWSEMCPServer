@@ -53,9 +53,12 @@ SIMPLE_ESG_TOOLS = [
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company ESG tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     # Register simple tools via factory
     for endpoint, name, doc in SIMPLE_ESG_TOOLS:
-        create_company_tool(mcp, endpoint, name, doc)
+        create_company_tool(mcp, endpoint, name, doc, client)
     
     # Complex tools with custom logic below
     
@@ -63,7 +66,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_companies_with_anticompetitive_losses() -> str:
         """Get all listed companies that have reported monetary losses from anti-competitive litigation (excluding zero or N/A values)."""
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap46_L_20")
+            data = _client.fetch_data("/opendata/t187ap46_L_20")
             filtered_data = [
                 item for item in data 
                 if isinstance(item, dict) and 
@@ -89,7 +92,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_companies_with_inclusive_finance_data() -> str:
         """Get all listed companies that have reported inclusive finance activities (excluding zero or N/A values)."""
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap46_L_17")
+            data = _client.fetch_data("/opendata/t187ap46_L_17")
             filtered_data = [
                 item for item in data
                 if isinstance(item, dict) and
@@ -125,7 +128,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_companies_with_refineries_in_populated_areas() -> str:
         """Get all listed companies that have reported refineries in populated areas (excluding zero or N/A values)."""
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap46_L_15")
+            data = _client.fetch_data("/opendata/t187ap46_L_15")
             filtered_data = [
                 item for item in data
                 if isinstance(item, dict) and
