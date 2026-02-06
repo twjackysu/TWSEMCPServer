@@ -3,7 +3,9 @@
 from typing import Callable
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_properties_with_values_multiline
+import logging
 
+logger = logging.getLogger(__name__)
 
 def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str) -> Callable[[str], str]:
     """
@@ -18,12 +20,17 @@ def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str) 
     Returns:
         The registered tool function
     """
+    logger.info(f"Creating dynamic tool: {name}")
+    
     @mcp.tool(name=name, description=docstring)
     def tool_fn(code: str) -> str:
         try:
+            # Note: We use the static method which proxies to the singleton instance
+            # This maintains compatibility without needing to inject client into factory
             data = TWSEAPIClient.get_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in dynamic tool {name}: {e}")
             return ""
     
     return tool_fn
