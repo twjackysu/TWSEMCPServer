@@ -353,6 +353,45 @@ class TestMarketTradingAPIs:
         assert len(first_item["Date"]) == 7, "Date 應該是 7 位數（民國年 YYYMMDD）"
 
 
+    def test_after_hours_trading_schema(self):
+        """測試集中市場盤後定價交易 (BFT41U) schema."""
+        endpoint = "/exchangeReport/BFT41U"
+        data = TWSEAPIClient.get_data(endpoint)
+        
+        # 跳過空資料的測試
+        if not data:
+            pytest.skip(f"API {endpoint} 目前返回空資料")
+        
+        first_item = data[0]
+        
+        # 驗證必要欄位存在
+        expected_fields = [
+            "Code",          # 股票代號
+            "Name",          # 股票名稱
+            "TradeVolume",   # 成交量（可能為空字串）
+            "Transaction",   # 成交筆數（可能為空字串）
+            "TradeValue",    # 成交金額（可能為空字串）
+            "TradePrice",    # 成交價
+            "BidVolume",     # 委買量（可能為空字串）
+            "AskVolume",     # 委賣量（可能為空字串）
+        ]
+        
+        for field in expected_fields:
+            assert field in first_item, f"欄位 '{field}' 應該存在於盤後定價交易資料中"
+        
+        # 驗證 Code 格式（股票代號應該是 4 位數字或 4 位數字+字母）
+        code_value = first_item.get("Code")
+        if code_value:
+            assert isinstance(code_value, str), "Code 應該是字串"
+            assert len(code_value) >= 4, f"Code 應該至少 4 個字元，但得到 '{code_value}'"
+        
+        # 驗證 TradePrice 存在（盤後定價應該都有參考價）
+        trade_price = first_item.get("TradePrice")
+        assert trade_price is not None, "TradePrice 不應該是 None"
+        
+        # 注意：TradeVolume, Transaction, TradeValue 可能為空字串（無成交）
+        # BidVolume, AskVolume 也可能為空字串（無委託）
+
     def test_top_20_volume_stocks_schema(self):
         """測試集中市場每日成交量前二十名證券 (MI_INDEX20) schema."""
         endpoint = "/exchangeReport/MI_INDEX20"

@@ -237,23 +237,88 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"查詢失敗: {str(e)}"
 
     @mcp.tool
-    def get_after_hours_trading() -> str:
-        """Get after-hours fixed-price trading in the centralized market."""
+    def get_after_hours_trading(code: str = "", limit: int = 20, page_number: int = 0) -> str:
+        """Get after-hours fixed-price trading in the centralized market.
+        
+        Args:
+            code: Stock code (e.g., "2330"). If empty, returns all stocks (default: "")
+            limit: Maximum number of records to return (default: 20)
+            page_number: Page number for pagination, 0-based (default: 0)
+        """
         try:
             data = _client.fetch_data("/exchangeReport/BFT41U")
             if not data:
                 return "目前沒有集中市場盤後定價交易資料。"
             
-            result = f"共有 {len(data)} 筆集中市場盤後定價交易資料：\n\n"
-            for item in data[:20]:  # Limit to first 20 for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                price = item.get("成交價", "N/A")
-                volume = item.get("成交量", "N/A")
-                result += f"- {stock_name} ({stock_code}): 成交價 {price}, 成交量 {volume}\n"
+            # Filter by stock code if provided
+            if code:
+                filtered_data = [item for item in data if item.get("Code") == code]
+                if not filtered_data:
+                    return f"查無股票代碼 {code} 的盤後定價交易資料。"
+                
+                # For specific stock, show detailed info
+                item = filtered_data[0]
+                stock_name = item.get("Name", "N/A")
+                trade_price = item.get("TradePrice", "N/A")
+                trade_volume = item.get("TradeVolume", "N/A")
+                trade_value = item.get("TradeValue", "N/A")
+                transaction = item.get("Transaction", "N/A")
+                bid_volume = item.get("BidVolume", "N/A")
+                ask_volume = item.get("AskVolume", "N/A")
+                
+                result = f"{stock_name} ({code}) 盤後定價交易資訊：\n\n"
+                result += f"成交價: {trade_price}\n"
+                
+                if trade_volume and trade_volume != "":
+                    result += f"成交量: {trade_volume}\n"
+                    result += f"成交金額: {trade_value}\n"
+                    result += f"成交筆數: {transaction}\n"
+                else:
+                    result += "狀態: 無成交\n"
+                
+                if bid_volume and bid_volume != "":
+                    result += f"委買量: {bid_volume}\n"
+                if ask_volume and ask_volume != "":
+                    result += f"委賣量: {ask_volume}\n"
+                
+                return result
             
-            if len(data) > 20:
-                result += f"\n... 還有 {len(data) - 20} 筆資料"
+            # Filter out items without trade data (for list view)
+            traded_data = [
+                item for item in data
+                if item.get("TradeVolume") and item.get("TradeVolume") != ""
+            ]
+            
+            if not traded_data:
+                return "目前沒有盤後定價交易成交資料。"
+            
+            # Calculate pagination
+            start_idx = page_number * limit
+            end_idx = start_idx + limit
+            total_count = len(traded_data)
+            
+            if start_idx >= total_count:
+                return f"頁碼超出範圍。共有 {total_count} 筆資料，每頁 {limit} 筆，最大頁碼為 {(total_count - 1) // limit}。"
+            
+            page_data = traded_data[start_idx:end_idx]
+            
+            # Build result
+            result = f"集中市場盤後定價交易資料（第 {page_number + 1} 頁，共 {total_count} 筆）：\n\n"
+            
+            for item in page_data:
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                trade_price = item.get("TradePrice", "N/A")
+                trade_volume = item.get("TradeVolume", "N/A")
+                trade_value = item.get("TradeValue", "N/A")
+                result += f"- {stock_name} ({stock_code})\n"
+                result += f"  成交價: {trade_price} | 成交量: {trade_volume} | 成交金額: {trade_value}\n"
+            
+            # Show pagination info
+            remaining = total_count - end_idx
+            if remaining > 0:
+                next_page = page_number + 1
+                result += f"\n還有 {remaining} 筆資料。使用 page_number={next_page} 查看下一頁。"
             
             return result
         except Exception as e:
