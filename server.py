@@ -10,6 +10,7 @@ from prompts.market_hotspot_monitoring_prompt import market_hotspot_monitoring_p
 from prompts.dividend_investment_strategy_prompt import dividend_investment_strategy_prompt
 from prompts.investment_screening_prompt import investment_screening_prompt
 from tools import register_all_tools
+from utils.api_client import TWSEAPIClient
 
 # Configure logging (similar to .NET ILogger)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
 mcp = FastMCP("TWSE Stock Trend Analysis 🚀")
+
+# Initialize API Client
+# This is the root of our Dependency Injection tree
+api_client = TWSEAPIClient()
 
 # Register prompts
 @mcp.prompt
@@ -44,7 +49,9 @@ def investment_screening(screening_criteria: str = "comprehensive", risk_level: 
     """Prompt for investment screening using TWSE OpenAPI endpoints."""
     return investment_screening_prompt(screening_criteria, risk_level)
 
-register_all_tools(mcp)
+# Pass dependencies to tool registration
+register_all_tools(mcp, api_client)
+
 if __name__ == "__main__":
     # Run the MCP server
     mcp.run(transport="http", host="0.0.0.0", port=8000)

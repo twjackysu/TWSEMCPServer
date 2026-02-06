@@ -2,14 +2,18 @@
 
 import importlib
 import pkgutil
+import inspect
+import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP
+    from utils.api_client import TWSEAPIClient
 
+logger = logging.getLogger(__name__)
 
-def register_all_tools(mcp: "FastMCP") -> None:
+def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> None:
     """
     Automatically discover and register all MCP tools from submodules.
     
@@ -19,6 +23,7 @@ def register_all_tools(mcp: "FastMCP") -> None:
     
     Args:
         mcp: FastMCP instance to register tools with
+        client: TWSEAPIClient instance for dependency injection
     """
     tools_package = Path(__file__).parent
     
@@ -43,11 +48,21 @@ def register_all_tools(mcp: "FastMCP") -> None:
         try:
             module = importlib.import_module(module_path)
             if hasattr(module, 'register_tools'):
-                module.register_tools(mcp)
+                # Inspect signature to support gradual migration
+                sig = inspect.signature(module.register_tools)
+                params = list(sig.parameters.keys())
+                
+                if len(params) >= 2:
+                    # New signature: (mcp, client)
+                    module.register_tools(mcp, client)
+                else:
+                    # Legacy signature: (mcp)
+                    logger.warning(f"Module {module_path} uses legacy register_tools signature. Falling back to global client.")
+                    module.register_tools(mcp)
+                    
         except Exception as e:
             # Log warning but continue with other modules
-            import logging
-            logging.warning(f"Failed to register tools from {module_path}: {e}")
+            logger.warning(f"Failed to register tools from {module_path}: {e}")
 
 
 __all__ = ['register_all_tools']
