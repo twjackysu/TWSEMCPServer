@@ -1,5 +1,6 @@
 """Company ESG and governance tools."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
 from utils.tool_factory import create_company_tool
@@ -49,7 +50,7 @@ SIMPLE_ESG_TOOLS = [
 ]
 
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company ESG tools with the MCP instance."""
     
     # Register simple tools via factory

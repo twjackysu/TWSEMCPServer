@@ -1,9 +1,10 @@
 """Market trading tools for TWSE data."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market trading tools with the MCP instance."""
     
     @mcp.tool

@@ -1,9 +1,10 @@
 """Market indices tools."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_properties_with_values_multiline, format_multiple_records
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market indices tools with the MCP instance."""
     
     @mcp.tool

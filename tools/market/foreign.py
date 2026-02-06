@@ -1,10 +1,11 @@
 """Foreign investment related tools for Taiwan Stock Exchange MCP server."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records
 
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     @mcp.tool
     def get_foreign_investment_by_industry() -> str:
         """

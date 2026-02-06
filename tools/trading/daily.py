@@ -1,5 +1,6 @@
 """Daily trading data tools."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
@@ -9,7 +10,7 @@ from utils import (
     handle_api_errors,
 )
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register daily trading tools with the MCP instance."""
     
     @mcp.tool

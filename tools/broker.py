@@ -1,6 +1,6 @@
 """Broker tools for TWSE data."""
 
-from typing import Dict
+from typing import Dict, Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
@@ -10,7 +10,7 @@ from utils import (
     create_simple_list_formatter,
 )
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register broker tools with the MCP instance."""
     
     @mcp.tool

@@ -1,9 +1,10 @@
 """Company listing related tools."""
 
+from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
 
-def register_tools(mcp: FastMCP) -> None:
+def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company listing tools with the MCP instance."""
     
     @mcp.tool
