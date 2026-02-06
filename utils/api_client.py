@@ -3,7 +3,7 @@
 import requests
 import logging
 import time
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 from .types import TWSEDataItem
 from .config import APIConfig
@@ -13,57 +13,59 @@ logger = logging.getLogger(__name__)
 class TWSEAPIClient:
     """Client for Taiwan Stock Exchange API."""
     
-    BASE_URL = APIConfig.BASE_URL
-    USER_AGENT = APIConfig.USER_AGENT
-    _last_request_time = 0
-    _min_request_interval = APIConfig.REQUEST_INTERVAL
+    # Global instance for backward compatibility
+    _instance: Optional['TWSEAPIClient'] = None
     
+    def __init__(self, 
+                 base_url: str = APIConfig.BASE_URL, 
+                 user_agent: str = APIConfig.USER_AGENT,
+                 request_interval: float = APIConfig.REQUEST_INTERVAL,
+                 verify_ssl: bool = APIConfig.VERIFY_SSL):
+        """Initialize the API client."""
+        self.base_url = base_url
+        self.user_agent = user_agent
+        self.request_interval = request_interval
+        self.verify_ssl = verify_ssl
+        self._last_request_time = 0.0
+
     @classmethod
-    def get_data(cls, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
+    def get_instance(cls) -> 'TWSEAPIClient':
+        """Get or create the global singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def fetch_data(self, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
         """
-        Fetch data from TWSE API endpoint.
-        
-        Args:
-            endpoint: API endpoint path (e.g., "/opendata/t187ap03_L")
-            timeout: Request timeout in seconds
-            
-        Returns:
-            List of dictionaries containing API response data
-            
-        Raises:
-            Exception: If API request fails
+        Instance method to fetch data from TWSE API endpoint.
         """
-        # 實施速率限制，避免被視為 DDOS 攻擊
+        # Rate limiting logic
         current_time = time.time()
-        time_since_last_request = current_time - cls._last_request_time
-        if time_since_last_request < cls._min_request_interval:
-            sleep_time = cls._min_request_interval - time_since_last_request
+        time_since_last_request = current_time - self._last_request_time
+        if time_since_last_request < self.request_interval:
+            sleep_time = self.request_interval - time_since_last_request
             logger.debug(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
             time.sleep(sleep_time)
         
-        url = f"{cls.BASE_URL}{endpoint}"
+        url = f"{self.base_url}{endpoint}"
         logger.info(f"Fetching TWSE data from {url}")
         
         try:
-            # 透過 verify 參數控制 SSL 憑證驗證
             resp = requests.get(
                 url, 
-                headers={"User-Agent": cls.USER_AGENT, "Accept": "application/json"}, 
-                verify=APIConfig.VERIFY_SSL, 
+                headers={"User-Agent": self.user_agent, "Accept": "application/json"}, 
+                verify=self.verify_ssl, 
                 timeout=timeout
             )
             resp.raise_for_status()
             
-            # 更新最後請求時間
-            cls._last_request_time = time.time()
-            
-            # 設定正確的編碼 (UTF-8)
+            self._last_request_time = time.time()
             resp.encoding = 'utf-8'
-            # 嘗試解析 JSON；若格式異常（例如少數舊靜態 API 回傳非 JSON），則回傳空陣列避免拋錯
+            
             try:
                 data = resp.json()
             except Exception as parse_err:
-                logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list for robustness")
+                logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list")
                 return []
 
             return data if isinstance(data, list) else ([data] if data else [])
@@ -71,23 +73,11 @@ class TWSEAPIClient:
         except Exception as e:
             logger.error(f"Failed to fetch data from {url}: {e}")
             raise
-    
-    @classmethod
-    def get_company_data(cls, endpoint: str, code: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Optional[TWSEDataItem]:
-        """
-        Fetch company or warrant specific data from TWSE API.
 
-        Args:
-            endpoint: API endpoint path
-            code: Company stock code or warrant code
-            timeout: Request timeout in seconds
-
-        Returns:
-            Dictionary containing company/warrant data or None if not found
-        """
+    def fetch_company_data(self, endpoint: str, code: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Optional[TWSEDataItem]:
+        """Instance method to fetch company data."""
         try:
-            data = cls.get_data(endpoint, timeout)
-            # Filter data by company/warrant code
+            data = self.fetch_data(endpoint, timeout)
             filtered_data = [
                 item for item in data
                 if isinstance(item, dict) and (
@@ -97,29 +87,32 @@ class TWSEAPIClient:
                 )
             ]
             return filtered_data[0] if filtered_data else None
-            
         except Exception as e:
             logger.error(f"Failed to fetch company data for {code}: {e}")
             return None
-    
-    @classmethod
-    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
-        """
-        Fetch latest market data from TWSE API.
-        
-        Args:
-            endpoint: API endpoint path
-            count: Number of latest records to return. If None, returns all records.
-            timeout: Request timeout in seconds
-            
-        Returns:
-            List of latest market data records
-        """
+
+    def fetch_latest_market_data(self, endpoint: str, count: Optional[int] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
+        """Instance method to fetch latest market data."""
         try:
-            data = cls.get_data(endpoint, timeout)
-            # Return latest records or all data if count is None
+            data = self.fetch_data(endpoint, timeout)
             return data[-count:] if data and count is not None else data
-            
         except Exception as e:
             logger.error(f"Failed to fetch latest market data: {e}")
             return []
+
+    # --- Static Methods for Backward Compatibility ---
+
+    @classmethod
+    def get_data(cls, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
+        """Static wrapper for backward compatibility."""
+        return cls.get_instance().fetch_data(endpoint, timeout)
+    
+    @classmethod
+    def get_company_data(cls, endpoint: str, code: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Optional[TWSEDataItem]:
+        """Static wrapper for backward compatibility."""
+        return cls.get_instance().fetch_company_data(endpoint, code, timeout)
+    
+    @classmethod
+    def get_latest_market_data(cls, endpoint: str, count: Optional[int] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
+        """Static wrapper for backward compatibility."""
+        return cls.get_instance().fetch_latest_market_data(endpoint, count, timeout)
