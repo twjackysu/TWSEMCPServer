@@ -22,7 +22,6 @@ def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str) 
     """
     logger.info(f"Creating dynamic tool: {name}")
     
-    @mcp.tool(name=name, description=docstring)
     def tool_fn(code: str) -> str:
         try:
             # Note: We use the static method which proxies to the singleton instance
@@ -32,5 +31,12 @@ def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str) 
         except Exception as e:
             logger.error(f"Error in dynamic tool {name}: {e}")
             return ""
+            
+    # Explicitly set function name to match tool name
+    # This prevents FastMCP from overwriting tools if it keys off __name__
+    tool_fn.__name__ = name
+    
+    # Apply decorator manually
+    mcp.tool(name=name, description=docstring)(tool_fn)
     
     return tool_fn
