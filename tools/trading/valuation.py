@@ -13,6 +13,9 @@ from utils import (
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register valuation tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_valuation_ratios(code: str) -> str:
@@ -26,7 +29,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - DividendYield: Dividend yield (%)
         - PBratio: Price-to-Book ratio
         """
-        data = TWSEAPIClient.get_company_data("/exchangeReport/BWIBBU_ALL", code)
+        data = _client.fetch_company_data("/exchangeReport/BWIBBU_ALL", code)
         if not data:
             return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="本益比等評價指標資料")
         

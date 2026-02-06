@@ -6,6 +6,9 @@ from utils import TWSEAPIClient, format_multiple_records, format_properties_with
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+
     @mcp.tool
     def get_warrant_basic_info(code: str = "") -> str:
         """
@@ -39,10 +42,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         try:
             if code:
-                data = TWSEAPIClient.get_company_data("/opendata/t187ap37_L", code)
+                data = _client.fetch_company_data("/opendata/t187ap37_L", code)
                 return format_properties_with_values_multiline(data) if data else ""
             else:
-                data = TWSEAPIClient.get_data("/opendata/t187ap37_L") 
+                data = _client.fetch_data("/opendata/t187ap37_L") 
                 return format_multiple_records(data) if data else ""
         except Exception:
             return ""
@@ -73,10 +76,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         try:
             if code:
-                data = TWSEAPIClient.get_company_data("/opendata/t187ap42_L", code)
+                data = _client.fetch_company_data("/opendata/t187ap42_L", code)
                 return format_properties_with_values_multiline(data) if data else ""
             else:
-                data = TWSEAPIClient.get_data("/opendata/t187ap42_L")
+                data = _client.fetch_data("/opendata/t187ap42_L")
                 return format_multiple_records(data) if data else ""
         except Exception:
             return ""
@@ -97,7 +100,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Number of traders (人數)
         """
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap43_L")
+            data = _client.fetch_data("/opendata/t187ap43_L")
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""
@@ -122,7 +125,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Application date (申請發行日期)
         """
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap36_L")
+            data = _client.fetch_data("/opendata/t187ap36_L")
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""

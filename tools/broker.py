@@ -13,11 +13,14 @@ from utils import (
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register broker tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     @handle_api_errors(data_type="券商業務別人員數")
     def get_broker_service_personnel() -> str:
         """Get personnel numbers by service type for brokers."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap01")
+        data = _client.fetch_data("/opendata/t187ap01")
         if not data:
             return MSG_NO_DATA.format(data_type="券商業務別人員數")
         
@@ -34,7 +37,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="券商每月月計表")
     def get_broker_monthly_statements() -> str:
         """Get monthly statements for brokers."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap20")
+        data = _client.fetch_data("/opendata/t187ap20")
         if not data:
             return MSG_NO_DATA.format(data_type="券商每月月計表")
         
@@ -52,7 +55,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="券商收支概況表")
     def get_broker_income_expenditure() -> str:
         """Get income and expenditure overview for brokers."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap21")
+        data = _client.fetch_data("/opendata/t187ap21")
         if not data:
             return MSG_NO_DATA.format(data_type="券商收支概況表")
         
@@ -70,7 +73,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="證券商基本")
     def get_broker_basic_info() -> str:
         """Get basic information for brokers."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap18")
+        data = _client.fetch_data("/opendata/t187ap18")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商基本")
         
@@ -81,7 +84,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="電子式交易統計")
     def get_broker_electronic_trading_statistics() -> str:
         """Get electronic trading statistics."""
-        data = TWSEAPIClient.get_data("/opendata/t187ap19")
+        data = _client.fetch_data("/opendata/t187ap19")
         if not data:
             return MSG_NO_DATA.format(data_type="電子式交易統計")
         
@@ -98,7 +101,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="證券商營業員男女人數統計")
     def get_broker_gender_statistics() -> str:
         """Get broker personnel gender statistics."""
-        data = TWSEAPIClient.get_data("/opendata/OpenData_BRK01")
+        data = _client.fetch_data("/opendata/OpenData_BRK01")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商營業員男女人數統計")
         
@@ -115,7 +118,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="證券商分公司基本")
     def get_broker_branch_info() -> str:
         """Get broker branch office basic information."""
-        data = TWSEAPIClient.get_data("/opendata/OpenData_BRK02")
+        data = _client.fetch_data("/opendata/OpenData_BRK02")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商分公司基本")
         
@@ -132,7 +135,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="開辦定期定額業務證券商名單")
     def get_brokers_offering_regular_investment() -> str:
         """Get list of brokers offering regular investment services."""
-        data = TWSEAPIClient.get_data("/brokerService/secRegData")
+        data = _client.fetch_data("/brokerService/secRegData")
         if not data:
             return MSG_NO_DATA.format(data_type="開辦定期定額業務證券商名單")
         
@@ -149,7 +152,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(data_type="證券商總公司基本")
     def get_broker_headquarters_info() -> str:
         """Get basic information of broker headquarters."""
-        data = TWSEAPIClient.get_data("/brokerService/brokerList")
+        data = _client.fetch_data("/brokerService/brokerList")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商總公司基本")
         

@@ -7,11 +7,14 @@ from utils import TWSEAPIClient
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market trading tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     def get_stocks_no_price_change_first_five_days() -> str:
         """Get stocks with no price change in the first five trading days."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWT88U")
+            data = _client.fetch_data("/exchangeReport/TWT88U")
             if not data:
                 return "目前沒有上市個股首五日無漲跌幅資料。"
             
@@ -33,7 +36,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_financial_program_abnormal_recommendations() -> str:
         """Get stocks abnormally recommended in financial programs."""
         try:
-            data = TWSEAPIClient.get_data("/Announcement/BFZFZU_T")
+            data = _client.fetch_data("/Announcement/BFZFZU_T")
             if not data:
                 return "目前沒有投資理財節目異常推介個股資料。"
             
@@ -55,7 +58,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_daily_day_trading_targets() -> str:
         """Get daily day trading targets and statistics."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWTB4U")
+            data = _client.fetch_data("/exchangeReport/TWTB4U")
             if not data:
                 return "目前沒有上市股票每日當日沖銷交易標的及統計資料。"
             
@@ -77,7 +80,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_suspended_day_trading_announcement() -> str:
         """Get announcement of suspended buy-sell-same-day trading targets."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWTBAU1")
+            data = _client.fetch_data("/exchangeReport/TWTBAU1")
             if not data:
                 return "目前沒有集中市場暫停先賣後買當日沖銷交易標的預告表資料。"
             
@@ -99,7 +102,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_suspended_day_trading_history() -> str:
         """Get historical query of suspended buy-sell-same-day trading."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWTBAU2")
+            data = _client.fetch_data("/exchangeReport/TWTBAU2")
             if not data:
                 return "目前沒有集中市場暫停先賣後買當日沖銷交易歷史查詢資料。"
             
@@ -121,7 +124,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_cross_market_trading_info() -> str:
         """Get daily cross-market trading information for listed and OTC stocks."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/MI_INDEX4")
+            data = _client.fetch_data("/exchangeReport/MI_INDEX4")
             if not data:
                 return "目前沒有每日上市上櫃跨市場成交資訊。"
             
@@ -158,7 +161,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - Change: Price change
         """
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/MI_INDEX20")
+            data = _client.fetch_data("/exchangeReport/MI_INDEX20")
             if not data:
                 return "目前沒有集中市場每日成交量前二十名證券資料。"
             
@@ -192,7 +195,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_odd_lot_trading_quotes() -> str:
         """Get odd-lot trading quotes in the centralized market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWT53U")
+            data = _client.fetch_data("/exchangeReport/TWT53U")
             if not data:
                 return "目前沒有集中市場零股交易行情單資料。"
             
@@ -215,7 +218,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_suspended_trading_stocks() -> str:
         """Get stocks suspended from trading in the centralized market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWTAWU")
+            data = _client.fetch_data("/exchangeReport/TWTAWU")
             if not data:
                 return "目前沒有集中市場暫停交易證券資料。"
             
@@ -237,7 +240,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_after_hours_trading() -> str:
         """Get after-hours fixed-price trading in the centralized market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/BFT41U")
+            data = _client.fetch_data("/exchangeReport/BFT41U")
             if not data:
                 return "目前沒有集中市場盤後定價交易資料。"
             
@@ -260,7 +263,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_margin_loan_restrictions_announcement() -> str:
         """Get announcement of margin loan and short sale restrictions."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/BFI84U")
+            data = _client.fetch_data("/exchangeReport/BFI84U")
             if not data:
                 return "目前沒有集中市場停資停券預告表資料。"
             
@@ -282,7 +285,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_block_trades_daily() -> str:
         """Get daily block trade volume and value statistics."""
         try:
-            data = TWSEAPIClient.get_data("/block/BFIAUU_d")
+            data = _client.fetch_data("/block/BFIAUU_d")
             if not data:
                 return "目前沒有集中市場鉅額交易日成交量值統計資料。"
             
@@ -304,7 +307,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_block_trades_monthly() -> str:
         """Get monthly block trade volume and value statistics."""
         try:
-            data = TWSEAPIClient.get_data("/block/BFIAUU_m")
+            data = _client.fetch_data("/block/BFIAUU_m")
             if not data:
                 return "目前沒有集中市場鉅額交易月成交量值統計資料。"
             
@@ -326,7 +329,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_block_trades_yearly() -> str:
         """Get yearly block trade volume and value statistics."""
         try:
-            data = TWSEAPIClient.get_data("/block/BFIAUU_y")
+            data = _client.fetch_data("/block/BFIAUU_y")
             if not data:
                 return "目前沒有集中市場鉅額交易年成交量值統計資料。"
             
@@ -348,7 +351,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_first_listed_foreign_stocks_daily() -> str:
         """Get daily trading volume and value of first-listed foreign stocks."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/STOCK_FIRST")
+            data = _client.fetch_data("/exchangeReport/STOCK_FIRST")
             if not data:
                 return "目前沒有每日第一上市外國股票成交量值資料。"
             
@@ -371,7 +374,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_securities_trading_changes() -> str:
         """Get securities trading method changes in the centralized market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWT85U")
+            data = _client.fetch_data("/exchangeReport/TWT85U")
             if not data:
                 return "目前沒有集中市場證券變更交易資料。"
             
@@ -393,7 +396,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_valuation_ratios_by_date() -> str:
         """Get stock P/E ratio, dividend yield and P/B ratio by date query."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/BWIBBU_d")
+            data = _client.fetch_data("/exchangeReport/BWIBBU_d")
             if not data:
                 return "目前沒有上市個股日本益比、殖利率及股價淨值比（依日期查詢）資料。"
             
@@ -416,7 +419,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_stock_price_changes() -> str:
         """Get stock price increase/decrease range."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/TWT84U")
+            data = _client.fetch_data("/exchangeReport/TWT84U")
             if not data:
                 return "目前沒有上市個股股價升降幅度資料。"
             
@@ -450,7 +453,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - 無比價: Number of securities without comparison
         """
         try:
-            data = TWSEAPIClient.get_data("/opendata/twtazu_od")
+            data = _client.fetch_data("/opendata/twtazu_od")
             if not data:
                 return "目前沒有集中市場漲跌證券數統計表資料。"
             
@@ -489,7 +492,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - RecentlyMetAttentionSecuritiesCriteria: Recently met attention securities criteria
         """
         try:
-            data = TWSEAPIClient.get_data("/announcement/notetrans")
+            data = _client.fetch_data("/announcement/notetrans")
             if not data:
                 return "目前沒有集中市場公布注意累計次數異常資訊資料。"
             
@@ -532,7 +535,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - PE: P/E ratio
         """
         try:
-            data = TWSEAPIClient.get_data("/announcement/notice")
+            data = _client.fetch_data("/announcement/notice")
             if not data:
                 return "目前沒有集中市場當日公布注意股票資料。"
             
@@ -570,7 +573,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_daily_market_trading_info() -> str:
         """Get daily market trading information in the centralized market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/FMTQIK")
+            data = _client.fetch_data("/exchangeReport/FMTQIK")
             if not data:
                 return "目前沒有集中市場每日市場成交資訊。"
             
@@ -595,7 +598,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_daily_securities_lending_volume() -> str:
         """Get daily available volume for securities lending (margin trading)."""
         try:
-            data = TWSEAPIClient.get_data("/SBL/TWT96U")
+            data = _client.fetch_data("/SBL/TWT96U")
             if not data:
                 return "目前沒有上市上櫃股票當日可借券賣出股數資料。"
             

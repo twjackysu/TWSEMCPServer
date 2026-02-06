@@ -7,11 +7,14 @@ from utils import TWSEAPIClient, format_multiple_records
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     def get_margin_trading_info() -> str:
         """Obtain margin trading and short selling balance information for the market."""
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/MI_MARGN")
+            data = _client.fetch_data("/exchangeReport/MI_MARGN")
             # 只取前10筆避免資料過多
             return format_multiple_records(data[:10] if data else [])
         except Exception:
@@ -32,7 +35,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - AccTradeValue: Accumulated trade value (in million TWD)
         """
         try:
-            data = TWSEAPIClient.get_data("/exchangeReport/MI_5MINS")
+            data = _client.fetch_data("/exchangeReport/MI_5MINS")
             if not data:
                 return "無5秒委託成交統計資料"
             

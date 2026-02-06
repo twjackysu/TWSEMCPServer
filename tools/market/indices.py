@@ -7,6 +7,9 @@ from utils import TWSEAPIClient, format_properties_with_values_multiline, format
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market indices tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     def get_market_index_info(category: str = "major", count: int = 20, format: str = "detailed") -> str:
         """Obtain daily market closing information and overall market statistics.
@@ -28,7 +31,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 - "simple": Just index name and change percentage (簡單格式: 僅名稱和漲跌%)
         """
         try:
-            data = TWSEAPIClient.get_latest_market_data("/exchangeReport/MI_INDEX")
+            data = _client.fetch_latest_market_data("/exchangeReport/MI_INDEX")
             if not data:
                 return ""
             
@@ -125,7 +128,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_market_historical_index() -> str:
         """Obtain historical TAIEX (Taiwan Capitalization Weighted Stock Index) data for long-term trend analysis."""
         try:
-            data = TWSEAPIClient.get_latest_market_data("/indicesReport/MI_5MINS_HIST", count=20)
+            data = _client.fetch_latest_market_data("/indicesReport/MI_5MINS_HIST", count=20)
             return format_multiple_records(data)
         except Exception:
             return ""
@@ -134,7 +137,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_taiwan_island_index_history() -> str:
         """Obtain historical data for Taiwan Island Stock Price Index."""
         try:
-            data = TWSEAPIClient.get_latest_market_data("/indicesReport/FRMSA", count=20)
+            data = _client.fetch_latest_market_data("/indicesReport/FRMSA", count=20)
             return format_multiple_records(data)
         except Exception:
             return ""
@@ -143,7 +146,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_taiwan_50_index_history() -> str:
         """Obtain historical data for Taiwan 50 Index."""
         try:
-            data = TWSEAPIClient.get_latest_market_data("/indicesReport/TAI50I", count=20)
+            data = _client.fetch_latest_market_data("/indicesReport/TAI50I", count=20)
             return format_multiple_records(data)
         except Exception:
             return ""
@@ -152,7 +155,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_taiwan_total_return_index() -> str:
         """Obtain Taiwan Capitalization Weighted Stock Price Return Index."""
         try:
-            data = TWSEAPIClient.get_latest_market_data("/indicesReport/MFI94U", count=20)
+            data = _client.fetch_latest_market_data("/indicesReport/MFI94U", count=20)
             return format_multiple_records(data)
         except Exception:
             return ""

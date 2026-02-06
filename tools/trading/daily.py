@@ -13,6 +13,9 @@ from utils import (
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register daily trading tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_daily_trading(code: str) -> str:
@@ -31,7 +34,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - Change: Price change
         - Transaction: Transaction count
         """
-        data = TWSEAPIClient.get_company_data("/exchangeReport/STOCK_DAY_ALL", code)
+        data = _client.fetch_company_data("/exchangeReport/STOCK_DAY_ALL", code)
         if not data:
             return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="日成交資訊")
         

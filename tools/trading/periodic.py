@@ -13,11 +13,14 @@ from utils import (
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register periodic trading tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_monthly_average(code: str) -> str:
         """Obtain daily closing price and monthly average price for a listed company stock based on its stock code."""
-        data = TWSEAPIClient.get_company_data("/exchangeReport/STOCK_DAY_AVG_ALL", code)
+        data = _client.fetch_company_data("/exchangeReport/STOCK_DAY_AVG_ALL", code)
         return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
@@ -37,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - TradeVolumeB: Trade volume (in shares)
         - TurnoverRatio: Turnover ratio (%)
         """
-        data = TWSEAPIClient.get_company_data("/exchangeReport/FMSRFK_ALL", code)
+        data = _client.fetch_company_data("/exchangeReport/FMSRFK_ALL", code)
         if not data:
             return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="月成交資訊")
         
@@ -81,7 +84,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         - LDate: Date of lowest price
         - AvgClosingPrice: Average closing price
         """
-        data = TWSEAPIClient.get_company_data("/exchangeReport/FMNPTK_ALL", code)
+        data = _client.fetch_company_data("/exchangeReport/FMNPTK_ALL", code)
         if not data:
             return MSG_NO_DATA_FOR_CODE.format(query_target=f"股票代號 {code}", data_type="年成交資訊")
         

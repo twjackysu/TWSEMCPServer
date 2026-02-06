@@ -6,6 +6,9 @@ from utils import TWSEAPIClient, format_multiple_records
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+
     @mcp.tool
     def get_etf_regular_investment_ranking() -> str:
         """
@@ -26,7 +29,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Number of ETF trading accounts (ETF交易戶數)
         """
         try:
-            data = TWSEAPIClient.get_data("/ETFReport/ETFRank")
+            data = _client.fetch_data("/ETFReport/ETFRank")
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""

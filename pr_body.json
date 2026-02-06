@@ -1,0 +1,6 @@
+{
+  "title": "fix(di): Standardize tool registration signature across all modules (Phase 4)",
+  "body": "This PR fixes the Dependency Injection implementation by enforcing a consistent `register_tools(mcp, client)` signature across ALL tool modules.\n\n**Key Changes:**\n1.  **Removed fragile inspection logic** in `tools/__init__.py`. Now it simply calls `module.register_tools(mcp, client)`.\n2.  **Updated all 16 tool modules** to accept the `client` parameter (even if they don't use it yet).\n3.  **Ensured PROD stability**: This eliminates runtime errors caused by mismatched function signatures.\n\n**Note:** This replaces the previous partial migration approach with a global update.",
+  "head": "fix/di-global-update",
+  "base": "main"
+}

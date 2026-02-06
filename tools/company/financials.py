@@ -7,11 +7,14 @@ from utils import TWSEAPIClient, format_properties_with_values_multiline
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company financials tools with the MCP instance."""
     
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+    
     def _get_industry_api_suffix(code: str) -> str:
         """Get the appropriate API suffix based on company industry."""
         try:
             # Get company profile to determine industry
-            profile_data = TWSEAPIClient.get_company_data("/opendata/t187ap03_L", code)
+            profile_data = _client.fetch_company_data("/opendata/t187ap03_L", code)
             if not profile_data:
                 return "_ci"  # Default to general industry
             
@@ -50,7 +53,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap06_L{suffix}"
-            data = TWSEAPIClient.get_company_data(endpoint, code)
+            data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -69,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap07_L{suffix}"
-            data = TWSEAPIClient.get_company_data(endpoint, code)
+            data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -78,7 +81,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_quarterly_earnings_forecast_achievement(code: str) -> str:
         """Obtain quarterly earnings forecast achievement (simplified) for a listed company based on its stock code."""
         try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap15_L", code)
+            data = _client.fetch_company_data("/opendata/t187ap15_L", code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -87,7 +90,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_quarterly_audit_variance(code: str) -> str:
         """Obtain quarterly comprehensive income audited/reviewed figures that differ from forecast by more than 10% for a listed company based on its stock code."""
         try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap16_L", code)
+            data = _client.fetch_company_data("/opendata/t187ap16_L", code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -96,7 +99,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_profitability_analysis(code: str) -> str:
         """Get profitability analysis for a specific listed company based on its stock code."""
         try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap17_L", code)
+            data = _client.fetch_company_data("/opendata/t187ap17_L", code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -126,7 +129,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             order_direction: Sort direction, "asc" for ascending or "desc" for descending (default: "asc")
         """
         try:
-            data = TWSEAPIClient.get_data("/opendata/t187ap17_L")
+            data = _client.fetch_data("/opendata/t187ap17_L")
             if not data:
                 return "目前沒有營益分析查詢彙總表資料。"
             
@@ -203,7 +206,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_financial_reports_supervisor_acknowledgment(code: str) -> str:
         """Obtain financial report acknowledgment by supervisors for a listed company based on its stock code."""
         try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap31_L", code)
+            data = _client.fetch_company_data("/opendata/t187ap31_L", code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -216,7 +219,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap07_X{suffix}"
-            data = TWSEAPIClient.get_company_data(endpoint, code)
+            data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -229,7 +232,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap06_X{suffix}"
-            data = TWSEAPIClient.get_company_data(endpoint, code)
+            data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""
@@ -238,7 +241,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_public_company_board_shareholdings(code: str) -> str:
         """Obtain board member shareholding details for a public company based on its stock code."""
         try:
-            data = TWSEAPIClient.get_company_data("/opendata/t187ap11_P", code)
+            data = _client.fetch_company_data("/opendata/t187ap11_P", code)
             return format_properties_with_values_multiline(data) if data else ""
         except Exception:
             return ""

@@ -6,6 +6,9 @@ from utils import TWSEAPIClient, format_multiple_records, format_properties_with
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+
     @mcp.tool
     def get_company_major_news(code: str = "") -> str:
         """
@@ -37,10 +40,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         try:
             if code:
-                data = TWSEAPIClient.get_company_data("/opendata/t187ap04_L", code)
+                data = _client.fetch_company_data("/opendata/t187ap04_L", code)
                 return format_properties_with_values_multiline(data) if data else ""
             else:
-                data = TWSEAPIClient.get_data("/opendata/t187ap04_L")
+                data = _client.fetch_data("/opendata/t187ap04_L")
                 return format_multiple_records(data) if data else ""
         except Exception:
             return ""
@@ -116,7 +119,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     end_date = f"{year:03d}{end_date[4:]}"
             
             # Get all news data
-            data = TWSEAPIClient.get_data("/news/newsList")
+            data = _client.fetch_data("/news/newsList")
             
             # Filter by date range if dates are provided
             if data and (start_date or end_date):
@@ -157,7 +160,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Event details (詳細內容)
         """
         try:
-            data = TWSEAPIClient.get_data("/news/eventList")
+            data = _client.fetch_data("/news/eventList")
             if data and top > 0:
                 data = data[:top]
             return format_multiple_records(data) if data else ""

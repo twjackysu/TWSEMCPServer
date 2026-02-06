@@ -6,6 +6,9 @@ from utils import TWSEAPIClient, format_multiple_records
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
+    # Use injected client or fallback to singleton
+    _client = client or TWSEAPIClient.get_instance()
+
     @mcp.tool
     def get_foreign_investment_by_industry() -> str:
         """
@@ -24,7 +27,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Foreign and mainland China holding percentage (僑外資及陸資持股比率)
         """
         try:
-            data = TWSEAPIClient.get_data("/fund/MI_QFIIS_cat")
+            data = _client.fetch_data("/fund/MI_QFIIS_cat")
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""
@@ -51,7 +54,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             - Investment upper limit (投資上限)
         """
         try:
-            data = TWSEAPIClient.get_data("/fund/MI_QFIIS_sort_20")
+            data = _client.fetch_data("/fund/MI_QFIIS_sort_20")
             return format_multiple_records(data) if data else ""
         except Exception:
             return ""
