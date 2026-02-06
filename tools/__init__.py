@@ -49,7 +49,7 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
                     
         except Exception as e:
             # Log warning but continue with other modules
-            logger.warning(f"Failed to register tools from {module_path}: {e}")
+            logger.error(f"Failed to register tools from {module_path}: {e}", exc_info=True)
 
 
 __all__ = ['register_all_tools']
