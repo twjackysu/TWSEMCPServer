@@ -23,8 +23,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         data = _client.fetch_data("/opendata/t187ap47_L")
         if not data:
             return MSG_NO_DATA.format(data_type="基金基本")
-        
-        formatter = create_simple_list_formatter("基金名稱", "基金代號", "基金類型")
+
+        def formatter(item):
+            name = item.get("基金中文名稱") or item.get("基金名稱") or item.get("基金簡稱") or "N/A"
+            code = item.get("基金代號", "N/A")
+            fund_type = item.get("基金類型", "N/A")
+            return f"- {name} ({code}): 基金類型 {fund_type}\n"
+
         return format_list_response(data, "基金基本資料", formatter)
 
     @mcp.tool

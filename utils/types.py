@@ -45,7 +45,9 @@ class TWSEDataItem(TypedDict, total=False):
     # Fund fields
     基金代號: str
     基金名稱: str
-    基金種類: str
+    基金中文名稱: str
+    基金簡稱: str
+    基金類型: str
     
     # Bond fields
     債券代號: str

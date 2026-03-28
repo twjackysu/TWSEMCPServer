@@ -60,7 +60,7 @@ API_SCHEMA_MAP: Dict[str, List[str]] = {
                             "名稱", "標的代號", "標的名稱", "申請發行日期"],
     
     # Other APIs
-    "/opendata/t187ap47_L": ["基金名稱", "基金代號", "基金類型"],
+    "/opendata/t187ap47_L": ["基金中文名稱", "基金代號", "基金類型"],
     "/exchangeReport/BFI61U": ["Name", "Code", "StartingDate"],
     "/holidaySchedule/holidaySchedule": ["Name", "Date", "Weekday", "Description"],
     

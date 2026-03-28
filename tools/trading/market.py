@@ -557,7 +557,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """Get stocks with abnormal accumulated notice counts.
         
         Returns information including:
-        - Number: Record number (0 means no data)
         - Code: Stock code
         - Name: Stock name
         - RecentlyMetAttentionSecuritiesCriteria: Recently met attention securities criteria
@@ -567,7 +566,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return "目前沒有集中市場公布注意累計次數異常資訊資料。"
             
-            # Filter out empty records (Number="0" with empty Code)
+            # Filter out empty placeholder records.
             valid_data = [item for item in data if item.get("Code", "") != ""]
             
             if not valid_data:
@@ -575,13 +574,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(valid_data)} 筆集中市場公布注意累計次數異常資訊資料：\n\n"
             
-            for item in valid_data[:20]:  # Limit to first 20 for readability
-                number = item.get("Number", "N/A")
+            for index, item in enumerate(valid_data[:20], start=1):  # Limit to first 20 for readability
                 code = item.get("Code", "N/A")
                 name = item.get("Name", "N/A")
                 criteria = item.get("RecentlyMetAttentionSecuritiesCriteria", "N/A")
                 
-                result += f"{number}. {name} ({code})\n"
+                result += f"{index}. {name} ({code})\n"
                 result += f"   符合注意標準: {criteria}\n\n"
             
             if len(valid_data) > 20:

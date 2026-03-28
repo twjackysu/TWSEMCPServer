@@ -512,7 +512,6 @@ class TestAnnouncementAPIs:
         
         # 驗證必要欄位存在
         expected_fields = [
-            "Number",                                   # 編號
             "Code",                                     # 股票代號
             "Name",                                     # 股票名稱
             "RecentlyMetAttentionSecuritiesCriteria",  # 符合注意標準
@@ -521,8 +520,8 @@ class TestAnnouncementAPIs:
         for field in expected_fields:
             assert field in first_item, f"欄位 '{field}' 應該存在於注意累計次數異常資訊中"
         
-        # 注意：當沒有異常資料時，API 會回傳 Number="0" 且 Code 為空字串
-        # 這是正常情況，不是錯誤
+        # 注意：TWSE 目前實際回傳已不包含 Number 欄位。
+        # 若沒有異常資料，可接受 Code 為空字串的佔位資料。
 
     def test_today_notice_stocks_schema(self):
         """測試集中市場當日公布注意股票 schema."""

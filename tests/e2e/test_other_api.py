@@ -150,7 +150,7 @@ class TestFundAPI:
 
         # 基金資料通常有基金代號、名稱等基本欄位
         has_code = any(field in first_item for field in ["基金代號", "Code", "基金代碼"])
-        has_name = any(field in first_item for field in ["基金名稱", "Name", "基金簡稱"])
+        has_name = any(field in first_item for field in ["基金中文名稱", "基金名稱", "Name", "基金簡稱"])
 
         assert has_code, "基金資料應該包含代號相關欄位"
         assert has_name, "基金資料應該包含名稱相關欄位"
