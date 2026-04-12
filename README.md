@@ -66,6 +66,16 @@ cd TWStockMCPServer
 uv sync && uv run fastmcp dev server.py
 ```
 
+## 📡 資料來源
+
+| 來源 | 說明 | Tools |
+|------|------|-------|
+| [TWSE OpenAPI](https://openapi.twse.com.tw) | 台灣證交所官方 API — 公司治理、ESG、財報、交易、指數等 | 143 個 |
+| [TWSE exchangeReport](https://www.twse.com.tw) | 證交所歷史行情 — 個股日K、月均價、估值、融資融券 | 4 個 |
+| [MIS 即時報價](https://mis.twse.com.tw) | 盤中即時多股報價（上市+上櫃） | 1 個 |
+| [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | 櫃買中心 — 上櫃日收盤、三大法人、本益比 | 3 個 |
+| [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | 期交所 — 三大法人期貨部位、Put/Call Ratio | 2 個 |
+
 ## 🤝 參與貢獻
 歡迎PR！查看現有[API列表](API_TODO.md)了解可擴展的功能。
 

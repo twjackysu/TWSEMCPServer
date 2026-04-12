@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan Stock Exchange (TWSE) data analysis. It provides stock information, financial statements, ESG data, and trend analysis through the TWSE OpenAPI. Built with FastMCP (Python) and uses `requests` for synchronous TWSE API calls.
+TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
+- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 143 tools: 公司治理、ESG、財報、交易、指數、券商
+- **TWSE exchangeReport** (`twse.com.tw/exchangeReport`) — 4 tools: 歷史日K、月均價、估值、融資融券（legacy JSON，非 Swagger）
+- **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
+- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
+- **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 2 tools: 三大法人期貨部位、Put/Call Ratio
 
 ## Development Commands
 
@@ -16,7 +21,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan Stock Excha
 | Run server (prod) | `uv run fastmcp run server.py` |
 | Run all tests | `uv run pytest` |
 | Run specific test file | `uv run pytest tests/e2e/test_esg_api.py -v` |
-| Run tests by category | `python run_tests.py esg` (also: `company`, `financials`, `trading`, `warrants`, `other`, `api`, `e2e`) |
+| Run tests by category | `python run_tests.py esg` (also: `company`, `financials`, `trading`, `warrants`, `other`, `history`, `realtime`, `otc`, `taifex`, `api`, `e2e`) |
 | Quick test (fail fast) | `python run_tests.py quick` |
 | Tests with coverage | `python run_tests.py cov` (opens HTML report) |
 | Run server directly | `python server.py` (HTTP on port 8000) |
@@ -42,7 +47,11 @@ tools/
 ├── other.py                  # Misc tools: funds, bonds, holidays (top-level module)
 ├── company/                  # Company tools: basic_info, financials, esg, listing, news
 ├── trading/                  # Trading tools: daily, periodic, valuation, dividend_schedule, etf, market, warrants
-└── market/                   # Market tools: indices, statistics, foreign
+├── market/                   # Market tools: indices, statistics, foreign
+├── history/                  # TWSE legacy exchangeReport: stock_day, stock_day_avg, bwibbu_all, margin_balance
+├── realtime/                 # MIS real-time quotes: stock_info
+├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
+└── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio
 prompts/                      # 5 prompt templates registered in server.py
 ```
 
@@ -58,7 +67,7 @@ The `client` is captured via closure. Tools are registered with `@mcp.tool` — 
 
 **Auto-Discovery**: `tools/__init__.py` scans direct modules (`tools/broker.py`, `tools/other.py`) and subpackage modules (`tools/company/*.py`, etc.) automatically. No manual registration needed in `server.py` when adding new tool modules.
 
-**API Client**: `TWSEAPIClient` has instance methods (`fetch_data`, `fetch_company_data`, `fetch_latest_market_data`) and class-method wrappers (`get_data`, `get_company_data`, `get_latest_market_data`) for backward compatibility. Instance methods are preferred. Includes built-in rate limiting (0.5s between requests).
+**API Client**: `TWSEAPIClient` has instance methods (`fetch_data`, `fetch_company_data`, `fetch_latest_market_data`) and class-method wrappers (`get_data`, `get_company_data`, `get_latest_market_data`) for backward compatibility. Instance methods are preferred. Includes built-in rate limiting (0.5s between requests). For non-OpenAPI sources (legacy TWSE, MIS, TPEx, TAIFEX), use `fetch_json(url, params)` / `get_json(url, params)` which accepts full URLs with query parameters and returns raw JSON.
 
 **Decorators**: Tool functions use decorators from `utils/decorators.py`:
 - `@handle_api_errors(data_type="...", use_code_param=True)` — wraps in try/except, returns localized error message
@@ -88,7 +97,7 @@ Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has a
 
 **Test files**:
 - `tests/test_api_schemas.py` — parametrized schema drift detection against TWSE Swagger spec (falls back to `staticFiles/swagger_decoded.json`)
-- `tests/e2e/test_*.py` — per-category E2E tests (esg, company, financials, trading, warrants, other)
+- `tests/e2e/test_*.py` — per-category E2E tests (esg, company, financials, trading, warrants, other, history, realtime, otc, taifex)
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -120,4 +129,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
 ## API Reference
 
-`staticFiles/apis_summary_simple.json` contains all available TWSE API endpoints with their schemas. `API_TODO.md` tracks implementation and test status for all 143 endpoints.
+`staticFiles/apis_summary_simple.json` contains all available TWSE OpenAPI endpoints with their schemas. `API_TODO.md` tracks implementation and test status for all 143 TWSE OpenAPI endpoints.
+
+### External API Notes
+
+- **TWSE exchangeReport** (`tools/history/`): Legacy JSON endpoints returning `{"stat": "OK", "data": [...]}`. Dates in ROC format — use `utils/date_helper.py` for conversion. `MI_MARGN` uses `tables` array instead of `data`.
+- **MIS** (`tools/realtime/`): Single-letter field names (`z`=price, `c`=code, `ex`=market type). Use `tse_` prefix for listed stocks, `otc_` for OTC; tool auto-retries with `otc_` if `tse_` returns no data.
+- **TPEx** (`tools/otc/`): Standard REST JSON. Swagger spec at `tpex.org.tw/openapi/swagger.json`. Field names use English (e.g. `SecuritiesCompanyCode`).
+- **TAIFEX** (`tools/taifex/`): Requires browser-like `User-Agent` header (the default `stock-mcp/1.0` gets HTML instead of JSON). Uses its own `_fetch_taifex()` helper instead of `TWSEAPIClient`.
