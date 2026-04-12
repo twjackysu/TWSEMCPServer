@@ -47,14 +47,6 @@ High-yield screening, ex-dividend calendar, payout stability analysis
 Value/growth stock selection, ESG risk assessment
 > *"Help me find some undervalued stocks" / "Which companies have good ESG performance?"*
 
-## 📈 API Integration Progress
-
-Current Progress: **38/143 (26.6%)** Completed ✅
-
-Want to understand detailed API coverage? Check our **[API TODO List](API_TODO.md)** to track implementation progress!
-
-> 💡 Run `python generate_todo.py` to automatically update progress statistics
-
 ## ⚙️ Quick Start
 
 ### 🚀 Online Usage (Recommended)
@@ -75,7 +67,7 @@ uv sync && uv run fastmcp dev server.py
 ```
 
 ## 🤝 Contributing
-PRs welcome! Check the existing [API list](API_TODO.md) to understand expandable features.
+PRs welcome!
 
 ## 📄 License & Disclaimer
 MIT License | For reference only, not investment advice

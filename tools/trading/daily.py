@@ -6,7 +6,6 @@ from utils import (
     TWSEAPIClient,
     format_properties_with_values_multiline,
     MSG_NO_DATA_FOR_CODE,
-    MSG_QUERY_FAILED_WITH_CODE,
     handle_api_errors,
 )
 
@@ -19,20 +18,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_daily_trading(code: str) -> str:
-        """Obtain daily trading information for a listed company stock based on its stock code.
-        
-        Returns information including:
-        - Date: Trading date (ROC calendar YYYMMDD)
-        - Code: Stock code
-        - Name: Stock name
-        - TradeVolume: Trade volume (in shares)
-        - TradeValue: Trade value (in TWD)
-        - OpeningPrice: Opening price
-        - HighestPrice: Highest price
-        - LowestPrice: Lowest price
-        - ClosingPrice: Closing price
-        - Change: Price change
-        - Transaction: Transaction count
+        """根據股票代號查詢上市個股日成交資訊。
+
+        回傳資訊包含日期、代號、名稱、成交股數、成交金額、開盤價、最高價、最低價、收盤價、漲跌、成交筆數。
         """
         data = _client.fetch_company_data("/exchangeReport/STOCK_DAY_ALL", code)
         if not data:

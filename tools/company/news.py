@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline
+from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline, MSG_QUERY_FAILED
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -11,32 +11,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     def get_company_major_news(code: str = "") -> str:
-        """
-        Get daily major announcements from listed companies.
-        
-        Retrieves important company announcements and material information disclosures
-        that may impact stock prices and investor decisions. Can filter by company code
-        or get all announcements.
-        
-        Args:
-            code: Company stock code (optional). If provided, filters results for specific company.
-                 If empty, returns all major announcements.
-        
-        Returns:
-            Formatted string containing major announcements including:
-            - Report date (出表日期)
-            - Announcement date (發言日期)
-            - Announcement time (發言時間)
-            - Company code (公司代號)
-            - Company name (公司名稱)
-            - Subject/Title (主旨 )
-            - Applicable regulations (符合條款)
-            - Event occurrence date (事實發生日)
-            - Description/Details (說明)
+        """查詢上市公司每日重大訊息。
 
-        Note:
-            This API provides basic announcement information without speaker/contact details.
-            For complete contact information, refer to company's official announcements.
+        Args:
+            code: 股票代號（選填）。若指定則只回傳該公司的重大訊息。
         """
         try:
             if code:
@@ -45,34 +23,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             else:
                 data = _client.fetch_data("/opendata/t187ap04_L")
                 return format_multiple_records(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_twse_news(start_date: str = "", end_date: str = "") -> str:
-        """
-        Get latest news from Taiwan Stock Exchange with optional date filtering.
-        
-        Retrieves official news announcements from TWSE including market updates,
-        regulatory changes, system maintenance notices, and other important 
-        information for market participants.
-        
+        """查詢證交所新聞。
+
         Args:
-            start_date: Start date for filtering news (format: YYYYMMDD, e.g., "20250101")
-                       If empty, defaults to current month's first day
-            end_date: End date for filtering news (format: YYYYMMDD, e.g., "20250131")
-                     If empty, defaults to current month's last day
-        
-        Note: 
-            - If both dates are empty, returns current month's news
-            - Date format must be YYYYMMDD (e.g., "20250822" for August 22, 2025)
-            - API returns news in Chinese with dates in format YYYMMDD (民國年)
-        
-        Returns:
-            Formatted string containing TWSE news including:
-            - Title (標題)
-            - URL/Link (連結)
-            - Date (日期) - in format YYYMMDD (民國年)
+            start_date: 起始日期（格式 YYYYMMDD），預設為當月第一天
+            end_date: 結束日期（格式 YYYYMMDD），預設為當月最後一天
         """
         try:
             from datetime import datetime, date
@@ -139,30 +99,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 data = filtered_data
             
             return format_multiple_records(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_twse_events(top: int = 10) -> str:
-        """
-        Get Taiwan Stock Exchange event announcements and activities.
-        
-        Retrieves information about TWSE organized events, seminars, training sessions,
-        and other activities that may be of interest to market participants and investors.
-        
+        """查詢證交所活動訊息。
+
         Args:
-            top: Number of top events to return (default: 10). If empty or 0, returns all events.
-        
-        Returns:
-            Formatted string containing TWSE events including:
-            - Event number (No)
-            - Event title/subject (活動主題)
-            - Event details (詳細內容)
+            top: 回傳筆數上限（預設10），填0則回傳全部。
         """
         try:
             data = _client.fetch_data("/news/eventList")
             if data and top > 0:
                 data = data[:top]
             return format_multiple_records(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))

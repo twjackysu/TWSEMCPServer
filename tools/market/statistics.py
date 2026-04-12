@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_multiple_records
+from utils import TWSEAPIClient, format_multiple_records, MSG_QUERY_FAILED
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
@@ -12,27 +12,19 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     
     @mcp.tool
     def get_margin_trading_info() -> str:
-        """Obtain margin trading and short selling balance information for the market."""
+        """查詢集中市場融資融券餘額。"""
         try:
             data = _client.fetch_data("/exchangeReport/MI_MARGN")
             # 只取前10筆避免資料過多
             return format_multiple_records(data[:10] if data else [])
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_real_time_trading_stats() -> str:
-        """Obtain real-time 5-second trading statistics including order volumes and transaction counts.
-        
-        Returns the latest 5-second interval trading statistics including:
-        - Time: Trading time (HHMMSS format)
-        - AccBidOrders: Accumulated bid orders count
-        - AccBidVolume: Accumulated bid volume (in shares)
-        - AccAskOrders: Accumulated ask orders count
-        - AccAskVolume: Accumulated ask volume (in shares)
-        - AccTransaction: Accumulated transaction count
-        - AccTradeVolume: Accumulated trade volume (in shares)
-        - AccTradeValue: Accumulated trade value (in million TWD)
+        """查詢每5秒委託成交統計。
+
+        回傳最新的5秒交易統計，包含累計買賣委託單數、委託量、成交筆數、成交量、成交值。
         """
         try:
             data = _client.fetch_data("/exchangeReport/MI_5MINS")

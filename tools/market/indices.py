@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_properties_with_values_multiline, format_multiple_records
+from utils import TWSEAPIClient, format_properties_with_values_multiline, format_multiple_records, MSG_QUERY_FAILED
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market indices tools with the MCP instance."""
@@ -11,24 +11,24 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
     
     @mcp.tool
-    def get_market_index_info(category: str = "major", count: int = 20, format: str = "detailed") -> str:
-        """Obtain daily market closing information and overall market statistics.
-        
+    def get_market_index_info(category: str = "major", count: int = 20, output_format: str = "detailed") -> str:
+        """查詢每日收盤行情-大盤統計資訊。
+
         Args:
-            category: Index category to filter by:
-                - "major": Major market indices (主要市場指數: 加權、台50、中型100等)
-                - "sector": Industry sector indices (產業類指數: 電子類、金融類等)
-                - "esg": ESG and sustainability indices (ESG永續相關指數)
-                - "leverage": Leveraged and inverse indices (槓桿及反向指數)
-                - "return": Total return indices (報酬指數: 含股息再投資)
-                - "thematic": Thematic indices (主題指數: AI、5G、電動車等)
-                - "dividend": High dividend indices (高股息相關指數)
-                - "all": All indices (所有指數)
-            count: Maximum number of indices to return (default: 20, max: 50 for non-all categories)
-            format: Output format:
-                - "detailed": Full details with all fields (詳細格式)
-                - "summary": Compact summary with key info only (摘要格式: 指數名稱、收盤價、漲跌%)
-                - "simple": Just index name and change percentage (簡單格式: 僅名稱和漲跌%)
+            category: 指數分類篩選：
+                - "major": 主要市場指數（加權、台50、中型100等）
+                - "sector": 產業類指數（電子類、金融類等）
+                - "esg": ESG永續相關指數
+                - "leverage": 槓桿及反向指數
+                - "return": 報酬指數（含股息再投資）
+                - "thematic": 主題指數（AI、5G、電動車等）
+                - "dividend": 高股息相關指數
+                - "all": 所有指數
+            count: 回傳筆數上限（預設20，非all分類最大50）
+            output_format: 輸出格式：
+                - "detailed": 詳細格式（所有欄位）
+                - "summary": 摘要格式（指數名稱、收盤價、漲跌%）
+                - "simple": 簡單格式（僅名稱和漲跌%）
         """
         try:
             data = _client.fetch_latest_market_data("/exchangeReport/MI_INDEX")
@@ -37,7 +37,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             # Filter data based on category using pattern matching
             filtered_data = []
-            index_name = lambda item: item.get("指數", "")
+            def index_name(item):
+                return item.get("指數", "")
             
             if category == "major":
                 # Major indices: Core market benchmarks (非產業別、非報酬指數、非槓桿指數)
@@ -93,12 +94,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result_data = filtered_data[:count] if count > 0 else filtered_data
             
-            # Format output based on format parameter
+            # Format output based on output_format parameter
             if not result_data:
                 return f"No indices found for category: {category}"
             
-            if format == "simple":
-                # Simple format: just name and change percentage
+            if output_format == "simple":
+                # Simple output_format: just name and change percentage
                 lines = []
                 for item in result_data:
                     name = item.get("指數", "")
@@ -107,8 +108,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     lines.append(f"{name}: {direction}{change_pct}%")
                 return "\n".join(lines)
                 
-            elif format == "summary":
-                # Summary format: name, close price, change percentage
+            elif output_format == "summary":
+                # Summary output_format: name, close price, change percentage
                 lines = []
                 for item in result_data:
                     name = item.get("指數", "")
@@ -118,44 +119,44 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     lines.append(f"{name}: {close} 點 ({direction}{change_pct}%)")
                 return "\n".join(lines)
                 
-            else:  # detailed format (default)
+            else:  # detailed output_format (default)
                 return format_multiple_records(result_data)
             
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_market_historical_index() -> str:
-        """Obtain historical TAIEX (Taiwan Capitalization Weighted Stock Index) data for long-term trend analysis."""
+        """查詢發行量加權股價指數歷史資料。"""
         try:
             data = _client.fetch_latest_market_data("/indicesReport/MI_5MINS_HIST", count=20)
             return format_multiple_records(data)
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_taiwan_island_index_history() -> str:
-        """Obtain historical data for Taiwan Island Stock Price Index."""
+        """查詢寶島股價指數歷史資料。"""
         try:
             data = _client.fetch_latest_market_data("/indicesReport/FRMSA", count=20)
             return format_multiple_records(data)
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_taiwan_50_index_history() -> str:
-        """Obtain historical data for Taiwan 50 Index."""
+        """查詢臺灣50指數歷史資料。"""
         try:
             data = _client.fetch_latest_market_data("/indicesReport/TAI50I", count=20)
             return format_multiple_records(data)
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_taiwan_total_return_index() -> str:
-        """Obtain Taiwan Capitalization Weighted Stock Price Return Index."""
+        """查詢發行量加權股價報酬指數。"""
         try:
             data = _client.fetch_latest_market_data("/indicesReport/MFI94U", count=20)
             return format_multiple_records(data)
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))

@@ -3,13 +3,14 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
-from .futures_position import _fetch_taifex
+from .futures_position import TAIFEX_HEADERS
 
 TAIFEX_PCR_URL = "https://openapi.taifex.com.tw/v1/PutCallRatio"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register TAIFEX put/call ratio tools."""
+    _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
     @handle_api_errors()
@@ -20,9 +21,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             近期每日的成交量 PCR、未平倉量 PCR，以及 put/call 各自的成交量與未平倉量
         """
-        data = _fetch_taifex(TAIFEX_PCR_URL)
+        data = _client.fetch_json(TAIFEX_PCR_URL, headers=TAIFEX_HEADERS)
 
-        if not data:
+        if not isinstance(data, list) or not data:
             return "查無 Put/Call Ratio 資料"
 
         lines = [f"【台指選擇權 Put/Call Ratio】（近 {len(data)} 個交易日）\n"]

@@ -77,7 +77,7 @@ uv sync && uv run fastmcp dev server.py
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | 期交所 — 三大法人期貨部位、Put/Call Ratio | 2 個 |
 
 ## 🤝 參與貢獻
-歡迎PR！查看現有[API列表](API_TODO.md)了解可擴展的功能。
+歡迎PR！
 
 ## 📄 授權 & 免責聲明
 MIT授權 | 僅供參考，不構成投資建議

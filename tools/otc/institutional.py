@@ -6,6 +6,12 @@ from utils import TWSEAPIClient, handle_api_errors
 
 TPEX_3INSTI_URL = "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
 
+# TPEx API field name constants (very long English names from API)
+FK_NET = "ForeignInvestorsInclude MainlandAreaInvestors-Difference"
+IT_NET = "SecuritiesInvestmentTrustCompanies-Difference"
+DL_NET = "Dealers-Difference"
+TOTAL_NET = "TotalDifference"
+
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register OTC institutional trading tools."""
@@ -32,18 +38,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             data = [d for d in data if d.get("SecuritiesCompanyCode", "").strip() == stock_no]
             if not data:
                 return f"查無上櫃股票代號 {stock_no} 的三大法人資料"
-
-        # Field name keys from API (very long English names)
-        FK_BUY = "ForeignInvestorsIncludeMainlandAreaInvestors-TotalBuy"
-        FK_SELL = "ForeignInvestorsIncludeMainlandAreaInvestors-TotalSell"
-        FK_NET = "ForeignInvestorsInclude MainlandAreaInvestors-Difference"
-        IT_BUY = "SecuritiesInvestmentTrustCompanies-TotalBuy"
-        IT_SELL = "SecuritiesInvestmentTrustCompanies-TotalSell"
-        IT_NET = "SecuritiesInvestmentTrustCompanies-Difference"
-        DL_BUY = "Dealers-TotalBuy"
-        DL_SELL = "Dealers-TotalSell"
-        DL_NET = "Dealers-Difference"
-        TOTAL_NET = "TotalDifference"
 
         lines = [f"【上櫃三大法人買賣超】（共 {len(data)} 筆）\n"]
 

@@ -1,6 +1,6 @@
 """Real-time stock quote tool from mis.twse.com.tw."""
 
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 
@@ -13,7 +13,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_realtime_quote(stock_nos: list[str]) -> str:
+    def get_realtime_quote(stock_nos: List[str]) -> str:
         """查詢台灣股票盤中即時報價，支援同時查詢多支股票。
         上市股與上櫃股皆可查，系統自動判斷前綴。
         盤後回傳最後成交價。

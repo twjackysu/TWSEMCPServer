@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_properties_with_values_multiline
+from utils import TWSEAPIClient, format_properties_with_values_multiline, MSG_QUERY_FAILED
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company financials tools with the MCP instance."""
@@ -41,68 +41,56 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     
     @mcp.tool
     def get_company_income_statement(code: str) -> str:
-        """Obtain comprehensive income statement for a listed company based on its stock code. 
-        Automatically detects company industry and uses appropriate financial statement format:
-        - General industry (一般業)
-        - Financial services (金融業) 
-        - Securities & futures (證券期貨業)
-        - Financial holding companies (金控業)
-        - Insurance (保險業)
-        - Other industries (異業)
+        """根據股票代號查詢上市公司綜合損益表。
+        自動偵測公司所屬產業並使用對應的財務報表格式（一般業、金融業、證券期貨業、金控業、保險業、異業）。
         """
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap06_L{suffix}"
             data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_balance_sheet(code: str) -> str:
-        """Obtain balance sheet for a listed company based on its stock code.
-        Automatically detects company industry and uses appropriate financial statement format:
-        - General industry (一般業)
-        - Financial services (金融業)
-        - Securities & futures (證券期貨業) 
-        - Financial holding companies (金控業)
-        - Insurance (保險業)
-        - Other industries (異業)
+        """根據股票代號查詢上市公司資產負債表。
+        自動偵測公司所屬產業並使用對應的財務報表格式（一般業、金融業、證券期貨業、金控業、保險業、異業）。
         """
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap07_L{suffix}"
             data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_quarterly_earnings_forecast_achievement(code: str) -> str:
-        """Obtain quarterly earnings forecast achievement (simplified) for a listed company based on its stock code."""
+        """根據股票代號查詢上市公司截至各季綜合損益財測達成情形(簡式)。"""
         try:
             data = _client.fetch_company_data("/opendata/t187ap15_L", code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_quarterly_audit_variance(code: str) -> str:
-        """Obtain quarterly comprehensive income audited/reviewed figures that differ from forecast by more than 10% for a listed company based on its stock code."""
+        """根據股票代號查詢上市公司當季綜合損益經會計師查核(核閱)數與當季預測數差異達百分之十以上者(簡式)。"""
         try:
             data = _client.fetch_company_data("/opendata/t187ap16_L", code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_profitability_analysis(code: str) -> str:
-        """Get profitability analysis for a specific listed company based on its stock code."""
+        """根據股票代號查詢上市公司營益分析。"""
         try:
             data = _client.fetch_company_data("/opendata/t187ap17_L", code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_profitability_analysis_summary(
@@ -111,22 +99,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         order_by: str = "稅後純益率(%)(稅後純益)/(營業收入)",
         order_direction: str = "desc"
     ) -> str:
-        """Get profitability analysis query summary table (all companies aggregate report).
-        
+        """查詢上市公司營益分析查詢彙總表(全體公司彙總報表)。
+
         Args:
-            page_size: Number of records per page (default: 20, max: 100)
-            page_number: Page number to retrieve (default: 1, starts from 1)
-            order_by: Field name to sort by. Available fields:
-                - "公司代號" (Company Code)
-                - "公司名稱" (Company Name)
-                - "營業收入(百萬元)" (Revenue in millions)
-                - "毛利率(%)(營業毛利)/(營業收入)" (Gross Margin %)
-                - "營業利益率(%)(營業利益)/(營業收入)" (Operating Margin %)
-                - "稅前純益率(%)(稅前純益)/(營業收入)" (Pre-tax Margin %)
-                - "稅後純益率(%)(稅後純益)/(營業收入)" (Net Margin %)
-                - "年度" (Year)
-                - "季別" (Quarter)
-            order_direction: Sort direction, "asc" for ascending or "desc" for descending (default: "asc")
+            page_size: 每頁筆數（預設20，最大100）
+            page_number: 頁碼（預設1，從1開始）
+            order_by: 排序欄位。可用欄位：公司代號、公司名稱、營業收入(百萬元)、毛利率(%)、營業利益率(%)、稅前純益率(%)、稅後純益率(%)、年度、季別
+            order_direction: 排序方向，'asc' 為遞增，'desc' 為遞減（預設 'asc'）
         """
         try:
             data = _client.fetch_data("/opendata/t187ap17_L")
@@ -200,48 +179,48 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             return result
         except Exception as e:
-            return f"查詢失敗: {str(e)}"
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_company_financial_reports_supervisor_acknowledgment(code: str) -> str:
-        """Obtain financial report acknowledgment by supervisors for a listed company based on its stock code."""
+        """根據股票代號查詢上市公司財務報告經監察人承認情形。"""
         try:
             data = _client.fetch_company_data("/opendata/t187ap31_L", code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_public_company_balance_sheet(code: str) -> str:
-        """Obtain balance sheet for a public company based on its stock code.
-        Automatically detects company industry and uses appropriate financial statement format.
+        """根據股票代號查詢公開發行公司資產負債表。
+        自動偵測公司所屬產業並使用對應的財務報表格式。
         """
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap07_X{suffix}"
             data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_public_company_income_statement(code: str) -> str:
-        """Obtain comprehensive income statement for a public company based on its stock code.
-        Automatically detects company industry and uses appropriate financial statement format.
+        """根據股票代號查詢公開發行公司綜合損益表。
+        自動偵測公司所屬產業並使用對應的財務報表格式。
         """
         try:
             suffix = _get_industry_api_suffix(code)
             endpoint = f"/opendata/t187ap06_X{suffix}"
             data = _client.fetch_company_data(endpoint, code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_public_company_board_shareholdings(code: str) -> str:
-        """Obtain board member shareholding details for a public company based on its stock code."""
+        """根據股票代號查詢公發公司董監事持股餘額明細。"""
         try:
             data = _client.fetch_company_data("/opendata/t187ap11_P", code)
             return format_properties_with_values_multiline(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))

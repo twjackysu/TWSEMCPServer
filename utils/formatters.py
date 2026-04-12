@@ -144,7 +144,8 @@ def format_list_response(
     
     # Use default formatter if none provided
     if formatter is None:
-        formatter = lambda item: f"- {format_properties_with_values_multiline(item)}\n"
+        def formatter(item):
+            return f"- {format_properties_with_values_multiline(item)}\n"
     
     # Format each item up to the limit
     for item in data[:limit]:

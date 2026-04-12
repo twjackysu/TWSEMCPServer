@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline
+from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline, MSG_QUERY_FAILED
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -11,29 +11,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     def get_dividend_rights_schedule(code: str = "") -> str:
-        """
-        Get ex-dividend and ex-rights schedule for listed stocks.
-        
-        Retrieves upcoming and historical ex-dividend/ex-rights dates along with
-        detailed information about stock dividends, cash dividends, rights offerings,
-        and other corporate actions. Essential for dividend investment strategies.
-        
+        """查詢上市股票除權除息預告表。
+
         Args:
-            code: Stock code (optional). If provided, filters results for specific company.
-                 If empty, returns all upcoming dividend/rights schedules.
-        
-        Returns:
-            Formatted string containing dividend/rights schedule including:
-            - Ex-dividend/rights date (除權息日期)
-            - Stock code (股票代號)
-            - Company name (名稱)
-            - Ex-dividend/rights type (除權息)
-            - Stock dividend ratio (無償配股率)
-            - Rights offering ratio (現金增資配股率)
-            - Rights offering price per share (現金增資認購價)
-            - Cash dividend (現金股利)
-            - Number of shares offered (配股張數)
-            - And other corporate action details
+            code: 股票代號（選填）。若指定則只回傳該公司的除權息資訊。
         """
         try:
             if code:
@@ -42,5 +23,5 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             else:
                 data = _client.fetch_data("/exchangeReport/TWT48U_ALL")
                 return format_multiple_records(data) if data else ""
-        except Exception:
-            return ""
+        except Exception as e:
+            return MSG_QUERY_FAILED.format(error=str(e))

@@ -100,7 +100,7 @@ class TWSEAPIClient:
             logger.error(f"Failed to fetch latest market data: {e}")
             return []
 
-    def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Any:
+    def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT, headers: Optional[Dict[str, str]] = None) -> Any:
         """
         Fetch raw JSON from an arbitrary URL with query parameters.
 
@@ -130,7 +130,7 @@ class TWSEAPIClient:
             resp = requests.get(
                 url,
                 params=params,
-                headers={"User-Agent": self.user_agent, "Accept": "application/json"},
+                headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
                 verify=self.verify_ssl,
                 timeout=timeout,
             )

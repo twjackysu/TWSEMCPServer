@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="基金基本")
     def get_fund_basic_info() -> str:
-        """Get basic information summary for all funds."""
+        """查詢基金基本資料彙總表。"""
         data = _client.fetch_data("/opendata/t187ap47_L")
         if not data:
             return MSG_NO_DATA.format(data_type="基金基本")
@@ -35,7 +35,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="中央登錄公債補息")
     def get_central_depository_bond_redemption() -> str:
-        """Get central depository bond redemption data."""
+        """查詢中央登錄公債補息資料表。"""
         data = _client.fetch_data("/exchangeReport/BFI61U")
         if not data:
             return MSG_NO_DATA.format(data_type="中央登錄公債補息")
@@ -46,7 +46,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="有價證券集中交易市場開（休）市日期")
     def get_market_holiday_schedule() -> str:
-        """Get holiday schedule for securities centralized trading market."""
+        """查詢有價證券集中交易市場開（休）市日期。"""
         data = _client.fetch_data("/holidaySchedule/holidaySchedule")
         if not data:
             return MSG_NO_DATA.format(data_type="有價證券集中交易市場開（休）市日期")

@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="券商業務別人員數")
     def get_broker_service_personnel() -> str:
-        """Get personnel numbers by service type for brokers."""
+        """查詢券商業務別人員數。"""
         data = _client.fetch_data("/opendata/t187ap01")
         if not data:
             return MSG_NO_DATA.format(data_type="券商業務別人員數")
@@ -36,7 +36,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="券商每月月計表")
     def get_broker_monthly_statements() -> str:
-        """Get monthly statements for brokers."""
+        """查詢各券商每月月計表。"""
         data = _client.fetch_data("/opendata/t187ap20")
         if not data:
             return MSG_NO_DATA.format(data_type="券商每月月計表")
@@ -54,7 +54,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="券商收支概況表")
     def get_broker_income_expenditure() -> str:
-        """Get income and expenditure overview for brokers."""
+        """查詢各券商收支概況表資料。"""
         data = _client.fetch_data("/opendata/t187ap21")
         if not data:
             return MSG_NO_DATA.format(data_type="券商收支概況表")
@@ -72,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="證券商基本")
     def get_broker_basic_info() -> str:
-        """Get basic information for brokers."""
+        """查詢證券商基本資料。"""
         data = _client.fetch_data("/opendata/t187ap18")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商基本")
@@ -83,7 +83,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="電子式交易統計")
     def get_broker_electronic_trading_statistics() -> str:
-        """Get electronic trading statistics."""
+        """查詢電子式交易統計資訊。"""
         data = _client.fetch_data("/opendata/t187ap19")
         if not data:
             return MSG_NO_DATA.format(data_type="電子式交易統計")
@@ -100,7 +100,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="證券商營業員男女人數統計")
     def get_broker_gender_statistics() -> str:
-        """Get broker personnel gender statistics."""
+        """查詢證券商營業員男女人數統計資料。"""
         data = _client.fetch_data("/opendata/OpenData_BRK01")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商營業員男女人數統計")
@@ -117,7 +117,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="證券商分公司基本")
     def get_broker_branch_info() -> str:
-        """Get broker branch office basic information."""
+        """查詢證券商分公司基本資料。"""
         data = _client.fetch_data("/opendata/OpenData_BRK02")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商分公司基本")
@@ -134,7 +134,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="開辦定期定額業務證券商名單")
     def get_brokers_offering_regular_investment() -> str:
-        """Get list of brokers offering regular investment services."""
+        """查詢開辦定期定額業務證券商名單。"""
         data = _client.fetch_data("/brokerService/secRegData")
         if not data:
             return MSG_NO_DATA.format(data_type="開辦定期定額業務證券商名單")
@@ -151,7 +151,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(data_type="證券商總公司基本")
     def get_broker_headquarters_info() -> str:
-        """Get basic information of broker headquarters."""
+        """查詢證券商總公司基本資料。"""
         data = _client.fetch_data("/brokerService/brokerList")
         if not data:
             return MSG_NO_DATA.format(data_type="證券商總公司基本")

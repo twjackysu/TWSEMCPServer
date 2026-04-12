@@ -6,7 +6,6 @@ from utils import (
     TWSEAPIClient,
     format_properties_with_values_multiline,
     MSG_NO_DATA_FOR_CODE,
-    MSG_QUERY_FAILED_WITH_CODE,
     handle_api_errors,
 )
 
@@ -19,26 +18,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_monthly_average(code: str) -> str:
-        """Obtain daily closing price and monthly average price for a listed company stock based on its stock code."""
+        """根據股票代號查詢上市個股日收盤價及月平均價。"""
         data = _client.fetch_company_data("/exchangeReport/STOCK_DAY_AVG_ALL", code)
         return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_monthly_trading(code: str) -> str:
-        """Obtain monthly trading information for a listed company stock based on its stock code.
-        
-        Returns information including:
-        - Month: Trading month (ROC calendar YYMM)
-        - Code: Stock code
-        - Name: Stock name
-        - HighestPrice: Highest price in the month
-        - LowestPrice: Lowest price in the month
-        - WeightedAvgPriceAB: Weighted average price
-        - Transaction: Transaction count
-        - TradeValueA: Trade value (in TWD)
-        - TradeVolumeB: Trade volume (in shares)
-        - TurnoverRatio: Turnover ratio (%)
+        """根據股票代號查詢上市個股月成交資訊。
+
+        回傳資訊包含月份、代號、名稱、最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率。
         """
         data = _client.fetch_company_data("/exchangeReport/FMSRFK_ALL", code)
         if not data:
@@ -69,20 +58,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_stock_yearly_trading(code: str) -> str:
-        """Obtain yearly trading information for a listed company stock based on its stock code.
-        
-        Returns information including:
-        - Year: Trading year (ROC calendar YYY)
-        - Code: Stock code
-        - Name: Stock name
-        - TradeVolume: Total trade volume (in shares)
-        - TradeValue: Total trade value (in TWD)
-        - Transaction: Total transaction count
-        - HighestPrice: Highest price in the year
-        - HDate: Date of highest price
-        - LowestPrice: Lowest price in the year
-        - LDate: Date of lowest price
-        - AvgClosingPrice: Average closing price
+        """根據股票代號查詢上市個股年成交資訊。
+
+        回傳資訊包含年度、代號、名稱、成交股數、成交金額、成交筆數、最高價及日期、最低價及日期、收盤均價。
         """
         data = _client.fetch_company_data("/exchangeReport/FMNPTK_ALL", code)
         if not data:

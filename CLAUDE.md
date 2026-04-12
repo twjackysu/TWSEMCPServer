@@ -112,7 +112,7 @@ Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has a
 5. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
 6. Format output with utilities from `utils/formatters.py`
 7. Add E2E tests in the appropriate `tests/e2e/test_*.py` file
-8. Mark the API with a checkmark in `API_TODO.md`
+8. Add E2E tests for any hardcoded field names used in the tool
 
 Example:
 ```python
@@ -129,7 +129,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
 ## API Reference
 
-`staticFiles/apis_summary_simple.json` contains all available TWSE OpenAPI endpoints with their schemas. `API_TODO.md` tracks implementation and test status for all 143 TWSE OpenAPI endpoints.
+`staticFiles/apis_summary_simple.json` contains all available TWSE OpenAPI endpoints with their schemas.
 
 ### External API Notes
 

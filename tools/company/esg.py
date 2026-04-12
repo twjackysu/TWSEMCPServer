@@ -2,51 +2,51 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
+from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data, MSG_QUERY_FAILED
 from utils.tool_factory import create_company_tool
 
 # Simple company data tools: (endpoint, name, docstring)
 SIMPLE_ESG_TOOLS = [
     ("/opendata/t187ap46_L_9", "get_company_governance_info",
-     "Obtain corporate governance information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司公司治理資訊。"),
     ("/opendata/t187ap46_L_8", "get_company_climate_management",
-     "Obtain climate-related management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司氣候相關議題管理資訊。"),
     ("/opendata/t187ap46_L_19", "get_company_risk_management",
-     "Obtain risk management policy information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司風險管理政策資訊。"),
     ("/opendata/t187ap46_L_13", "get_company_supply_chain_management",
-     "Obtain supply chain management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司供應鏈管理資訊。"),
     ("/opendata/t187ap46_L_16", "get_company_info_security",
-     "Obtain information security data for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司資訊安全資料。"),
     ("/opendata/t187ap46_L_20", "get_company_anticompetitive_litigation",
-     "Obtain anti-competitive litigation losses information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司反競爭行為法律訴訟損失資訊。"),
     ("/opendata/t187ap46_L_17", "get_company_inclusive_finance",
-     "Obtain inclusive finance information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司普惠金融資訊。"),
     ("/opendata/t187ap46_L_15", "get_company_community_relations",
-     "Obtain community relations information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司社區關係資訊。"),
     ("/opendata/t187ap46_L_18", "get_company_ownership_and_control",
-     "Obtain ownership and control information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司持股及控制力資訊。"),
     ("/opendata/t187ap46_L_14", "get_company_product_quality_safety",
-     "Obtain product quality and safety information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司產品品質與安全資訊。"),
     ("/opendata/t187ap46_L_12", "get_company_food_safety",
-     "Obtain food safety information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司食品安全資訊。"),
     ("/opendata/t187ap46_L_11", "get_company_product_lifecycle",
-     "Obtain product lifecycle information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司產品生命週期資訊。"),
     ("/opendata/t187ap46_L_10", "get_company_fuel_management",
-     "Obtain fuel management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司燃料管理資訊。"),
     ("/opendata/t187ap46_L_7", "get_company_investor_communications",
-     "Obtain investor communications information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司投資人溝通資訊。"),
     ("/opendata/t187ap46_L_6", "get_company_board_info",
-     "Obtain board information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司董事會資訊。"),
     ("/opendata/t187ap46_L_5", "get_company_human_development",
-     "Obtain human development information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司人力發展資訊。"),
     ("/opendata/t187ap46_L_4", "get_company_waste_management",
-     "Obtain waste management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司廢棄物管理資訊。"),
     ("/opendata/t187ap46_L_3", "get_company_water_management",
-     "Obtain water resource management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司水資源管理資訊。"),
     ("/opendata/t187ap46_L_2", "get_company_energy_management",
-     "Obtain energy management information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司能源管理資訊。"),
     ("/opendata/t187ap46_L_1", "get_company_greenhouse_gas_emissions",
-     "Obtain greenhouse gas emissions information for a listed company based on its stock code."),
+     "根據股票代號查詢上市公司溫室氣體排放資訊。"),
 ]
 
 
@@ -64,7 +64,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     
     @mcp.tool
     def get_companies_with_anticompetitive_losses() -> str:
-        """Get all listed companies that have reported monetary losses from anti-competitive litigation (excluding zero or N/A values)."""
+        """查詢所有已申報反競爭行為法律訴訟損失的上市公司（排除零值及N/A）。"""
         try:
             data = _client.fetch_data("/opendata/t187ap46_L_20")
             filtered_data = [
@@ -86,11 +86,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             return result
         except Exception as e:
-            return f"查詢失敗: {str(e)}"
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_companies_with_inclusive_finance_data() -> str:
-        """Get all listed companies that have reported inclusive finance activities (excluding zero or N/A values)."""
+        """查詢所有已申報普惠金融活動的上市公司（排除零值及N/A）。"""
         try:
             data = _client.fetch_data("/opendata/t187ap46_L_17")
             filtered_data = [
@@ -122,11 +122,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
             return result
         except Exception as e:
-            return f"查詢失敗: {str(e)}"
+            return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
     def get_companies_with_refineries_in_populated_areas() -> str:
-        """Get all listed companies that have reported refineries in populated areas (excluding zero or N/A values)."""
+        """查詢所有已申報在人口密集區設有煉油廠的上市公司（排除零值及N/A）。"""
         try:
             data = _client.fetch_data("/opendata/t187ap46_L_15")
             filtered_data = [
@@ -148,4 +148,4 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
             return result
         except Exception as e:
-            return f"查詢失敗: {str(e)}"
+            return MSG_QUERY_FAILED.format(error=str(e))
