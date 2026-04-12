@@ -17,6 +17,10 @@ def run_tests(scope="all"):
         "warrants": ["pytest", "tests/e2e/test_warrants_api.py", "-v"],
         "other": ["pytest", "tests/e2e/test_other_api.py", "-v"],
         "api": ["pytest", "tests/test_api_client.py", "-v"],
+        "history": ["pytest", "tests/e2e/test_history_api.py", "-v"],
+        "realtime": ["pytest", "tests/e2e/test_realtime_api.py", "-v"],
+        "otc": ["pytest", "tests/e2e/test_otc_api.py", "-v"],
+        "taifex": ["pytest", "tests/e2e/test_taifex_api.py", "-v"],
         "e2e": ["pytest", "tests/e2e/", "-v", "--tb=short"],  # All E2E tests
         "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html", "--cov-report=term"],
         "quick": ["pytest", "tests/", "-x", "--tb=short"],  # Stop at first failure

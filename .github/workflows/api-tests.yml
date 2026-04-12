@@ -21,6 +21,10 @@ on:
           - warrants
           - other
           - api_client
+          - history
+          - realtime
+          - otc
+          - taifex
 
 jobs:
   test:
@@ -89,6 +93,26 @@ jobs:
       if: ${{ github.event.inputs.test_scope == 'api_client' }}
       run: |
         uv run pytest tests/test_api_client.py -v --tb=short
+
+    - name: 🧪 Run History API tests only
+      if: ${{ github.event.inputs.test_scope == 'history' }}
+      run: |
+        uv run pytest tests/e2e/test_history_api.py -v --tb=short
+
+    - name: 🧪 Run Realtime API tests only
+      if: ${{ github.event.inputs.test_scope == 'realtime' }}
+      run: |
+        uv run pytest tests/e2e/test_realtime_api.py -v --tb=short
+
+    - name: 🧪 Run OTC API tests only
+      if: ${{ github.event.inputs.test_scope == 'otc' }}
+      run: |
+        uv run pytest tests/e2e/test_otc_api.py -v --tb=short
+
+    - name: 🧪 Run TAIFEX API tests only
+      if: ${{ github.event.inputs.test_scope == 'taifex' }}
+      run: |
+        uv run pytest tests/e2e/test_taifex_api.py -v --tb=short
     
     - name: 💬 Create issue on failure
       if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
