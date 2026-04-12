@@ -24,6 +24,7 @@ from .formatters import (
     create_simple_list_formatter,
 )
 from .tool_factory import create_company_tool
+from .date_helper import roc_to_ad, ad_to_roc
 
 __all__ = [
     "TWSEAPIClient",
@@ -50,4 +51,6 @@ __all__ = [
     "format_list_response",
     "create_simple_list_formatter",
     "create_company_tool",
+    "roc_to_ad",
+    "ad_to_roc",
 ]

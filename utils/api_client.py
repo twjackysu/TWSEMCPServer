@@ -100,6 +100,53 @@ class TWSEAPIClient:
             logger.error(f"Failed to fetch latest market data: {e}")
             return []
 
+    def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Any:
+        """
+        Fetch raw JSON from an arbitrary URL with query parameters.
+
+        Unlike fetch_data() which prepends base_url and normalizes to list,
+        this method accepts full URLs and returns the raw parsed JSON.
+        Used for legacy TWSE endpoints (twse.com.tw/exchangeReport) and
+        external APIs (mis.twse.com.tw, tpex.org.tw, taifex.com.tw).
+
+        Args:
+            url: Full URL to fetch
+            params: Optional query parameters dict
+            timeout: Request timeout in seconds
+
+        Returns:
+            Parsed JSON response (dict or list depending on API)
+        """
+        current_time = time.time()
+        time_since_last_request = current_time - self._last_request_time
+        if time_since_last_request < self.request_interval:
+            sleep_time = self.request_interval - time_since_last_request
+            logger.debug(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
+            time.sleep(sleep_time)
+
+        logger.info(f"Fetching JSON from {url} params={params}")
+
+        try:
+            resp = requests.get(
+                url,
+                params=params,
+                headers={"User-Agent": self.user_agent, "Accept": "application/json"},
+                verify=self.verify_ssl,
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            self._last_request_time = time.time()
+            resp.encoding = "utf-8"
+            return resp.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch JSON from {url}: {e}")
+            raise
+
+    @classmethod
+    def get_json(cls, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Any:
+        """Static wrapper for fetch_json."""
+        return cls.get_instance().fetch_json(url, params, timeout)
+
     # --- Static Methods for Backward Compatibility ---
 
     @classmethod
