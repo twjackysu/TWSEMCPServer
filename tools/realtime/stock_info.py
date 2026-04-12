@@ -69,6 +69,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             prev_close = item.get("y", "-")   # 昨收價
             volume = item.get("v", "-")       # 成交量（張）
             timestamp = item.get("t", "-")    # 最後成交時間
+            date_ = item.get("d", "-")        # 日期
+            upper = item.get("u", "-")        # 漲停價
+            lower = item.get("w", "-")        # 跌停價
             market = "上市" if item.get("ex") == "tse" else "上櫃"
 
             # Calculate change and change%
@@ -87,7 +90,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             lines.append(
                 f"{code} {name} [{market}] | "
                 f"成交: {price} | 開: {open_p} | 高: {high} | 低: {low} | "
-                f"昨收: {prev_close} | 量: {volume}張{change_str} | {timestamp}"
+                f"昨收: {prev_close} | 量: {volume}張{change_str} | "
+                f"漲停: {upper} | 跌停: {lower} | {date_} {timestamp}"
             )
+
+            # Best 5 bid/ask prices
+            asks = item.get("a", "").rstrip("_").split("_")
+            ask_vols = item.get("f", "").rstrip("_").split("_")
+            bids = item.get("b", "").rstrip("_").split("_")
+            bid_vols = item.get("g", "").rstrip("_").split("_")
+
+            if asks and asks[0]:
+                ask_parts = [f"{p}({v}張)" for p, v in zip(asks, ask_vols) if p]
+                lines.append(f"  賣五檔: {' / '.join(ask_parts)}")
+            if bids and bids[0]:
+                bid_parts = [f"{p}({v}張)" for p, v in zip(bids, bid_vols) if p]
+                lines.append(f"  買五檔: {' / '.join(bid_parts)}")
 
         return "\n".join(lines)

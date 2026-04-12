@@ -19,6 +19,11 @@ class TestRealtimeQuoteAPI:
         assert "msgArray" in result
         assert len(result["msgArray"]) > 0
         item = result["msgArray"][0]
+        keys = sorted(item.keys())
         # c 用於代號比對, ex 用於上市/上櫃判斷
-        assert "c" in item, f"欄位 'c' 不存在，現有: {sorted(item.keys())}"
-        assert "ex" in item, f"欄位 'ex' 不存在，現有: {sorted(item.keys())}"
+        assert "c" in item, f"欄位 'c' 不存在，現有: {keys}"
+        assert "ex" in item, f"欄位 'ex' 不存在，現有: {keys}"
+        # a/b 五檔價格用 _ 分隔, f/g 五檔量用 _ 分隔
+        for field in ["a", "b", "f", "g"]:
+            assert field in item, f"欄位 '{field}' 不存在，現有: {keys}"
+            assert "_" in item[field], f"欄位 '{field}' 不含 _ 分隔符，格式可能已變: {item[field]!r}"
