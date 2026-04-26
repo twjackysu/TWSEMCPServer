@@ -112,7 +112,7 @@ jobs:
     - name: 🧪 Run TAIFEX API tests only
       if: ${{ github.event.inputs.test_scope == 'taifex' }}
       run: |
-        uv run pytest tests/e2e/test_taifex_api.py -v --tb=short
+        uv run pytest tests/e2e/test_taifex_api.py tests/e2e/test_taifex_new_api.py tests/e2e/test_taifex_batch2_api.py -v --tb=short
     
     - name: 💬 Create issue on failure
       if: failure() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
