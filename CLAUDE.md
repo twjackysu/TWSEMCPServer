@@ -9,7 +9,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TWSE exchangeReport** (`twse.com.tw/exchangeReport`) — 4 tools: 歷史日K、月均價、估值、融資融券（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
-- **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 2 tools: 三大法人期貨部位、Put/Call Ratio
+- **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
 
 ## Development Commands
 
@@ -51,7 +51,9 @@ tools/
 ├── history/                  # TWSE legacy exchangeReport: stock_day, stock_day_avg, bwibbu_all, margin_balance
 ├── realtime/                 # MIS real-time quotes: stock_info
 ├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
-└── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio
+└── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
+                              #   institutional_details, daily_market_report, large_traders_oi,
+                              #   options_analytics, margin, trading_statistics
 prompts/                      # 5 prompt templates registered in server.py
 ```
 
@@ -136,4 +138,4 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 - **TWSE exchangeReport** (`tools/history/`): Legacy JSON endpoints returning `{"stat": "OK", "data": [...]}`. Dates in ROC format — use `utils/date_helper.py` for conversion. `MI_MARGN` uses `tables` array instead of `data`.
 - **MIS** (`tools/realtime/`): Single-letter field names (`z`=price, `c`=code, `ex`=market type). Use `tse_` prefix for listed stocks, `otc_` for OTC; tool auto-retries with `otc_` if `tse_` returns no data.
 - **TPEx** (`tools/otc/`): Standard REST JSON. Swagger spec at `tpex.org.tw/openapi/swagger.json`. Field names use English (e.g. `SecuritiesCompanyCode`).
-- **TAIFEX** (`tools/taifex/`): Requires browser-like `User-Agent` header (the default `stock-mcp/1.0` gets HTML instead of JSON). Uses its own `_fetch_taifex()` helper instead of `TWSEAPIClient`.
+- **TAIFEX** (`tools/taifex/`): Requires browser-like `User-Agent` header (the default `stock-mcp/1.0` gets HTML instead of JSON). Uses `client.fetch_json(url, headers=TAIFEX_HEADERS)` with `TAIFEX_HEADERS` defined in `futures_position.py` and imported by other taifex modules.

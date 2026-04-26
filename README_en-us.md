@@ -66,6 +66,16 @@ cd TWStockMCPServer
 uv sync && uv run fastmcp dev server.py
 ```
 
+## 📡 Data Sources
+
+| Source | Description | Tools |
+|--------|-------------|-------|
+| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financials, trading, indices, etc. | 143 |
+| [TWSE exchangeReport](https://www.twse.com.tw) | TWSE historical data — daily OHLC, monthly avg price, valuation, margin balance | 4 |
+| [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
+| [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors, P/E ratio | 3 |
+| [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |
+
 ## 🤝 Contributing
 PRs welcome!
 
