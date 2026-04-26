@@ -4,6 +4,18 @@
       "type": "stdio",
       "command": "uv",
       "args": ["run", "${workspaceFolder}\\server.py"]
+    },
+    "docker_twstockmcpserver": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--pull=always",
+        "-e",
+        "MCP_STDIO=1",
+        "ghcr.io/twjackysu/twsemcpserver:latest"
+      ]
     }
   }
 }

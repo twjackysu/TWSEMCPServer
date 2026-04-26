@@ -59,6 +59,37 @@ Value/growth stock selection, ESG risk assessment
 }
 ```
 
+### 🐳 Docker (stdio — no server needed)
+```json
+{
+  "twstockmcpserver": {
+    "command": "docker",
+    "args": [
+      "run",
+      "-i",
+      "--rm",
+      "--pull=always",
+      "-e",
+      "MCP_STDIO=1",
+      "ghcr.io/twjackysu/twsemcpserver:latest"
+    ]
+  }
+}
+```
+
+### 🐳 Docker (HTTP — self-hosted)
+```bash
+docker run -d -p 8000:8000 -e PORT=8000 ghcr.io/twjackysu/twsemcpserver:latest
+```
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "http://localhost:8000/mcp"
+  }
+}
+```
+
 ### 🔧 Local Installation
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git

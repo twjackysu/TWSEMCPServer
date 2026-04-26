@@ -59,6 +59,37 @@
 }
 ```
 
+### 🐳 Docker 使用（stdio，免自架伺服器）
+```json
+{
+  "twstockmcpserver": {
+    "command": "docker",
+    "args": [
+      "run",
+      "-i",
+      "--rm",
+      "--pull=always",
+      "-e",
+      "MCP_STDIO=1",
+      "ghcr.io/twjackysu/twsemcpserver:latest"
+    ]
+  }
+}
+```
+
+### 🐳 Docker 使用（HTTP，自架伺服器）
+```bash
+docker run -d -p 8000:8000 -e PORT=8000 ghcr.io/twjackysu/twsemcpserver:latest
+```
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "http://localhost:8000/mcp"
+  }
+}
+```
+
 ### 🔧 本地安裝
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git
