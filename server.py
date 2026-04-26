@@ -53,5 +53,10 @@ def investment_screening(screening_criteria: str = "comprehensive", risk_level: 
 register_all_tools(mcp, api_client)
 
 if __name__ == "__main__":
-    # Run the MCP server
-    mcp.run(transport="http", host="0.0.0.0", port=8000)
+    import os
+    port = int(os.getenv("PORT", "8000"))
+    if os.getenv("MCP_STDIO", "").lower() in ("1", "true"):
+        # docker run -i --rm -e MCP_STDIO=1 ...
+        mcp.run(transport="stdio")
+    else:
+        mcp.run(transport="http", host="0.0.0.0", port=port)
