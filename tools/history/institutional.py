@@ -72,7 +72,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         title = resp.get("title", f"{date} 三大法人買賣超日報")
 
         # Filter rows where any institutional investor has non-zero net
-        active = [row for row in data if _parse_num(row[IDX_TOTAL_NET]) != 0]
+        # Some rows (e.g. bond ETFs) have fewer than 19 columns — skip them
+        active = [row for row in data if len(row) > IDX_TOTAL_NET and _parse_num(row[IDX_TOTAL_NET]) != 0]
 
         # Sort by absolute value of total net descending
         active.sort(key=lambda r: abs(_parse_num(r[IDX_TOTAL_NET])), reverse=True)
@@ -122,8 +123,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not data:
             return f"查無 {date} 的三大法人買賣超資料"
 
-        # Filter by stock code
-        row = next((r for r in data if r[IDX_CODE] == stock_no), None)
+        # Filter by stock code; skip rows with insufficient columns
+        row = next((r for r in data if len(r) > IDX_TOTAL_NET and r[IDX_CODE] == stock_no), None)
         if not row:
             return f"查無上市股票代號 {stock_no} 在 {date} 的三大法人資料"
 
