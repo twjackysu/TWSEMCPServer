@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
 - **TWSE OpenAPI** (`openapi.twse.com.tw`) — 143 tools: 公司治理、ESG、財報、交易、指數、券商
-- **TWSE exchangeReport** (`twse.com.tw/exchangeReport`) — 4 tools: 歷史日K、月均價、估值、融資融券（legacy JSON，非 Swagger）
+- **TWSE Web API** (`twse.com.tw`) — 6 tools: 歷史日K、月均價、估值、融資融券（`/exchangeReport`）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
@@ -48,7 +48,7 @@ tools/
 ├── company/                  # Company tools: basic_info, financials, esg, listing, news
 ├── trading/                  # Trading tools: daily, periodic, valuation, dividend_schedule, etf, market, warrants
 ├── market/                   # Market tools: indices, statistics, foreign
-├── history/                  # TWSE legacy exchangeReport: stock_day, stock_day_avg, bwibbu_all, margin_balance
+├── history/                  # TWSE legacy: stock_day, stock_day_avg, bwibbu_all, margin_balance (exchangeReport); institutional (T86)
 ├── realtime/                 # MIS real-time quotes: stock_info
 ├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
@@ -99,7 +99,7 @@ Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has a
 
 **Test files**:
 - `tests/test_api_schemas.py` — parametrized schema drift detection against TWSE Swagger spec (falls back to `staticFiles/swagger_decoded.json`)
-- `tests/e2e/test_*.py` — per-category E2E tests (esg, company, financials, trading, warrants, other, history, realtime, otc, taifex)
+- `tests/e2e/test_*.py` — per-category E2E tests (esg, company, financials, trading, warrants, other, history, realtime, otc, taifex, institutional)
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
