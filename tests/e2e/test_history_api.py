@@ -12,36 +12,33 @@ FIXED_DATE = "20250103"
 FIXED_STOCK = "2330"  # TSMC
 
 
+@pytest.fixture(scope="class")
+def stock_day_data():
+    return TWSEAPIClient.get_json(
+        "https://www.twse.com.tw/exchangeReport/STOCK_DAY",
+        params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
+    )
+
+
 class TestStockDayAPI:
     """個股歷史日K - STOCK_DAY
     Tool get_stock_history 使用 row[0] 作為日期（需 ROC 格式含 /），
     row[1]~row[8] 作為成交量、金額、開高低收、漲跌、筆數。
     """
 
-    URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
-
-    def _fetch(self):
-        return TWSEAPIClient.get_json(
-            self.URL,
-            params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
-        )
-
-    def test_api_returns_ok_with_data(self):
+    def test_api_returns_ok_with_data(self, stock_day_data):
         """確認 API 可達且回傳資料."""
-        result = self._fetch()
-        assert result.get("stat") == "OK"
-        assert len(result.get("data", [])) > 0
+        assert stock_day_data.get("stat") == "OK"
+        assert len(stock_day_data.get("data", [])) > 0
 
-    def test_date_field_is_roc_format(self):
+    def test_date_field_is_roc_format(self, stock_day_data):
         """tool 用 roc_to_ad(row[0]) 轉換，需確認日期含 /."""
-        result = self._fetch()
-        date_field = result["data"][0][0]
+        date_field = stock_day_data["data"][0][0]
         assert "/" in date_field, f"日期格式異動！實際值: {date_field}"
 
-    def test_price_fields_are_numeric(self):
+    def test_price_fields_are_numeric(self, stock_day_data):
         """tool 用 row[3]~row[6] 作為開高低收，需確認可轉數字."""
-        result = self._fetch()
-        row = result["data"][0]
+        row = stock_day_data["data"][0]
         for idx in [3, 4, 5, 6]:
             val = row[idx].replace(",", "")
             try:
@@ -50,30 +47,28 @@ class TestStockDayAPI:
                 pytest.fail(f"row[{idx}] 無法轉為數字，值為: {row[idx]}")
 
 
+@pytest.fixture(scope="class")
+def bwibbu_all_data():
+    return TWSEAPIClient.get_json(
+        "https://www.twse.com.tw/exchangeReport/BWIBBU_ALL",
+        params={"response": "json", "date": FIXED_DATE},
+    )
+
+
 class TestBwibbuAllAPI:
     """全市場估值 - BWIBBU_ALL
     Tool get_market_valuation_by_date 使用 row[0]~row[4]:
     代號、名稱、本益比、殖利率、股價淨值比。
     """
 
-    URL = "https://www.twse.com.tw/exchangeReport/BWIBBU_ALL"
-
-    def _fetch(self):
-        return TWSEAPIClient.get_json(
-            self.URL,
-            params={"response": "json", "date": FIXED_DATE},
-        )
-
-    def test_api_returns_ok_with_data(self):
+    def test_api_returns_ok_with_data(self, bwibbu_all_data):
         """確認 API 可達且回傳資料."""
-        result = self._fetch()
-        assert result.get("stat") == "OK"
-        assert len(result.get("data", [])) > 0
+        assert bwibbu_all_data.get("stat") == "OK"
+        assert len(bwibbu_all_data.get("data", [])) > 0
 
-    def test_row_has_stock_code_and_valuation_fields(self):
+    def test_row_has_stock_code_and_valuation_fields(self, bwibbu_all_data):
         """tool 用 row[0] 作為代號篩選，row[2]~row[4] 作為估值欄位."""
-        result = self._fetch()
-        first_row = result["data"][0]
+        first_row = bwibbu_all_data["data"][0]
         assert len(first_row) >= 5, f"欄位不足 5 個: {first_row}"
 
 
@@ -83,17 +78,12 @@ class TestMarginBalanceAPI:
     用 row[0] 作為股票代號篩選。
     """
 
-    URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
-
-    def _fetch(self):
-        return TWSEAPIClient.get_json(
-            self.URL,
-            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-        )
-
     def test_api_returns_ok_with_tables(self):
         """確認 API 可達且 tables[1] 含個股資料."""
-        result = self._fetch()
+        result = TWSEAPIClient.get_json(
+            "https://www.twse.com.tw/exchangeReport/MI_MARGN",
+            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
+        )
         assert result.get("stat") == "OK"
         tables = result.get("tables", [])
         assert len(tables) >= 2, "MI_MARGN 應至少含 2 個 table"
@@ -105,16 +95,11 @@ class TestStockDayAvgAPI:
     Tool get_stock_monthly_avg_history 使用 row[0] 作為日期（ROC 格式）。
     """
 
-    URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG"
-
-    def _fetch(self):
-        return TWSEAPIClient.get_json(
-            self.URL,
-            params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
-        )
-
     def test_api_returns_ok_with_data(self):
         """確認 API 可達且回傳資料."""
-        result = self._fetch()
+        result = TWSEAPIClient.get_json(
+            "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG",
+            params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
+        )
         assert result.get("stat") == "OK"
         assert len(result.get("data", [])) > 0

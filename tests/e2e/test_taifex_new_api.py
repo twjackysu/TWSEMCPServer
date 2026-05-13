@@ -1,5 +1,6 @@
 """測試新增的 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在，不驗證動態欄位。"""
 
+import pytest
 import requests
 
 HEADERS = {
@@ -16,16 +17,20 @@ def _fetch(endpoint: str) -> list:
     return resp.json()
 
 
+@pytest.fixture(scope="class")
+def daily_market_report_fut():
+    return _fetch("DailyMarketReportFut")
+
+
 class TestDailyFuturesMarketReportAPI:
     """Tool get_daily_futures_market_report 寫死的欄位：
     Date, Contract, ContractMonth(Week), Open, High, Low, Last, Change, %,
     Volume, SettlementPrice, OpenInterest, BestBid, BestAsk, TradingSession
     """
 
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("DailyMarketReportFut")
-        assert isinstance(data, list) and len(data) > 0
-        record = data[0]
+    def test_hardcoded_fields_exist(self, daily_market_report_fut):
+        assert isinstance(daily_market_report_fut, list) and len(daily_market_report_fut) > 0
+        record = daily_market_report_fut[0]
         for field in [
             "Date", "Contract", "ContractMonth(Week)",
             "Open", "High", "Low", "Last", "Change", "%",
@@ -34,9 +39,13 @@ class TestDailyFuturesMarketReportAPI:
         ]:
             assert field in record, f"缺少欄位: {field}"
 
-    def test_tx_contract_exists(self):
-        data = _fetch("DailyMarketReportFut")
-        assert any(x.get("Contract") == "TX" for x in data)
+    def test_tx_contract_exists(self, daily_market_report_fut):
+        assert any(x.get("Contract") == "TX" for x in daily_market_report_fut)
+
+
+@pytest.fixture(scope="class")
+def daily_market_report_opt():
+    return _fetch("DailyMarketReportOpt")
 
 
 class TestDailyOptionsMarketReportAPI:
@@ -45,10 +54,9 @@ class TestDailyOptionsMarketReportAPI:
     Open, High, Low, Close, Volume, SettlementPrice, OpenInterest, TradingSession
     """
 
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("DailyMarketReportOpt")
-        assert isinstance(data, list) and len(data) > 0
-        record = data[0]
+    def test_hardcoded_fields_exist(self, daily_market_report_opt):
+        assert isinstance(daily_market_report_opt, list) and len(daily_market_report_opt) > 0
+        record = daily_market_report_opt[0]
         for field in [
             "Date", "Contract", "ContractMonth(Week)",
             "StrikePrice", "CallPut",
@@ -57,9 +65,13 @@ class TestDailyOptionsMarketReportAPI:
         ]:
             assert field in record, f"缺少欄位: {field}"
 
-    def test_txo_contract_exists(self):
-        data = _fetch("DailyMarketReportOpt")
-        assert any(x.get("Contract") == "TXO" for x in data)
+    def test_txo_contract_exists(self, daily_market_report_opt):
+        assert any(x.get("Contract") == "TXO" for x in daily_market_report_opt)
+
+
+@pytest.fixture(scope="class")
+def large_traders_oi_futures():
+    return _fetch("OpenInterestOfLargeTradersFutures")
 
 
 class TestLargeTradersOIFuturesAPI:
@@ -68,19 +80,22 @@ class TestLargeTradersOIFuturesAPI:
     Top5Buy, Top5Sell, Top10Buy, Top10Sell, OIOfMarket
     """
 
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("OpenInterestOfLargeTradersFutures")
-        assert isinstance(data, list) and len(data) > 0
-        record = data[0]
+    def test_hardcoded_fields_exist(self, large_traders_oi_futures):
+        assert isinstance(large_traders_oi_futures, list) and len(large_traders_oi_futures) > 0
+        record = large_traders_oi_futures[0]
         for field in [
             "Date", "Contract", "ContractName", "SettlementMonth", "TypeOfTraders",
             "Top5Buy", "Top5Sell", "Top10Buy", "Top10Sell", "OIOfMarket",
         ]:
             assert field in record, f"缺少欄位: {field}"
 
-    def test_tx_contract_exists(self):
-        data = _fetch("OpenInterestOfLargeTradersFutures")
-        assert any(x.get("Contract") == "TX" for x in data)
+    def test_tx_contract_exists(self, large_traders_oi_futures):
+        assert any(x.get("Contract") == "TX" for x in large_traders_oi_futures)
+
+
+@pytest.fixture(scope="class")
+def large_traders_oi_options():
+    return _fetch("OpenInterestOfLargeTradersOptions")
 
 
 class TestLargeTradersOIOptionsAPI:
@@ -89,10 +104,9 @@ class TestLargeTradersOIOptionsAPI:
     Top5Buy, Top5Sell, Top10Buy, Top10Sell, OIOfMarket
     """
 
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("OpenInterestOfLargeTradersOptions")
-        assert isinstance(data, list) and len(data) > 0
-        record = data[0]
+    def test_hardcoded_fields_exist(self, large_traders_oi_options):
+        assert isinstance(large_traders_oi_options, list) and len(large_traders_oi_options) > 0
+        record = large_traders_oi_options[0]
         for field in [
             "Date", "Contract", "ContractName", "CallPut",
             "SettlementMonth", "TypeOfTraders",
@@ -100,30 +114,115 @@ class TestLargeTradersOIOptionsAPI:
         ]:
             assert field in record, f"缺少欄位: {field}"
 
-    def test_txo_contract_exists(self):
-        data = _fetch("OpenInterestOfLargeTradersOptions")
-        assert any(x.get("Contract") == "TXO" for x in data)
+    def test_txo_contract_exists(self, large_traders_oi_options):
+        assert any(x.get("Contract") == "TXO" for x in large_traders_oi_options)
 
 
-class TestInstitutionalGeneralAPI:
-    """Tool get_institutional_general 寫死的欄位：
-    Date, Item,
-    TradingVolume(Long/Short/Net), TradingValue(Long/Short/Net)(Millions),
-    OpenInterest(Long/Short/Net),
-    ContractValueOfOpenInterest(Long/Short/Net)(Millions)
+@pytest.fixture(scope="class")
+def daily_options_delta():
+    return _fetch("DailyOptionsDelta")
+
+
+class TestOptionsDeltaAPI:
+    """Tool get_options_delta 寫死的欄位：
+    Contract, CallPut, ContractMonth(Week), StrikePrice, Delta, ContractSettlementDay
+    """
+
+    def test_hardcoded_fields_exist(self, daily_options_delta):
+        assert isinstance(daily_options_delta, list) and len(daily_options_delta) > 0
+        record = daily_options_delta[0]
+        for field in [
+            "Contract", "CallPut", "ContractMonth(Week)",
+            "StrikePrice", "Delta", "ContractSettlementDay",
+        ]:
+            assert field in record, f"缺少欄位: {field}"
+
+    def test_txo_contract_exists(self, daily_options_delta):
+        assert any(x.get("Contract") == "TXO" for x in daily_options_delta)
+
+
+class TestOptionsOIChangeAPI:
+    """Tool get_options_oi_change 寫死的欄位：
+    Date, OpenInterest, PreviousDay, PreviousDayOpenInterest, Change
     """
 
     def test_hardcoded_fields_exist(self):
-        data = _fetch("MarketDataOfMajorInstitutionalTradersGeneralBytheDate")
+        data = _fetch("va01")
+        assert isinstance(data, list) and len(data) > 0
+        record = data[0]
+        for field in ["Date", "OpenInterest", "PreviousDay", "PreviousDayOpenInterest", "Change"]:
+            assert field in record, f"缺少欄位: {field}"
+
+
+class TestIndexFuturesMarginAPI:
+    """Tool get_index_futures_margin 寫死的欄位：
+    Contract, ClearingMargin, MaintenanceMargin, InitialMargin, Date
+    """
+
+    def test_hardcoded_fields_exist(self):
+        data = _fetch("IndexFuturesAndOptionsMargining")
+        assert isinstance(data, list) and len(data) > 0
+        record = data[0]
+        for field in ["Contract", "ClearingMargin", "MaintenanceMargin", "InitialMargin", "Date"]:
+            assert field in record, f"缺少欄位: {field}"
+
+
+class TestStockFuturesMarginAPI:
+    """Tool get_stock_futures_margin 寫死的欄位：
+    Contract, UnderlyingSecurityCode, ContractName, GroupLevel,
+    ClearingMarginRate, MaintenanceMarginRate, InitialMarginRate, Date
+    """
+
+    def test_hardcoded_fields_exist(self):
+        data = _fetch("SingleStockFuturesMargining")
         assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
-            "Date", "Item",
-            "TradingVolume(Long)", "TradingVolume(Short)", "TradingVolume(Net)",
-            "TradingValue(Long)(Millions)", "TradingValue(Short)(Millions)", "TradingValue(Net)(Millions)",
-            "OpenInterest(Long)", "OpenInterest(Short)", "OpenInterest(Net)",
-            "ContractValueOfOpenInterest(Long)(Millions)",
-            "ContractValueOfOpenInterest(Short)(Millions)",
-            "ContractValueOfOpenInterest(Net)(Millions)",
+            "Contract", "UnderlyingSecurityCode", "ContractName",
+            "GroupLevel", "ClearingMarginRate", "MaintenanceMarginRate",
+            "InitialMarginRate", "Date",
+        ]:
+            assert field in record, f"缺少欄位: {field}"
+
+
+class TestAnnualTradingVolumeAPI:
+    """Tool get_annual_trading_volume 寫死的欄位：
+    YYYY, Contract, ContractName, Volume, NumberOfTradingDays, AvgDailyTradingVolume
+    """
+
+    def test_hardcoded_fields_exist(self):
+        data = _fetch("AnnualTradingVolume")
+        assert isinstance(data, list) and len(data) > 0
+        record = data[0]
+        for field in [
+            "YYYY", "Contract", "ContractName",
+            "Volume", "NumberOfTradingDays", "AvgDailyTradingVolume",
+        ]:
+            assert field in record, f"缺少欄位: {field}"
+
+
+class TestMonthlyTradingStatisticsAPI:
+    """Tool get_monthly_trading_statistics 寫死的欄位：
+    YYYYMM, ContactName, TotalVolume, MonthEndOpenInterest,
+    Brokers-Individual(Buy/Sell), ProprietaryTraders(Buy/Sell),
+    Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Buy/Sell),
+    Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Buy/Sell),
+    Brokers-InstutionalInvestors-SecuritiesDealers(Buy/Sell)
+    """
+
+    def test_hardcoded_fields_exist(self):
+        data = _fetch("MonthlyTradingStatisticsFutures")
+        assert isinstance(data, list) and len(data) > 0
+        record = data[0]
+        for field in [
+            "YYYYMM", "ContactName", "TotalVolume", "MonthEndOpenInterest",
+            "Brokers-Individual(Buy)", "Brokers-Individual(Sell)",
+            "ProprietaryTraders(Buy)", "ProprietaryTraders(Sell)",
+            "Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Buy)",
+            "Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Sell)",
+            "Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Buy)",
+            "Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Sell)",
+            "Brokers-InstutionalInvestors-SecuritiesDealers(Buy)",
+            "Brokers-InstutionalInvestors-SecuritiesDealers(Sell)",
         ]:
             assert field in record, f"缺少欄位: {field}"

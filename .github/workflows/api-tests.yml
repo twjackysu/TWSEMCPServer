@@ -29,7 +29,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    permissions:
+      issues: write
+
     env:
       # API 請求之間的延遲（秒）
       API_REQUEST_DELAY: '1.0'
