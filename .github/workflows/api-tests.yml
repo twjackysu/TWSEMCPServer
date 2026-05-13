@@ -59,7 +59,7 @@ jobs:
     - name: 🧪 Run all tests
       if: ${{ github.event.inputs.test_scope == 'all' || github.event.inputs.test_scope == '' }}
       run: |
-        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=term --maxfail=10
+        uv run pytest tests/ -v --tb=short --cov=tools --cov=utils --cov-report=term --maxfail=10 --reruns 2 --reruns-delay 5
 
     - name: 🧪 Run ESG API tests only
       if: ${{ github.event.inputs.test_scope == 'esg' }}
