@@ -61,12 +61,14 @@ def _build_schema_map(swagger_data: dict) -> Dict[str, List[str]]:
 
 @lru_cache(maxsize=1)
 def _load_swagger_schema_map() -> Dict[str, List[str]]:
+    # Prefer the local curated snapshot — TWSE's live swagger.json often lags
+    # behind actual API changes, causing false positives in schema drift tests.
     try:
+        return _build_schema_map(json.loads(_LOCAL_SWAGGER_PATH.read_text(encoding="utf-8")))
+    except Exception:
         response = requests.get(_SWAGGER_URL, timeout=60, verify=False)
         response.raise_for_status()
         return _build_schema_map(response.json())
-    except Exception:
-        return _build_schema_map(json.loads(_LOCAL_SWAGGER_PATH.read_text(encoding="utf-8")))
 
 API_SCHEMA_MAP: Dict[str, List[str]] = _load_swagger_schema_map()
 
