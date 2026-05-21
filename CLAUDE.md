@@ -20,8 +20,8 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 | Run server (dev) | `uv run fastmcp dev server.py` |
 | Run server (prod) | `uv run fastmcp run server.py` |
 | Run all tests | `uv run pytest` |
-| Run specific test file | `uv run pytest tests/e2e/test_esg_api.py -v` |
-| Run tests by category | `python run_tests.py esg` (also: `company`, `financials`, `trading`, `warrants`, `other`, `history`, `realtime`, `otc`, `taifex`, `api`, `e2e`) |
+| Run specific test file | `uv run pytest tests/e2e/test_history_api.py -v` |
+| Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `e2e`) |
 | Quick test (fail fast) | `python run_tests.py quick` |
 | Tests with coverage | `python run_tests.py cov` (opens HTML report) |
 | Run server directly | `python server.py` (HTTP on port 8000) |
@@ -98,8 +98,9 @@ All configuration in `utils/config.py` reads from environment variables with sen
 Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has an autouse fixture that sleeps between tests to avoid rate limiting.
 
 **Test files**:
-- `tests/test_api_schemas.py` — parametrized schema drift detection against TWSE Swagger spec (falls back to `staticFiles/swagger_decoded.json`)
-- `tests/e2e/test_*.py` — per-category E2E tests (esg, company, financials, trading, warrants, other, history, realtime, otc, taifex, institutional)
+- `tests/test_api_schemas.py` — parametrized tests that verify fields tools **hardcode with `.get()`** still exist in live API responses. Endpoints are defined in `tests/tool_field_dependencies.py`. Only catches breakage that would silently return "N/A" in a tool.
+- `tests/tool_field_dependencies.py` — the source of truth: maps each TWSE OpenAPI endpoint to the list of field names its tool hardcodes. Edit this file when adding or changing hardcoded field access in a tool.
+- `tests/e2e/test_*.py` — per-category E2E tests (history, realtime, otc, taifex, institutional). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport), field assertions live here instead.
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -113,8 +114,10 @@ Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has a
 4. Use `@handle_api_errors()` and `@handle_empty_response()` decorators for standardized error handling
 5. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
 6. Format output with utilities from `utils/formatters.py`
-7. Add E2E tests in the appropriate `tests/e2e/test_*.py` file
-8. Add E2E tests for any hardcoded field names used in the tool
+7. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
+   - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/tool_field_dependencies.py`. The parametrized test in `tests/test_api_schemas.py` will pick it up automatically.
+   - **Non-TWSE-OpenAPI tools** (TAIFEX, OTC/TPEx, MIS, legacy `exchangeReport`): add a `test_hardcoded_fields_exist` method to the relevant `tests/e2e/test_*.py` file.
+   - **No hardcoded fields** (tool uses `format_properties_with_values_multiline` to dump all fields generically): no API field test needed — the tool adapts automatically to schema changes.
 
 Example:
 ```python

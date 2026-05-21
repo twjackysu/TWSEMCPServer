@@ -146,10 +146,6 @@
                 "備註": {
                   "type": "string",
                   "description": "備註"
-                },
-                "  ": {
-                  "type": "string",
-                  "description": " "
                 }
               }
             }
@@ -865,89 +861,109 @@
                   "type": "string",
                   "description": "基金代號"
                 },
-                "基金名稱": {
+                "基金簡稱": {
                   "type": "string",
-                  "description": "基金名稱"
-                },
-                "標的指數|追蹤指數名稱": {
-                  "type": "string",
-                  "description": "標的指數|追蹤指數名稱"
-                },
-                "ETF標的指數是否為客製化或需揭露相關資訊之指數": {
-                  "type": "string",
-                  "description": "ETF標的指數是否為客製化或需揭露相關資訊之指數"
-                },
-                "總機": {
-                  "type": "string",
-                  "description": "總機"
+                  "description": "基金簡稱"
                 },
                 "基金類型": {
                   "type": "string",
                   "description": "基金類型"
                 },
-                "英文名稱": {
+                "基金中文名稱": {
                   "type": "string",
-                  "description": "英文名稱"
+                  "description": "基金中文名稱"
                 },
-                "地址": {
+                "基金英文名稱": {
                   "type": "string",
-                  "description": "地址"
+                  "description": "基金英文名稱"
                 },
-                "董事長": {
+                "標的指數/追蹤指數名稱": {
                   "type": "string",
-                  "description": "董事長"
+                  "description": "標的指數/追蹤指數名稱"
                 },
-                "發言人": {
+                "標的指數是否為客製化或需揭露相關資訊之指數": {
                   "type": "string",
-                  "description": "發言人"
+                  "description": "標的指數是否為客製化或需揭露相關資訊之指數"
                 },
-                "總經理": {
+                "股票及債券投資比例說明": {
                   "type": "string",
-                  "description": "總經理"
+                  "description": "股票及債券投資比例說明"
                 },
-                "代理發言人": {
+                "是否設有績效指標": {
                   "type": "string",
-                  "description": "代理發言人"
+                  "description": "是否設有績效指標"
                 },
-                "投資經理人": {
+                "績效指標中文名稱": {
                   "type": "string",
-                  "description": "投資經理人"
+                  "description": "績效指標中文名稱"
                 },
-                "統一編號": {
+                "績效指標英文名稱": {
                   "type": "string",
-                  "description": "統一編號"
+                  "description": "績效指標英文名稱"
                 },
-                "總代理人": {
+                "是否包含國外成分股": {
                   "type": "string",
-                  "description": "總代理人"
+                  "description": "是否包含國外成分股"
                 },
-                "上市日期": {
+                "基金統一編號": {
                   "type": "string",
-                  "description": "上市日期"
+                  "description": "基金統一編號"
                 },
                 "成立日期": {
                   "type": "string",
                   "description": "成立日期"
                 },
-                "發行單位數|轉換數": {
+                "上市日期": {
                   "type": "string",
-                  "description": "發行單位數|轉換數"
+                  "description": "上市日期"
                 },
-                "過戶機構": {
+                "基金經理人": {
                   "type": "string",
-                  "description": "過戶機構"
+                  "description": "基金經理人"
                 },
-                "過戶電話": {
+                "經理公司總機": {
                   "type": "string",
-                  "description": "過戶電話"
+                  "description": "經理公司總機"
                 },
-                "過戶地址": {
+                "經理公司地址": {
                   "type": "string",
-                  "description": "過戶地址"
+                  "description": "經理公司地址"
                 },
-                "指數股票型基金(ETF)之標的指數是否包含外國成份股": {
+                "經理公司董事長": {
                   "type": "string",
-                  "description": "指數股票型基金(ETF)之標的指數是否包含外國成份股"
+                  "description": "經理公司董事長"
+                },
+                "經理公司發言人": {
+                  "type": "string",
+                  "description": "經理公司發言人"
+                },
+                "經理公司總經理": {
+                  "type": "string",
+                  "description": "經理公司總經理"
+                },
+                "經理公司代理發言人": {
+                  "type": "string",
+                  "description": "經理公司代理發言人"
+                },
+                "總代理人": {
+                  "type": "string",
+                  "description": "總代理人"
+                },
+                "發行單位數/轉換數": {
+                  "type": "string",
+                  "description": "發行單位數/轉換數"
+                },
+                "保管機構": {
+                  "type": "string",
+                  "description": "保管機構"
+                },
+                "保管機構電話": {
+                  "type": "string",
+                  "description": "保管機構電話"
+                },
+                "保管機構地址": {
+                  "type": "string",
+                  "description": "保管機構地址"
                 },
                 "備註": {
                   "type": "string",
@@ -1189,37 +1205,33 @@
                   "type": "string",
                   "description": "非擔任主管職務之全時員工薪資平均數(仟元/人) "
                 },
+                "非擔任主管職務之全時員工薪資平均數變動百分比": {
+                  "type": "string",
+                  "description": "非擔任主管職務之全時員工薪資平均數變動百分比"
+                },
                 "非擔任主管之全時員工薪資中位數(仟元/人) ": {
                   "type": "string",
                   "description": "非擔任主管之全時員工薪資中位數(仟元/人) "
+                },
+                "非擔任主管職務之全時員工薪資中位數變動百分比": {
+                  "type": "string",
+                  "description": "非擔任主管職務之全時員工薪資中位數變動百分比"
                 },
                 "管理職女性主管佔比": {
                   "type": "string",
                   "description": "管理職女性主管佔比"
                 },
-                "職業災害人數及比率-人數": {
+                "新進員工年齡分布": {
                   "type": "string",
-                  "description": "職業災害人數及比率-人數"
+                  "description": "新進員工年齡分布"
                 },
-                "職業災害人數及比率-比率": {
+                "離職員工年齡分布": {
                   "type": "string",
-                  "description": "職業災害人數及比率-比率"
+                  "description": "離職員工年齡分布"
                 },
-                "火災件數": {
-                  "type": "number",
-                  "description": "火災件數"
-                },
-                "火災死傷人數": {
-                  "type": "number",
-                  "description": "火災死傷人數"
-                },
-                "火災死傷人數占員工總人數比率": {
-                  "type": "number",
-                  "description": "火災死傷人數占員工總人數比率"
-                },
-                "因應火災之相關改善措施": {
+                "高齡員工晉用政策及培訓計畫": {
                   "type": "string",
-                  "description": "因應火災之相關改善措施"
+                  "description": "高齡員工晉用政策及培訓計畫"
                 }
               }
             }
@@ -4623,6 +4635,10 @@
             "schema": {
               "type": "object",
               "properties": {
+                "Date": {
+                  "type": "string",
+                  "description": "日期"
+                },
                 "Code": {
                   "type": "string",
                   "description": "證券代號"
@@ -4630,6 +4646,10 @@
                 "Name": {
                   "type": "string",
                   "description": "證券名稱"
+                },
+                "ClosePrice": {
+                  "type": "string",
+                  "description": "收盤價"
                 },
                 "DividendYield": {
                   "type": "string",
@@ -7853,10 +7873,6 @@
             "schema": {
               "type": "object",
               "properties": {
-                "Number": {
-                  "type": "string",
-                  "description": "編號"
-                },
                 "Code": {
                   "type": "string",
                   "description": "證券代號"
@@ -9788,6 +9804,10 @@
                 "權益總計": {
                   "type": "string",
                   "description": "權益總計"
+                },
+                "負債及權益總計": {
+                  "type": "string",
+                  "description": "負債及權益總計"
                 },
                 "待註銷股本股數（單位：股）": {
                   "type": "string",

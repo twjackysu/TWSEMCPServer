@@ -10,13 +10,6 @@ def run_tests(scope="all"):
     """Run tests based on scope."""
     commands = {
         "all": ["pytest", "tests/", "-v", "--tb=short", "--maxfail=10"],
-        "esg": ["pytest", "tests/e2e/test_esg_api.py", "-v"],
-        "company": ["pytest", "tests/e2e/test_company_api.py", "-v"],
-        "financials": ["pytest", "tests/e2e/test_financials_api.py", "-v"],
-        "trading": ["pytest", "tests/e2e/test_trading_api.py", "-v"],
-        "warrants": ["pytest", "tests/e2e/test_warrants_api.py", "-v"],
-        "other": ["pytest", "tests/e2e/test_other_api.py", "-v"],
-        "api": ["pytest", "tests/test_api_client.py", "-v"],
         "history": ["pytest", "tests/e2e/test_history_api.py", "-v"],
         "realtime": ["pytest", "tests/e2e/test_realtime_api.py", "-v"],
         "otc": ["pytest", "tests/e2e/test_otc_api.py", "-v"],

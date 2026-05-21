@@ -20,10 +20,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆上市個股首五日無漲跌幅資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                reference_price = item.get("參考價", "N/A")
-                result += f"- {stock_name} ({stock_code}): 參考價 {reference_price}\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                reference_price = item.get("PriceUnderwritten", "N/A")
+                result += f"- {stock_name} ({stock_code}): 承銷價 {reference_price}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -42,9 +42,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆投資理財節目異常推介個股資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                program_name = item.get("節目名稱", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                program_name = item.get("Number", "N/A")
                 result += f"- {stock_name} ({stock_code}): {program_name}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -64,10 +64,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆上市股票每日當日沖銷交易標的及統計資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                day_trading_volume = item.get("當日沖銷交易量", "N/A")
-                result += f"- {stock_name} ({stock_code}): 當日沖銷交易量 {day_trading_volume}\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                suspension = item.get("Suspension", "N/A")
+                result += f"- {stock_name} ({stock_code}): {suspension}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -86,14 +86,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場暫停先賣後買當日沖銷交易標的預告表資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                suspension_date = item.get("暫停日期", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                suspension_date = item.get("StartDate", "N/A")
                 result += f"- {stock_name} ({stock_code}): 暫停日期 {suspension_date}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
-            
+
             return result
         except Exception as e:
             return MSG_QUERY_FAILED.format(error=str(e))
@@ -105,12 +105,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             data = _client.fetch_data("/exchangeReport/TWTBAU2")
             if not data:
                 return "目前沒有集中市場暫停先賣後買當日沖銷交易歷史查詢資料。"
-            
+
             result = f"共有 {len(data)} 筆集中市場暫停先賣後買當日沖銷交易歷史查詢資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                suspension_date = item.get("暫停日期", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                suspension_date = item.get("StartDate", "N/A")
                 result += f"- {stock_name} ({stock_code}): 暫停日期 {suspension_date}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -130,10 +130,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆每日上市上櫃跨市場成交資訊：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                date = item.get("日期", "N/A")
-                market = item.get("市場別", "N/A")
-                volume = item.get("成交量", "N/A")
-                result += f"- {date} {market}: 成交量 {volume}\n"
+                date = item.get("Date", "N/A")
+                index = item.get("FormosaIndex", "N/A")
+                change = item.get("Change", "N/A")
+                value = item.get("TradeValue", "N/A")
+                result += f"- {date}: 台灣指數 {index} ({change}) 成交金額 {value}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -189,10 +190,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場零股交易行情單資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                price = item.get("成交價", "N/A")
-                volume = item.get("成交量", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                price = item.get("TradePrice", "N/A")
+                volume = item.get("TradeVolume", "N/A")
                 result += f"- {stock_name} ({stock_code}): 成交價 {price}, 成交量 {volume}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -212,10 +213,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場暫停交易證券資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                suspension_reason = item.get("暫停原因", "N/A")
-                result += f"- {stock_name} ({stock_code}): {suspension_reason}\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                halt_date = item.get("TradingHaltDate", "N/A")
+                resumption_date = item.get("TradingResumptionDate", "N/A")
+                result += f"- {stock_name} ({stock_code}): 停止 {halt_date}, 恢復 {resumption_date}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -322,9 +324,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場停資停券預告表資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                restriction_type = item.get("限制類別", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                restriction_type = item.get("Reason", "N/A")
                 result += f"- {stock_name} ({stock_code}): {restriction_type}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -344,10 +346,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場鉅額交易日成交量值統計資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                date = item.get("日期", "N/A")
-                trade_count = item.get("交易筆數", "N/A")
-                total_value = item.get("總成交金額", "N/A")
-                result += f"- {date}: {trade_count} 筆, 總成交金額 {total_value}\n"
+                date = item.get("Date", "N/A")
+                volume = item.get("TradeVolume", "N/A")
+                total_value = item.get("TradeValue", "N/A")
+                result += f"- {date}: 成交量 {volume}, 總成交金額 {total_value}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -366,10 +368,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場鉅額交易月成交量值統計資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                month = item.get("月份", "N/A")
-                trade_count = item.get("交易筆數", "N/A")
-                total_value = item.get("總成交金額", "N/A")
-                result += f"- {month}: {trade_count} 筆, 總成交金額 {total_value}\n"
+                month = item.get("Month", "N/A")
+                volume = item.get("TradeVolume", "N/A")
+                total_value = item.get("TradeValue", "N/A")
+                result += f"- {month}: 成交量 {volume}, 總成交金額 {total_value}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -388,10 +390,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場鉅額交易年成交量值統計資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                year = item.get("年度", "N/A")
-                trade_count = item.get("交易筆數", "N/A")
-                total_value = item.get("總成交金額", "N/A")
-                result += f"- {year}: {trade_count} 筆, 總成交金額 {total_value}\n"
+                year = item.get("Month", "N/A")
+                volume = item.get("TradeVolume", "N/A")
+                total_value = item.get("TradeValue", "N/A")
+                result += f"- {year}: 成交量 {volume}, 總成交金額 {total_value}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
@@ -410,10 +412,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆每日第一上市外國股票成交量值資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                volume = item.get("成交量", "N/A")
-                value = item.get("成交金額", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                volume = item.get("TradeVolume", "N/A")
+                value = item.get("TradeValue", "N/A")
                 result += f"- {stock_name} ({stock_code}): 成交量 {volume}, 成交金額 {value}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -433,9 +435,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆集中市場證券變更交易資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                change_type = item.get("變更類別", "N/A")
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                change_type = item.get("PeriodicCallAuctionTrading", "N/A")
                 result += f"- {stock_name} ({stock_code}): {change_type}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
@@ -484,10 +486,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             
             result = f"共有 {len(data)} 筆上市個股股價升降幅度資料：\n\n"
             for item in data[:DEFAULT_DISPLAY_LIMIT]:  # Limit to first DEFAULT_DISPLAY_LIMIT for readability
-                stock_code = item.get("證券代號", "N/A")
-                stock_name = item.get("證券名稱", "N/A")
-                price_change = item.get("漲跌幅", "N/A")
-                result += f"- {stock_name} ({stock_code}): 漲跌幅 {price_change}%\n"
+                stock_code = item.get("Code", "N/A")
+                stock_name = item.get("Name", "N/A")
+                limit_up = item.get("TodayLimitUp", "N/A")
+                limit_down = item.get("TodayLimitDown", "N/A")
+                result += f"- {stock_name} ({stock_code}): 漲停 {limit_up}, 跌停 {limit_down}\n"
 
             if len(data) > DEFAULT_DISPLAY_LIMIT:
                 result += f"\n... 還有 {len(data) - DEFAULT_DISPLAY_LIMIT} 筆資料"
