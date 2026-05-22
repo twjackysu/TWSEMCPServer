@@ -47,12 +47,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_institutional_investors_summary(date: str) -> str:
+    def get_twse_institutional_investors_summary(date: str, limit: int = 50, offset: int = 0) -> str:
         """查詢台灣上市市場三大法人（外資、投信、自營商）買賣超日報。
-        回傳指定日期所有上市股票的三大法人買賣超彙總，並依買賣超絕對值排序，顯示前 30 名。
+        回傳指定日期所有上市股票的三大法人買賣超彙總，並依買賣超絕對值排序。
 
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260505"（需為交易日）
+            limit: 回傳筆數上限（預設 50）
+            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
 
         Returns:
             上市股票三大法人買賣超日報，含外資、投信、自營商各別及合計買賣超股數
@@ -78,23 +80,31 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         # Sort by absolute value of total net descending
         active.sort(key=lambda r: abs(_parse_num(r[IDX_TOTAL_NET])), reverse=True)
 
-        lines = [f"【{title}】（共 {len(active)} 支有法人進出，顯示前 30 名）\n"]
+        total = len(active)
+        page_data = active[offset:offset + limit]
+        end = min(offset + limit, total)
 
-        for row in active[:30]:
+        header = f"【{title}】（共 {total} 支有法人進出"
+        if total > limit or offset > 0:
+            header += f"，顯示第 {offset + 1}–{end} 名"
+        header += "）\n"
+
+        lines = [header]
+        for row in page_data:
             code = row[IDX_CODE]
             name = row[IDX_NAME]
             fk_net = _fmt(row[IDX_FK_NET])
             it_net = _fmt(row[IDX_IT_NET])
             dl_net = _fmt(row[IDX_DL_NET])
-            total = _fmt(row[IDX_TOTAL_NET])
-
+            total_net = _fmt(row[IDX_TOTAL_NET])
             lines.append(
                 f"{code} {name} | 外資: {fk_net} | 投信: {it_net} | "
-                f"自營: {dl_net} | 合計: {total}"
+                f"自營: {dl_net} | 合計: {total_net}"
             )
 
-        if len(active) > 30:
-            lines.append(f"\n...還有 {len(active) - 30} 筆資料未顯示")
+        remaining = total - offset - limit
+        if remaining > 0:
+            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
 
         return "\n".join(lines)
 

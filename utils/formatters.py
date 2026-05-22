@@ -113,48 +113,49 @@ def format_meaningful_fields_only(item: TWSEDataItem, exclude_fields: Union[str,
 
 
 def format_list_response(
-    data: List[TWSEDataItem], 
+    data: List[TWSEDataItem],
     data_type: str,
     formatter: DataFormatter | None = None,
-    limit: int = DEFAULT_DISPLAY_LIMIT
+    limit: int = 50,
+    offset: int = 0,
 ) -> str:
     """
     Format a list of records with standard header and pagination.
-    
+
     Args:
-        data: List of data records
+        data: List of data records (already filtered if applicable)
         data_type: Description of data type for header
         formatter: Optional custom formatter function for each item
-        limit: Maximum number of items to display
-        
+        limit: Maximum number of items to display (default 50)
+        offset: Number of records to skip from the start (default 0)
+
     Returns:
         Formatted string with header, items, and pagination info
-        
-    Example:
-        >>> format_list_response(
-        ...     data=brokers,
-        ...     data_type="券商資料",
-        ...     formatter=lambda x: f"- {x['name']} ({x['code']})"
-        ... )
     """
     if not data:
         return ""
-    
-    result = MSG_TOTAL_RECORDS.format(count=len(data), data_type=data_type) + "\n\n"
-    
-    # Use default formatter if none provided
+
+    total = len(data)
+    page_data = data[offset:offset + limit]
+    end = min(offset + limit, total)
+
+    header = MSG_TOTAL_RECORDS.format(count=total, data_type=data_type)
+    if total > limit or offset > 0:
+        header += f"（顯示第 {offset + 1}–{end} 筆）"
+    header += "\n\n"
+    result = header
+
     if formatter is None:
         def formatter(item):
             return f"- {format_properties_with_values_multiline(item)}\n"
-    
-    # Format each item up to the limit
-    for item in data[:limit]:
+
+    for item in page_data:
         result += formatter(item)
-    
-    # Add pagination info if there are more records
-    if len(data) > limit:
-        result += MSG_MORE_RECORDS.format(count=len(data) - limit)
-    
+
+    remaining = total - offset - limit
+    if remaining > 0:
+        result += f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
+
     return result
 
 

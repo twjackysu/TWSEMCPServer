@@ -56,7 +56,8 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     "/opendata/OpenData_BRK01": ["女性員工人數", "總人數", "男性員工人數", "證券商代號"],
     "/opendata/OpenData_BRK02": ["地址", "電話", "證券商代號", "證券商名稱"],
     "/brokerService/secRegData": ["BrokerageBusinessStartingDate", "Name", "SecuritiesFirmCode", "WealthManagementBusinessStartingDate"],
-    "/brokerService/brokerList": ["Code"],
+    "/brokerService/brokerList": ["Address", "Code", "EstablishmentDate", "Name", "Telephone"],
+    "/opendata/t187ap18": ["券商(證券IB)簡稱", "設立日期", "證券代號"],
 
     # --- company/basic_info.py ---
     "/opendata/t187ap08_L": ["全體監察人不足股數", "全體董事不足股數", "公司代號", "公司名稱"],
