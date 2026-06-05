@@ -16,7 +16,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
-    @handle_api_errors(data_type="券商業務別人員數")
+    @handle_api_errors()
     def get_broker_service_personnel(limit: int = 50, offset: int = 0) -> str:
         """查詢券商業務別人員數。
 
@@ -38,7 +38,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "券商業務別人員數資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="券商每月月計表")
+    @handle_api_errors()
     def get_broker_monthly_statements(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢各券商每月月計表。
 
@@ -65,7 +65,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "券商每月月計表資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="券商收支概況表")
+    @handle_api_errors()
     def get_broker_income_expenditure(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢各券商收支概況表資料。
 
@@ -92,7 +92,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "券商收支概況表資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="證券商基本")
+    @handle_api_errors()
     def get_broker_basic_info(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢證券商基本資料。
 
@@ -112,7 +112,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "證券商基本資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="電子式交易統計")
+    @handle_api_errors()
     def get_broker_electronic_trading_statistics(limit: int = 50, offset: int = 0) -> str:
         """查詢電子式交易統計資訊。
 
@@ -134,7 +134,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "電子式交易統計資訊", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="證券商營業員男女人數統計")
+    @handle_api_errors()
     def get_broker_gender_statistics(limit: int = 50, offset: int = 0) -> str:
         """查詢證券商營業員男女人數統計資料。
 
@@ -156,7 +156,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "證券商營業員男女人數統計資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="證券商分公司基本")
+    @handle_api_errors()
     def get_broker_branch_info(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢證券商分公司基本資料。
 
@@ -182,7 +182,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "證券商分公司基本資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="開辦定期定額業務證券商名單")
+    @handle_api_errors()
     def get_brokers_offering_regular_investment(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢開辦定期定額業務證券商名單。
 
@@ -208,7 +208,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "開辦定期定額業務證券商", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="證券商總公司基本")
+    @handle_api_errors()
     def get_broker_headquarters_info(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢證券商總公司基本資料。
 

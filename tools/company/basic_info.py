@@ -61,7 +61,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
-    @handle_api_errors(data_type="董監事持股不足法定成數")
+    @handle_api_errors()
     def get_company_board_insufficient_shares(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司董事、監察人持股不足法定成數彙總表。
 
@@ -131,7 +131,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司獨立董監事兼任情形")
+    @handle_api_errors()
     def get_companies_with_independent_directors(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司獨立董監事兼任情形彙總表。
 
@@ -222,7 +222,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="103年度CSR報告書公司名單")
+    @handle_api_errors()
     def get_companies_with_csr_reports_103(limit: int = 50, offset: int = 0) -> str:
         """查詢民國103年應編製及申報企業社會責任報告書之公司。
 
@@ -261,7 +261,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場公布處置股票")
+    @handle_api_errors()
     def get_market_disposal_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場公布處置股票。
 
@@ -308,7 +308,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司股東會公告")
+    @handle_api_errors()
     def get_company_shareholder_meeting_announcements(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司股東會公告-召集股東常(臨時)會公告資料彙總表(95年度起適用)。
 
@@ -368,7 +368,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司經營權異動")
+    @handle_api_errors()
     def get_companies_with_ownership_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動公司。
 
@@ -397,7 +397,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市公司經營權異動資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司股東會日期地點電子投票")
+    @handle_api_errors()
     def get_company_shareholder_meeting_dates(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司召開股東常(臨時)會日期、地點及採用電子投票情形等資料彙總表。
 
@@ -434,7 +434,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(filtered, "上市公司股東會日期地點電子投票資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司營業範圍重大變更")
+    @handle_api_errors()
     def get_companies_with_business_scope_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-營業範圍重大變更公司。
 
@@ -468,7 +468,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(valid_data, "上市公司營業範圍重大變更資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="經營權異動且營業範圍重大變更停止買賣公司")
+    @handle_api_errors()
     def get_companies_ownership_changes_business_scope(limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。
 
@@ -489,7 +489,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "經營權異動且營業範圍重大變更停止買賣公司資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="經營權異動且營業範圍重大變更列為變更交易公司")
+    @handle_api_errors()
     def get_companies_ownership_changes_business_scope_trading(limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。
 
@@ -519,7 +519,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司董事長兼任總經理")
+    @handle_api_errors()
     def get_company_ceo_dual_role(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司董事長是否兼任總經理。
 
@@ -562,7 +562,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return MSG_QUERY_FAILED.format(error=str(e))
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司採累積投票制選任董監事")
+    @handle_api_errors()
     def get_companies_cumulative_voting(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表。
 
@@ -591,7 +591,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市公司採累積投票制選任董監事資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市公司股東行使提案權")
+    @handle_api_errors()
     def get_company_shareholder_proposal_exercise(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司股東行使提案權情形彙總表。
 

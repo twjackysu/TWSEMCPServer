@@ -15,7 +15,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
-    @handle_api_errors(data_type="外國公司申請第一上市")
+    @handle_api_errors()
     def get_foreign_companies_applying_for_listing(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢外國公司向證交所申請第一上市之公司。
 
@@ -42,7 +42,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "外國公司申請第一上市資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="最近上市公司")
+    @handle_api_errors()
     def get_recently_listed_companies(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢最近上市公司。
 
@@ -67,7 +67,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "最近上市公司資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="終止上市公司")
+    @handle_api_errors()
     def get_suspended_listed_companies(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢終止上市公司。
 
@@ -92,7 +92,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "終止上市公司資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="申請上市之本國公司")
+    @handle_api_errors()
     def get_local_companies_applying_for_listing(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢申請上市之本國公司。
 

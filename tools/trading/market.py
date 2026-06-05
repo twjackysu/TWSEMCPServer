@@ -15,7 +15,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
-    @handle_api_errors(data_type="上市個股首五日無漲跌幅")
+    @handle_api_errors()
     def get_stocks_no_price_change_first_five_days(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市個股首五日無漲跌幅。
 
@@ -40,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市個股首五日無漲跌幅資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="投資理財節目異常推介個股")
+    @handle_api_errors()
     def get_financial_program_abnormal_recommendations(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢投資理財節目異常推介個股。
 
@@ -65,7 +65,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "投資理財節目異常推介個股資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市股票每日當日沖銷交易標的")
+    @handle_api_errors()
     def get_daily_day_trading_targets(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市股票每日當日沖銷交易標的及統計。
 
@@ -90,7 +90,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市股票每日當日沖銷交易標的資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場暫停先賣後買當日沖銷交易標的預告表")
+    @handle_api_errors()
     def get_suspended_day_trading_announcement(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場暫停先賣後買當日沖銷交易標的預告表。
 
@@ -115,7 +115,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場暫停先賣後買當日沖銷交易標的預告表資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場暫停先賣後買當日沖銷交易歷史")
+    @handle_api_errors()
     def get_suspended_day_trading_history(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場暫停先賣後買當日沖銷交易歷史查詢。
 
@@ -140,7 +140,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場暫停先賣後買當日沖銷交易歷史資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="每日上市上櫃跨市場成交資訊")
+    @handle_api_errors()
     def get_cross_market_trading_info(limit: int = 50, offset: int = 0) -> str:
         """查詢每日上市上櫃跨市場成交資訊。
 
@@ -162,7 +162,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "每日上市上櫃跨市場成交資訊", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場每日成交量前二十名證券")
+    @handle_api_errors()
     def get_top_20_volume_stocks(name: str = "", limit: int = 20, offset: int = 0) -> str:
         """查詢集中市場每日成交量前二十名證券。
 
@@ -216,7 +216,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return result.strip()
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場零股交易行情單")
+    @handle_api_errors()
     def get_odd_lot_trading_quotes(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場零股交易行情單。
 
@@ -242,7 +242,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場零股交易行情單資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場暫停交易證券")
+    @handle_api_errors()
     def get_suspended_trading_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場暫停交易證券。
 
@@ -268,7 +268,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場暫停交易證券資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場盤後定價交易")
+    @handle_api_errors()
     def get_after_hours_trading(code: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場盤後定價交易。
 
@@ -319,7 +319,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(traded_data, "集中市場盤後定價交易資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場停資停券預告表")
+    @handle_api_errors()
     def get_margin_loan_restrictions_announcement(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場停資停券預告表。
 
@@ -344,7 +344,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場停資停券預告表資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場鉅額交易日成交量值統計")
+    @handle_api_errors()
     def get_block_trades_daily(limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場鉅額交易日成交量值統計。
 
@@ -365,7 +365,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場鉅額交易日成交量值統計資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場鉅額交易月成交量值統計")
+    @handle_api_errors()
     def get_block_trades_monthly(limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場鉅額交易月成交量值統計。
 
@@ -386,7 +386,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場鉅額交易月成交量值統計資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場鉅額交易年成交量值統計")
+    @handle_api_errors()
     def get_block_trades_yearly(limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場鉅額交易年成交量值統計。
 
@@ -407,7 +407,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場鉅額交易年成交量值統計資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="每日第一上市外國股票成交量值")
+    @handle_api_errors()
     def get_first_listed_foreign_stocks_daily(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢每日第一上市外國股票成交量值。
 
@@ -433,7 +433,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "每日第一上市外國股票成交量值資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場證券變更交易")
+    @handle_api_errors()
     def get_securities_trading_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場證券變更交易。
 
@@ -458,7 +458,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場證券變更交易資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市個股日本益比殖利率及股價淨值比")
+    @handle_api_errors()
     def get_valuation_ratios_by_date(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市個股日本益比、殖利率及股價淨值比（依日期查詢）。
 
@@ -491,7 +491,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市個股日本益比殖利率及股價淨值比資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市個股股價升降幅度")
+    @handle_api_errors()
     def get_stock_price_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市個股股價升降幅度。
 
@@ -517,7 +517,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市個股股價升降幅度資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場漲跌證券數統計表")
+    @handle_api_errors()
     def get_market_gain_loss_statistics() -> str:
         """查詢集中市場漲跌證券數統計表。
 
@@ -547,7 +547,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return result.strip()
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場公布注意累計次數異常資訊")
+    @handle_api_errors()
     def get_abnormal_accumulated_notice_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場公布注意累計次數異常資訊。
 
@@ -576,7 +576,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(valid_data, "集中市場公布注意累計次數異常資訊", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場當日公布注意股票")
+    @handle_api_errors()
     def get_today_notice_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場當日公布注意股票。
 
@@ -615,7 +615,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(valid_data, "集中市場當日公布注意股票資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場每日市場成交資訊")
+    @handle_api_errors()
     def get_daily_market_trading_info(limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場每日市場成交資訊。
 
@@ -639,7 +639,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場每日市場成交資訊", formatter, limit=limit, offset=offset)
 
     @mcp.tool
-    @handle_api_errors(data_type="上市上櫃股票當日可借券賣出股數")
+    @handle_api_errors()
     def get_daily_securities_lending_volume(limit: int = 50, offset: int = 0) -> str:
         """查詢上市上櫃股票當日可借券賣出股數。
 
