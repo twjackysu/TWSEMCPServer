@@ -8,7 +8,6 @@ from utils import (
     has_meaningful_data,
     format_meaningful_fields_only,
     MSG_NO_DATA,
-    MSG_QUERY_FAILED,
     handle_api_errors,
     format_list_response,
 )
@@ -113,22 +112,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_daily_insider_trades_untransferred(code: str) -> str:
         """根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股未轉讓日報表。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap13_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap13_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_sec_regulatory_penalties(code: str) -> str:
         """根據股票代號查詢上市公司金管會證券期貨局裁罰案件專區。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap22_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap22_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     @handle_api_errors()
@@ -177,49 +172,39 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return result
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_director_compensation(code: str) -> str:
         """根據股票代號查詢上市公司董事酬金相關資訊。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap29_A_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap29_A_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_supervisor_compensation(code: str) -> str:
         """根據股票代號查詢上市公司監察人酬金相關資訊。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap29_B_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap29_B_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_consolidated_director_compensation(code: str) -> str:
         """根據股票代號查詢上市公司合併報表董事酬金相關資訊。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap29_C_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap29_C_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_consolidated_supervisor_compensation(code: str) -> str:
         """根據股票代號查詢上市公司合併報表監察人酬金相關資訊。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap29_D_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap29_D_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_information_disclosure_violations(code: str) -> str:
         """根據股票代號查詢上市公司違反資訊申報、重大訊息及說明記者會規定專區。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap23_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap23_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     @handle_api_errors()
@@ -252,13 +237,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(valid, "103年度需編製CSR報告書公司", formatter, limit=limit, offset=offset)
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_public_company_profile(code: str) -> str:
         """根據股票代號查詢公開發行公司基本資料。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap03_P", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap03_P", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     @handle_api_errors()
@@ -287,25 +270,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "集中市場公布處置股票", formatter, limit=limit, offset=offset)
 
     @mcp.tool
+    @handle_api_errors()
     def get_company_board_insufficient_shares_consecutive() -> str:
         """查詢上市公司董事、監察人持股不足法定成數連續達3個月以上彙總表。"""
-        try:
-            data = _client.fetch_data("/opendata/t187ap10_L")
-            if not data:
-                return MSG_NO_DATA.format(data_type="")
+        data = _client.fetch_data("/opendata/t187ap10_L")
+        if not data:
+            return MSG_NO_DATA.format(data_type="")
 
-            result = "董監事持股不足法定成數連續達 3 個月以上的公司：\n\n"
-            for item in data:
-                for month_field in ["連續不足達3個月", "連續不足達4個月", "連續不足達5個月",
-                                    "連續不足達6個月", "連續不足達7個月", "連續不足達8個月",
-                                    "連續不足達9個月", "連續不足達10個月", "連續不足達11個月",
-                                    "連續不足達12個月", "連續不足逾1年以上"]:
-                    codes = item.get(month_field, "")
-                    if codes and codes.strip():
-                        result += f"{month_field}: {codes}\n"
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        result = "董監事持股不足法定成數連續達 3 個月以上的公司：\n\n"
+        for item in data:
+            for month_field in ["連續不足達3個月", "連續不足達4個月", "連續不足達5個月",
+                                "連續不足達6個月", "連續不足達7個月", "連續不足達8個月",
+                                "連續不足達9個月", "連續不足達10個月", "連續不足達11個月",
+                                "連續不足達12個月", "連續不足逾1年以上"]:
+                codes = item.get(month_field, "")
+                if codes and codes.strip():
+                    result += f"{month_field}: {codes}\n"
+        return result
 
     @mcp.tool
     @handle_api_errors()
@@ -346,26 +327,24 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(filtered, "上市公司股東會公告資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_shareholder_meeting_announcements_by_code(code: str) -> str:
         """根據股票代號查詢上市公司股東會公告-召集股東常(臨時)會公告資料彙總表。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap38_L", code)
-            if not data:
-                return f"查無股票代碼 {code} 的股東會公告資料。"
+        data = _client.fetch_company_data("/opendata/t187ap38_L", code)
+        if not data:
+            return f"查無股票代碼 {code} 的股東會公告資料。"
 
-            if not has_meaningful_data(data, [
-                "公司代號", "公司名稱", "股東常(臨時)會日期-日期", "股東常(臨時)會日期-常或臨時"
-            ]):
-                return f"股票代碼 {code} 的股東會公告資料無效或不完整。"
+        if not has_meaningful_data(data, [
+            "公司代號", "公司名稱", "股東常(臨時)會日期-日期", "股東常(臨時)會日期-常或臨時"
+        ]):
+            return f"股票代碼 {code} 的股東會公告資料無效或不完整。"
 
-            company_name = data.get("公司名稱", "N/A")
-            company_code = data.get("公司代號", code)
-            result = f"{company_name} ({company_code}) 股東會公告資訊：\n\n"
-            meaningful_fields = format_meaningful_fields_only(data, ["公司代號", "公司名稱", "出表日期"])
-            result += meaningful_fields if meaningful_fields else "無其他詳細資訊。"
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        company_name = data.get("公司名稱", "N/A")
+        company_code = data.get("公司代號", code)
+        result = f"{company_name} ({company_code}) 股東會公告資訊：\n\n"
+        meaningful_fields = format_meaningful_fields_only(data, ["公司代號", "公司名稱", "出表日期"])
+        result += meaningful_fields if meaningful_fields else "無其他詳細資訊。"
+        return result
 
     @mcp.tool
     @handle_api_errors()
@@ -510,13 +489,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "經營權異動且營業範圍重大變更列為變更交易公司資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
+    @handle_api_errors(use_code_param=True)
     def get_company_governance_regulations(code: str) -> str:
         """根據股票代號查詢上市公司公司治理之相關規程規則。"""
-        try:
-            data = _client.fetch_company_data("/opendata/t187ap32_L", code)
-            return format_properties_with_values_multiline(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_company_data("/opendata/t187ap32_L", code)
+        return format_properties_with_values_multiline(data) if data else ""
 
     @mcp.tool
     @handle_api_errors()
@@ -544,22 +521,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return format_list_response(data, "上市公司董事長兼任總經理資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
+    @handle_api_errors()
     def get_company_board_pledged_shares() -> str:
         """查詢上市公司董事、監察人質權設定占董事及監察人實際持有股數彙總表。"""
-        try:
-            data = _client.fetch_data("/opendata/t187ap09_L")
-            if not data:
-                return MSG_NO_DATA.format(data_type="")
+        data = _client.fetch_data("/opendata/t187ap09_L")
+        if not data:
+            return MSG_NO_DATA.format(data_type="")
 
-            result = "董監事質權設定占實際持有股數資料：\n\n"
-            for item in data:
-                percentage_range = item.get("百分比", "N/A")
-                companies_text = item.get("公司名稱", "")
-                if companies_text:
-                    result += f"質權比例 {percentage_range}%：\n{companies_text}\n\n"
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        result = "董監事質權設定占實際持有股數資料：\n\n"
+        for item in data:
+            percentage_range = item.get("百分比", "N/A")
+            companies_text = item.get("公司名稱", "")
+            if companies_text:
+                result += f"質權比例 {percentage_range}%：\n{companies_text}\n\n"
+        return result
 
     @mcp.tool
     @handle_api_errors()
