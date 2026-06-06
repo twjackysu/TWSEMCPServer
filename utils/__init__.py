@@ -21,7 +21,7 @@ from .formatters import (
     format_list_response,
     create_simple_list_formatter,
 )
-from .tool_factory import create_company_tool
+from .tool_factory import create_company_tool, create_list_tool
 from .date_helper import roc_to_ad, ad_to_roc
 
 __all__ = [
@@ -46,6 +46,7 @@ __all__ = [
     "format_list_response",
     "create_simple_list_formatter",
     "create_company_tool",
+    "create_list_tool",
     "roc_to_ad",
     "ad_to_roc",
 ]

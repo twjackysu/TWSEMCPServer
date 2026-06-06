@@ -7,159 +7,145 @@ from utils import (
     MSG_NO_DATA,
     handle_api_errors,
     format_list_response,
+    create_list_tool,
 )
+
+
+def _doc(summary: str, has_name: bool, default_limit: int = 50) -> str:
+    """Build a tool docstring in the repo's standard shape."""
+    lines = [summary, "", "        Args:"]
+    if has_name:
+        lines.append("            name: 股票名稱關鍵字（選填）")
+    lines.append(f"            limit: 回傳筆數上限（預設 {default_limit}）")
+    lines.append("            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）")
+    return "\n".join(lines)
+
+
+# Simple list tools that follow: fetch → optional name filter → paginate.
+# Tuple: (endpoint, name, summary, label, empty_data_type, filter_field, formatter)
+SIMPLE_LIST_TOOLS = [
+    (
+        "/exchangeReport/TWT88U", "get_stocks_no_price_change_first_five_days",
+        "查詢上市個股首五日無漲跌幅。", "上市個股首五日無漲跌幅資料",
+        "上市個股首五日無漲跌幅", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 承銷價 {i.get('PriceUnderwritten', 'N/A')}\n",
+    ),
+    (
+        "/Announcement/BFZFZU_T", "get_financial_program_abnormal_recommendations",
+        "查詢投資理財節目異常推介個股。", "投資理財節目異常推介個股資料",
+        "投資理財節目異常推介個股", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Number', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWTB4U", "get_daily_day_trading_targets",
+        "查詢上市股票每日當日沖銷交易標的及統計。", "上市股票每日當日沖銷交易標的資料",
+        "上市股票每日當日沖銷交易標的", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Suspension', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWTBAU1", "get_suspended_day_trading_announcement",
+        "查詢集中市場暫停先賣後買當日沖銷交易標的預告表。", "集中市場暫停先賣後買當日沖銷交易標的預告表資料",
+        "集中市場暫停先賣後買當日沖銷交易標的預告表", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWTBAU2", "get_suspended_day_trading_history",
+        "查詢集中市場暫停先賣後買當日沖銷交易歷史查詢。", "集中市場暫停先賣後買當日沖銷交易歷史資料",
+        "集中市場暫停先賣後買當日沖銷交易歷史", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/MI_INDEX4", "get_cross_market_trading_info",
+        "查詢每日上市上櫃跨市場成交資訊。", "每日上市上櫃跨市場成交資訊",
+        "每日上市上櫃跨市場成交資訊", None,
+        lambda i: f"- {i.get('Date', 'N/A')}: 台灣指數 {i.get('FormosaIndex', 'N/A')} ({i.get('Change', 'N/A')}) 成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWT53U", "get_odd_lot_trading_quotes",
+        "查詢集中市場零股交易行情單。", "集中市場零股交易行情單資料",
+        "集中市場零股交易行情單", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交價 {i.get('TradePrice', 'N/A')}, 成交量 {i.get('TradeVolume', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWTAWU", "get_suspended_trading_stocks",
+        "查詢集中市場暫停交易證券。", "集中市場暫停交易證券資料",
+        "集中市場暫停交易證券", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 停止 {i.get('TradingHaltDate', 'N/A')}, 恢復 {i.get('TradingResumptionDate', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/BFI84U", "get_margin_loan_restrictions_announcement",
+        "查詢集中市場停資停券預告表。", "集中市場停資停券預告表資料",
+        "集中市場停資停券預告表", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Reason', 'N/A')}\n",
+    ),
+    (
+        "/block/BFIAUU_d", "get_block_trades_daily",
+        "查詢集中市場鉅額交易日成交量值統計。", "集中市場鉅額交易日成交量值統計資料",
+        "集中市場鉅額交易日成交量值統計", None,
+        lambda i: f"- {i.get('Date', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ),
+    (
+        "/block/BFIAUU_m", "get_block_trades_monthly",
+        "查詢集中市場鉅額交易月成交量值統計。", "集中市場鉅額交易月成交量值統計資料",
+        "集中市場鉅額交易月成交量值統計", None,
+        lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ),
+    (
+        "/block/BFIAUU_y", "get_block_trades_yearly",
+        "查詢集中市場鉅額交易年成交量值統計。", "集中市場鉅額交易年成交量值統計資料",
+        "集中市場鉅額交易年成交量值統計", None,
+        lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/STOCK_FIRST", "get_first_listed_foreign_stocks_daily",
+        "查詢每日第一上市外國股票成交量值。", "每日第一上市外國股票成交量值資料",
+        "每日第一上市外國股票成交量值", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交量 {i.get('TradeVolume', 'N/A')}, 成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/TWT85U", "get_securities_trading_changes",
+        "查詢集中市場證券變更交易。", "集中市場證券變更交易資料",
+        "集中市場證券變更交易", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('PeriodicCallAuctionTrading', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/BWIBBU_d", "get_valuation_ratios_by_date",
+        "查詢上市個股日本益比、殖利率及股價淨值比（依日期查詢）。", "上市個股日本益比殖利率及股價淨值比資料",
+        "上市個股日本益比殖利率及股價淨值比", "Name",
+        lambda i: (
+            f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')})\n"
+            f"  本益比: {i.get('PEratio', 'N/A')} | 殖利率: {i.get('DividendYield', 'N/A')}% (股利年度: {i.get('DividendYear', 'N/A')})\n"
+            f"  股價淨值比: {i.get('PBratio', 'N/A')} | 財報季度: {i.get('FiscalYearQuarter', 'N/A')}\n\n"
+        ),
+    ),
+    (
+        "/exchangeReport/TWT84U", "get_stock_price_changes",
+        "查詢上市個股股價升降幅度。", "上市個股股價升降幅度資料",
+        "上市個股股價升降幅度", "Name",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 漲停 {i.get('TodayLimitUp', 'N/A')}, 跌停 {i.get('TodayLimitDown', 'N/A')}\n",
+    ),
+    (
+        "/exchangeReport/FMTQIK", "get_daily_market_trading_info",
+        "查詢集中市場每日市場成交資訊。", "集中市場每日市場成交資訊",
+        "集中市場每日市場成交資訊", None,
+        lambda i: f"- {i.get('Date', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 成交金額 {i.get('TradeValue', 'N/A')}, 成交筆數 {i.get('Transaction', 'N/A')}, 加權指數 {i.get('TAIEX', 'N/A')}, 漲跌 {i.get('Change', 'N/A')}\n",
+    ),
+]
+
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market trading tools with the MCP instance."""
 
     _client = client or TWSEAPIClient.get_instance()
 
-    @mcp.tool
-    @handle_api_errors()
-    def get_stocks_no_price_change_first_five_days(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市個股首五日無漲跌幅。
+    for endpoint, name, summary, label, empty_type, filter_field, formatter in SIMPLE_LIST_TOOLS:
+        create_list_tool(
+            mcp, endpoint, name,
+            _doc(summary, has_name=filter_field is not None),
+            label, empty_type, formatter, filter_field=filter_field, client=client,
+        )
 
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWT88U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市個股首五日無漲跌幅")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            reference_price = item.get("PriceUnderwritten", "N/A")
-            return f"- {stock_name} ({stock_code}): 承銷價 {reference_price}\n"
-
-        return format_list_response(data, "上市個股首五日無漲跌幅資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_financial_program_abnormal_recommendations(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢投資理財節目異常推介個股。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/Announcement/BFZFZU_T")
-        if not data:
-            return MSG_NO_DATA.format(data_type="投資理財節目異常推介個股")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            program_name = item.get("Number", "N/A")
-            return f"- {stock_name} ({stock_code}): {program_name}\n"
-
-        return format_list_response(data, "投資理財節目異常推介個股資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_daily_day_trading_targets(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市股票每日當日沖銷交易標的及統計。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWTB4U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市股票每日當日沖銷交易標的")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            suspension = item.get("Suspension", "N/A")
-            return f"- {stock_name} ({stock_code}): {suspension}\n"
-
-        return format_list_response(data, "上市股票每日當日沖銷交易標的資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_suspended_day_trading_announcement(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場暫停先賣後買當日沖銷交易標的預告表。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWTBAU1")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場暫停先賣後買當日沖銷交易標的預告表")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            suspension_date = item.get("StartDate", "N/A")
-            return f"- {stock_name} ({stock_code}): 暫停日期 {suspension_date}\n"
-
-        return format_list_response(data, "集中市場暫停先賣後買當日沖銷交易標的預告表資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_suspended_day_trading_history(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場暫停先賣後買當日沖銷交易歷史查詢。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWTBAU2")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場暫停先賣後買當日沖銷交易歷史")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            suspension_date = item.get("StartDate", "N/A")
-            return f"- {stock_name} ({stock_code}): 暫停日期 {suspension_date}\n"
-
-        return format_list_response(data, "集中市場暫停先賣後買當日沖銷交易歷史資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_cross_market_trading_info(limit: int = 50, offset: int = 0) -> str:
-        """查詢每日上市上櫃跨市場成交資訊。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/MI_INDEX4")
-        if not data:
-            return MSG_NO_DATA.format(data_type="每日上市上櫃跨市場成交資訊")
-
-        def formatter(item):
-            date = item.get("Date", "N/A")
-            index = item.get("FormosaIndex", "N/A")
-            change = item.get("Change", "N/A")
-            value = item.get("TradeValue", "N/A")
-            return f"- {date}: 台灣指數 {index} ({change}) 成交金額 {value}\n"
-
-        return format_list_response(data, "每日上市上櫃跨市場成交資訊", formatter, limit=limit, offset=offset)
+    # --- Tools with custom headers, branching, or multi-section output ---
 
     @mcp.tool
     @handle_api_errors()
@@ -217,58 +203,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_odd_lot_trading_quotes(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場零股交易行情單。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWT53U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場零股交易行情單")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            price = item.get("TradePrice", "N/A")
-            volume = item.get("TradeVolume", "N/A")
-            return f"- {stock_name} ({stock_code}): 成交價 {price}, 成交量 {volume}\n"
-
-        return format_list_response(data, "集中市場零股交易行情單資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_suspended_trading_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場暫停交易證券。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWTAWU")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場暫停交易證券")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            halt_date = item.get("TradingHaltDate", "N/A")
-            resumption_date = item.get("TradingResumptionDate", "N/A")
-            return f"- {stock_name} ({stock_code}): 停止 {halt_date}, 恢復 {resumption_date}\n"
-
-        return format_list_response(data, "集中市場暫停交易證券資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
     def get_after_hours_trading(code: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場盤後定價交易。
 
@@ -317,204 +251,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"- {stock_name} ({stock_code})\n  成交價: {trade_price} | 成交量: {trade_volume} | 成交金額: {trade_value}\n"
 
         return format_list_response(traded_data, "集中市場盤後定價交易資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_margin_loan_restrictions_announcement(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場停資停券預告表。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/BFI84U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場停資停券預告表")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            restriction_type = item.get("Reason", "N/A")
-            return f"- {stock_name} ({stock_code}): {restriction_type}\n"
-
-        return format_list_response(data, "集中市場停資停券預告表資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_block_trades_daily(limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場鉅額交易日成交量值統計。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/block/BFIAUU_d")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場鉅額交易日成交量值統計")
-
-        def formatter(item):
-            date = item.get("Date", "N/A")
-            volume = item.get("TradeVolume", "N/A")
-            total_value = item.get("TradeValue", "N/A")
-            return f"- {date}: 成交量 {volume}, 總成交金額 {total_value}\n"
-
-        return format_list_response(data, "集中市場鉅額交易日成交量值統計資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_block_trades_monthly(limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場鉅額交易月成交量值統計。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/block/BFIAUU_m")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場鉅額交易月成交量值統計")
-
-        def formatter(item):
-            month = item.get("Month", "N/A")
-            volume = item.get("TradeVolume", "N/A")
-            total_value = item.get("TradeValue", "N/A")
-            return f"- {month}: 成交量 {volume}, 總成交金額 {total_value}\n"
-
-        return format_list_response(data, "集中市場鉅額交易月成交量值統計資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_block_trades_yearly(limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場鉅額交易年成交量值統計。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/block/BFIAUU_y")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場鉅額交易年成交量值統計")
-
-        def formatter(item):
-            year = item.get("Month", "N/A")
-            volume = item.get("TradeVolume", "N/A")
-            total_value = item.get("TradeValue", "N/A")
-            return f"- {year}: 成交量 {volume}, 總成交金額 {total_value}\n"
-
-        return format_list_response(data, "集中市場鉅額交易年成交量值統計資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_first_listed_foreign_stocks_daily(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢每日第一上市外國股票成交量值。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/STOCK_FIRST")
-        if not data:
-            return MSG_NO_DATA.format(data_type="每日第一上市外國股票成交量值")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            volume = item.get("TradeVolume", "N/A")
-            value = item.get("TradeValue", "N/A")
-            return f"- {stock_name} ({stock_code}): 成交量 {volume}, 成交金額 {value}\n"
-
-        return format_list_response(data, "每日第一上市外國股票成交量值資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_securities_trading_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場證券變更交易。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWT85U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場證券變更交易")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            change_type = item.get("PeriodicCallAuctionTrading", "N/A")
-            return f"- {stock_name} ({stock_code}): {change_type}\n"
-
-        return format_list_response(data, "集中市場證券變更交易資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_valuation_ratios_by_date(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市個股日本益比、殖利率及股價淨值比（依日期查詢）。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/BWIBBU_d")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市個股日本益比殖利率及股價淨值比")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            dividend_yield = item.get("DividendYield", "N/A")
-            dividend_year = item.get("DividendYear", "N/A")
-            pe_ratio = item.get("PEratio", "N/A")
-            pb_ratio = item.get("PBratio", "N/A")
-            fiscal_year_quarter = item.get("FiscalYearQuarter", "N/A")
-            return (
-                f"- {stock_name} ({stock_code})\n"
-                f"  本益比: {pe_ratio} | 殖利率: {dividend_yield}% (股利年度: {dividend_year})\n"
-                f"  股價淨值比: {pb_ratio} | 財報季度: {fiscal_year_quarter}\n\n"
-            )
-
-        return format_list_response(data, "上市個股日本益比殖利率及股價淨值比資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_stock_price_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市個股股價升降幅度。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/TWT84U")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市個股股價升降幅度")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            stock_code = item.get("Code", "N/A")
-            stock_name = item.get("Name", "N/A")
-            limit_up = item.get("TodayLimitUp", "N/A")
-            limit_down = item.get("TodayLimitDown", "N/A")
-            return f"- {stock_name} ({stock_code}): 漲停 {limit_up}, 跌停 {limit_down}\n"
-
-        return format_list_response(data, "上市個股股價升降幅度資料", formatter, limit=limit, offset=offset)
 
     @mcp.tool
     @handle_api_errors()
@@ -613,30 +349,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             )
 
         return format_list_response(valid_data, "集中市場當日公布注意股票資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_daily_market_trading_info(limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場每日市場成交資訊。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/FMTQIK")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場每日市場成交資訊")
-
-        def formatter(item):
-            date = item.get("Date", "N/A")
-            trade_volume = item.get("TradeVolume", "N/A")
-            trade_value = item.get("TradeValue", "N/A")
-            transaction = item.get("Transaction", "N/A")
-            taiex = item.get("TAIEX", "N/A")
-            change = item.get("Change", "N/A")
-            return f"- {date}: 成交量 {trade_volume}, 成交金額 {trade_value}, 成交筆數 {transaction}, 加權指數 {taiex}, 漲跌 {change}\n"
-
-        return format_list_response(data, "集中市場每日市場成交資訊", formatter, limit=limit, offset=offset)
 
     @mcp.tool
     @handle_api_errors()
