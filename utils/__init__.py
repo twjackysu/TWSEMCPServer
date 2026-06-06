@@ -20,6 +20,7 @@ from .formatters import (
     format_meaningful_fields_only,
     format_list_response,
     create_simple_list_formatter,
+    truncate,
 )
 from .tool_factory import create_company_tool, create_list_tool
 from .date_helper import roc_to_ad, ad_to_roc
@@ -45,6 +46,7 @@ __all__ = [
     "format_meaningful_fields_only",
     "format_list_response",
     "create_simple_list_formatter",
+    "truncate",
     "create_company_tool",
     "create_list_tool",
     "roc_to_ad",

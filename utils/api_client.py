@@ -35,41 +35,47 @@ class TWSEAPIClient:
             cls._instance = cls()
         return cls._instance
 
+    def _throttle(self) -> None:
+        """Enforce the per-instance request interval."""
+        elapsed = time.time() - self._last_request_time
+        if elapsed < self.request_interval:
+            wait = self.request_interval - elapsed
+            logger.debug(f"Rate limiting: sleeping for {wait:.2f} seconds")
+            time.sleep(wait)
+
+    def _request(
+        self,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: float = APIConfig.DEFAULT_TIMEOUT,
+    ) -> requests.Response:
+        """Throttle, send GET, stamp last-request time, and return the response."""
+        self._throttle()
+        logger.info(f"Fetching {url} params={params}")
+        resp = requests.get(
+            url,
+            params=params,
+            headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
+            verify=self.verify_ssl,
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        self._last_request_time = time.time()
+        resp.encoding = "utf-8"
+        return resp
+
     def fetch_data(self, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
-        """
-        Instance method to fetch data from TWSE API endpoint.
-        """
-        # Rate limiting logic
-        current_time = time.time()
-        time_since_last_request = current_time - self._last_request_time
-        if time_since_last_request < self.request_interval:
-            sleep_time = self.request_interval - time_since_last_request
-            logger.debug(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
-            time.sleep(sleep_time)
-        
+        """Fetch from a TWSE OpenAPI endpoint (base_url-relative) and normalise to a list."""
         url = f"{self.base_url}{endpoint}"
-        logger.info(f"Fetching TWSE data from {url}")
-        
         try:
-            resp = requests.get(
-                url, 
-                headers={"User-Agent": self.user_agent, "Accept": "application/json"}, 
-                verify=self.verify_ssl, 
-                timeout=timeout
-            )
-            resp.raise_for_status()
-            
-            self._last_request_time = time.time()
-            resp.encoding = 'utf-8'
-            
+            resp = self._request(url, timeout=timeout)
             try:
                 data = resp.json()
             except Exception as parse_err:
                 logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list")
                 return []
-
             return data if isinstance(data, list) else ([data] if data else [])
-            
         except Exception as e:
             logger.error(f"Failed to fetch data from {url}: {e}")
             raise
@@ -101,43 +107,13 @@ class TWSEAPIClient:
             return []
 
     def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT, headers: Optional[Dict[str, str]] = None) -> Any:
+        """Fetch raw JSON from an arbitrary full URL (not base_url-relative).
+
+        Used for legacy TWSE endpoints and external APIs (mis.twse.com.tw,
+        tpex.org.tw, taifex.com.tw) where callers supply the complete URL.
         """
-        Fetch raw JSON from an arbitrary URL with query parameters.
-
-        Unlike fetch_data() which prepends base_url and normalizes to list,
-        this method accepts full URLs and returns the raw parsed JSON.
-        Used for legacy TWSE endpoints (twse.com.tw/exchangeReport) and
-        external APIs (mis.twse.com.tw, tpex.org.tw, taifex.com.tw).
-
-        Args:
-            url: Full URL to fetch
-            params: Optional query parameters dict
-            timeout: Request timeout in seconds
-
-        Returns:
-            Parsed JSON response (dict or list depending on API)
-        """
-        current_time = time.time()
-        time_since_last_request = current_time - self._last_request_time
-        if time_since_last_request < self.request_interval:
-            sleep_time = self.request_interval - time_since_last_request
-            logger.debug(f"Rate limiting: sleeping for {sleep_time:.2f} seconds")
-            time.sleep(sleep_time)
-
-        logger.info(f"Fetching JSON from {url} params={params}")
-
         try:
-            resp = requests.get(
-                url,
-                params=params,
-                headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
-                verify=self.verify_ssl,
-                timeout=timeout,
-            )
-            resp.raise_for_status()
-            self._last_request_time = time.time()
-            resp.encoding = "utf-8"
-            return resp.json()
+            return self._request(url, params=params, headers=headers, timeout=timeout).json()
         except Exception as e:
             logger.error(f"Failed to fetch JSON from {url}: {e}")
             raise

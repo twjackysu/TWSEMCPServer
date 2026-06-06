@@ -8,22 +8,19 @@ from utils import (
     has_meaningful_data,
     format_meaningful_fields_only,
     MSG_NO_DATA,
+    DEFAULT_DISPLAY_LIMIT,
     format_list_response,
     create_company_tool,
     create_list_tool,
+    truncate,
 )
-
-
-def _truncate(text: str, n: int = 100) -> str:
-    """Return text, appending '...' when longer than n chars (legacy rendering)."""
-    return f"{text[:n]}..." if len(text) > n else text
 
 
 def _fmt_ownership_change(i):
     result = f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('經營權異動日期', 'N/A')}\n"
     desc = i.get("經營權異動說明", "")
     if desc:
-        result += f"  說明: {_truncate(desc)}\n"
+        result += f"  說明: {truncate(desc)}\n"
     return result
 
 
@@ -42,7 +39,7 @@ def _fmt_proposal_exercise(i):
         result += f"  提案受理期間: {period}\n"
     content = i.get("提案內容", "")
     if content:
-        result += f"  提案內容: {_truncate(content)}\n"
+        result += f"  提案內容: {truncate(content)}\n"
     return result
 
 
@@ -161,7 +158,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_board_insufficient_shares(name: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_company_board_insufficient_shares(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上市公司董事、監察人持股不足法定成數彙總表。
 
         Args:
@@ -194,7 +191,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_independent_directors(name: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_companies_with_independent_directors(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上市公司獨立董監事兼任情形彙總表。
 
         Args:
@@ -236,7 +233,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_csr_reports_103(limit: int = 50, offset: int = 0) -> str:
+    def get_companies_with_csr_reports_103(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢民國103年應編製及申報企業社會責任報告書之公司。
 
         Args:
@@ -280,7 +277,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_shareholder_meeting_announcements(name: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_company_shareholder_meeting_announcements(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上市公司股東會公告-召集股東常(臨時)會公告資料彙總表(95年度起適用)。
 
         Args:
@@ -338,7 +335,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_shareholder_meeting_dates(name: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_company_shareholder_meeting_dates(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上市公司召開股東常(臨時)會日期、地點及採用電子投票情形等資料彙總表。
 
         Args:
@@ -375,7 +372,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_business_scope_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_companies_with_business_scope_changes(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-營業範圍重大變更公司。
 
         Args:
@@ -402,7 +399,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             description = item.get("營業範圍重大變更說明", "")
             result = f"- {company_name} ({company_code}): {year}Q{quarter}\n"
             if description:
-                result += f"  變更說明: {description[:100]}...\n" if len(description) > 100 else f"  變更說明: {description}\n"
+                result += f"  變更說明: {truncate(description)}\n"
             return result
 
         return format_list_response(valid_data, "上市公司營業範圍重大變更資料", formatter, limit=limit, offset=offset)

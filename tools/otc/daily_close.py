@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 TPEX_DAILY_CLOSE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
 
@@ -13,7 +13,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_daily(stock_no: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_otc_daily(stock_no: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上櫃（OTC）市場當日所有股票收盤行情。
         涵蓋台灣約 900 支上櫃股票。可指定特定股票代號只查單一個股。
 

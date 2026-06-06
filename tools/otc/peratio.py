@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 TPEX_PE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_peratio_analysis"
 
@@ -13,7 +13,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_valuation(stock_no: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_otc_valuation(stock_no: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上櫃股票本益比、殖利率、股價淨值比，與上市市場估值工具對應。
 
         Args:

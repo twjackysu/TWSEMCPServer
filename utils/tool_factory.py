@@ -5,6 +5,7 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
+    DEFAULT_DISPLAY_LIMIT,
     format_list_response,
     format_properties_with_values_multiline,
 )
@@ -82,10 +83,10 @@ def create_list_tool(
         return format_list_response(data, label, formatter, limit=limit, offset=offset)
 
     if filter_field:
-        def tool_fn(name: str = "", limit: int = 50, offset: int = 0) -> str:
+        def tool_fn(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
             return _render(_client.fetch_data(endpoint), name, limit, offset)
     else:
-        def tool_fn(limit: int = 50, offset: int = 0) -> str:
+        def tool_fn(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
             return _render(_client.fetch_data(endpoint), "", limit, offset)
 
     tool_fn.__name__ = name
