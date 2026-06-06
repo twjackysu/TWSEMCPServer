@@ -10,7 +10,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
-    @handle_api_errors(data_type="集中市場融資融券餘額")
+    @handle_api_errors()
     def get_margin_trading_info(limit: int = 50, offset: int = 0) -> str:
         """查詢集中市場融資融券餘額。
 
@@ -39,7 +39,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return result
 
     @mcp.tool
-    @handle_api_errors(data_type="每5秒委託成交統計")
+    @handle_api_errors()
     def get_real_time_trading_stats(limit: int = 20) -> str:
         """查詢每5秒委託成交統計。
 

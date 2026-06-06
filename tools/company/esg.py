@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data, MSG_QUERY_FAILED
+from utils import TWSEAPIClient, handle_api_errors, format_properties_with_values_multiline, has_meaningful_data
 from utils.tool_factory import create_company_tool
 
 # Simple company data tools: (endpoint, name, docstring)
@@ -63,89 +63,83 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     # Complex tools with custom logic below
     
     @mcp.tool
+    @handle_api_errors()
     def get_companies_with_anticompetitive_losses() -> str:
         """查詢所有已申報反競爭行為法律訴訟損失的上市公司（排除零值及N/A）。"""
-        try:
-            data = _client.fetch_data("/opendata/t187ap46_L_20")
-            filtered_data = [
-                item for item in data 
-                if isinstance(item, dict) and 
-                has_meaningful_data(item, "因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)")
-            ]
-            
-            if not filtered_data:
-                return "目前沒有公司報告反競爭行為法律訴訟的金錢損失。"
-            
-            result = f"共有 {len(filtered_data)} 家公司報告反競爭行為法律訴訟的金錢損失：\n\n"
-            for item in filtered_data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                loss_amount = item.get("因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)", "N/A")
-                report_year = item.get("報告年度", "N/A")
-                result += f"- {company_name} ({company_code}): {loss_amount} 千元 (報告年度: {report_year})\n"
-            
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_data("/opendata/t187ap46_L_20")
+        filtered_data = [
+            item for item in data 
+            if isinstance(item, dict) and 
+            has_meaningful_data(item, "因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)")
+        ]
+        
+        if not filtered_data:
+            return "目前沒有公司報告反競爭行為法律訴訟的金錢損失。"
+        
+        result = f"共有 {len(filtered_data)} 家公司報告反競爭行為法律訴訟的金錢損失：\n\n"
+        for item in filtered_data:
+            company_code = item.get("公司代號", "N/A")
+            company_name = item.get("公司名稱", "N/A")
+            loss_amount = item.get("因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)", "N/A")
+            report_year = item.get("報告年度", "N/A")
+            result += f"- {company_name} ({company_code}): {loss_amount} 千元 (報告年度: {report_year})\n"
+        
+        return result
 
     @mcp.tool
+    @handle_api_errors()
     def get_companies_with_inclusive_finance_data() -> str:
         """查詢所有已申報普惠金融活動的上市公司（排除零值及N/A）。"""
-        try:
-            data = _client.fetch_data("/opendata/t187ap46_L_17")
-            filtered_data = [
-                item for item in data
-                if isinstance(item, dict) and
-                has_meaningful_data(item, [
-                    "對促進小型企業及社區發展的貸放件數(件)",
-                    "對促進小型企業及社區發展的貸放餘額(仟元)",
-                    "對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)"
-                ])
-            ]
+        data = _client.fetch_data("/opendata/t187ap46_L_17")
+        filtered_data = [
+            item for item in data
+            if isinstance(item, dict) and
+            has_meaningful_data(item, [
+                "對促進小型企業及社區發展的貸放件數(件)",
+                "對促進小型企業及社區發展的貸放餘額(仟元)",
+                "對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)"
+            ])
+        ]
 
-            if not filtered_data:
-                return "目前沒有公司報告普惠金融相關數據。"
+        if not filtered_data:
+            return "目前沒有公司報告普惠金融相關數據。"
 
-            result = f"共有 {len(filtered_data)} 家公司報告普惠金融相關數據：\n\n"
-            for item in filtered_data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                loan_count = item.get("對促進小型企業及社區發展的貸放件數(件)", "N/A")
-                loan_amount = item.get("對促進小型企業及社區發展的貸放餘額(仟元)", "N/A")
-                education_count = item.get("對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)", "N/A")
-                report_year = item.get("報告年度", "N/A")
+        result = f"共有 {len(filtered_data)} 家公司報告普惠金融相關數據：\n\n"
+        for item in filtered_data:
+            company_code = item.get("公司代號", "N/A")
+            company_name = item.get("公司名稱", "N/A")
+            loan_count = item.get("對促進小型企業及社區發展的貸放件數(件)", "N/A")
+            loan_amount = item.get("對促進小型企業及社區發展的貸放餘額(仟元)", "N/A")
+            education_count = item.get("對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)", "N/A")
+            report_year = item.get("報告年度", "N/A")
 
-                result += f"- {company_name} ({company_code}) [報告年度: {report_year}]\n"
-                result += f"  貸放件數: {loan_count} 件\n"
-                result += f"  貸放餘額: {loan_amount} 千元\n"
-                result += f"  金融教育參與人數: {education_count} 人\n\n"
+            result += f"- {company_name} ({company_code}) [報告年度: {report_year}]\n"
+            result += f"  貸放件數: {loan_count} 件\n"
+            result += f"  貸放餘額: {loan_amount} 千元\n"
+            result += f"  金融教育參與人數: {education_count} 人\n\n"
 
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        return result
 
     @mcp.tool
+    @handle_api_errors()
     def get_companies_with_refineries_in_populated_areas() -> str:
         """查詢所有已申報在人口密集區設有煉油廠的上市公司（排除零值及N/A）。"""
-        try:
-            data = _client.fetch_data("/opendata/t187ap46_L_15")
-            filtered_data = [
-                item for item in data
-                if isinstance(item, dict) and
-                has_meaningful_data(item, "在人口密集地區的煉油廠數量(座)")
-            ]
+        data = _client.fetch_data("/opendata/t187ap46_L_15")
+        filtered_data = [
+            item for item in data
+            if isinstance(item, dict) and
+            has_meaningful_data(item, "在人口密集地區的煉油廠數量(座)")
+        ]
 
-            if not filtered_data:
-                return "目前沒有公司報告在人口密集地區設有煉油廠。"
+        if not filtered_data:
+            return "目前沒有公司報告在人口密集地區設有煉油廠。"
 
-            result = f"共有 {len(filtered_data)} 家公司報告在人口密集地區設有煉油廠：\n\n"
-            for item in filtered_data:
-                company_code = item.get("公司代號", "N/A")
-                company_name = item.get("公司名稱", "N/A")
-                refinery_count = item.get("在人口密集地區的煉油廠數量(座)", "N/A")
-                report_year = item.get("報告年度", "N/A")
-                result += f"- {company_name} ({company_code}): {refinery_count} 座 (報告年度: {report_year})\n"
+        result = f"共有 {len(filtered_data)} 家公司報告在人口密集地區設有煉油廠：\n\n"
+        for item in filtered_data:
+            company_code = item.get("公司代號", "N/A")
+            company_name = item.get("公司名稱", "N/A")
+            refinery_count = item.get("在人口密集地區的煉油廠數量(座)", "N/A")
+            report_year = item.get("報告年度", "N/A")
+            result += f"- {company_name} ({company_code}): {refinery_count} 座 (報告年度: {report_year})\n"
 
-            return result
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        return result

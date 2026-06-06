@@ -1,7 +1,7 @@
 """Data formatting utilities."""
 
 from typing import List, Union, Sequence
-from .constants import MSG_TOTAL_RECORDS, MSG_MORE_RECORDS, DEFAULT_DISPLAY_LIMIT
+from .constants import MSG_TOTAL_RECORDS
 from .types import TWSEDataItem, DataFormatter
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:

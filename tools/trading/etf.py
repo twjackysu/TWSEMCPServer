@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_multiple_records, MSG_QUERY_FAILED
+from utils import TWSEAPIClient, handle_api_errors, format_multiple_records
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -10,10 +10,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
+    @handle_api_errors()
     def get_etf_regular_investment_ranking() -> str:
         """查詢定期定額交易戶數統計排行月報表。"""
-        try:
-            data = _client.fetch_data("/ETFReport/ETFRank")
-            return format_multiple_records(data) if data else ""
-        except Exception as e:
-            return MSG_QUERY_FAILED.format(error=str(e))
+        data = _client.fetch_data("/ETFReport/ETFRank")
+        return format_multiple_records(data) if data else ""
