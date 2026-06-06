@@ -47,7 +47,7 @@ class DisplayConfig:
     # Default number of records to display in list responses
     DEFAULT_DISPLAY_LIMIT: Final[int] = int(os.getenv(
         'DISPLAY_LIMIT',
-        '20'
+        '50'
     ))
     
     # Maximum number of records for holiday schedule

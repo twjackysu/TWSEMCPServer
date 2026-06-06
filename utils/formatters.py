@@ -1,7 +1,7 @@
 """Data formatting utilities."""
 
 from typing import List, Union, Sequence
-from .constants import MSG_TOTAL_RECORDS
+from .constants import MSG_TOTAL_RECORDS, DEFAULT_DISPLAY_LIMIT
 from .types import TWSEDataItem, DataFormatter
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
@@ -116,7 +116,7 @@ def format_list_response(
     data: List[TWSEDataItem],
     data_type: str,
     formatter: DataFormatter | None = None,
-    limit: int = 50,
+    limit: int = DEFAULT_DISPLAY_LIMIT,
     offset: int = 0,
 ) -> str:
     """
@@ -146,8 +146,9 @@ def format_list_response(
     result = header
 
     if formatter is None:
-        def formatter(item):
+        def default_formatter(item):
             return f"- {format_properties_with_values_multiline(item)}\n"
+        formatter = default_formatter
 
     for item in page_data:
         result += formatter(item)
@@ -157,6 +158,11 @@ def format_list_response(
         result += f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
 
     return result
+
+
+def truncate(text: str, n: int = 100) -> str:
+    """Return text, appending '...' when longer than n chars."""
+    return f"{text[:n]}..." if len(text) > n else text
 
 
 def create_simple_list_formatter(

@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 T86_URL = "https://www.twse.com.tw/rwd/zh/fund/T86"
 
@@ -47,7 +47,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_institutional_investors_summary(date: str, limit: int = 50, offset: int = 0) -> str:
+    def get_twse_institutional_investors_summary(date: str, limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢台灣上市市場三大法人（外資、投信、自營商）買賣超日報。
         回傳指定日期所有上市股票的三大法人買賣超彙總，並依買賣超絕對值排序。
 

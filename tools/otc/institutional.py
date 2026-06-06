@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 TPEX_3INSTI_URL = "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
 
@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_institutional(stock_no: str = "", limit: int = 50, offset: int = 0) -> str:
+    def get_otc_institutional(stock_no: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢上櫃市場三大法人（外資、投信、自營商）每日買賣超資料。
         可指定特定股票代號只查單一個股。
 

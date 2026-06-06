@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, MSG_NO_DATA, handle_api_errors, format_multiple_records
+from utils import TWSEAPIClient, MSG_NO_DATA, DEFAULT_DISPLAY_LIMIT, handle_api_errors, format_multiple_records
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
@@ -11,7 +11,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_margin_trading_info(limit: int = 50, offset: int = 0) -> str:
+    def get_margin_trading_info(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢集中市場融資融券餘額。
 
         Args:
