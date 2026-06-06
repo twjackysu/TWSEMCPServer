@@ -10,7 +10,97 @@ from utils import (
     MSG_NO_DATA,
     format_list_response,
     create_company_tool,
+    create_list_tool,
 )
+
+
+def _truncate(text: str, n: int = 100) -> str:
+    """Return text, appending '...' when longer than n chars (legacy rendering)."""
+    return f"{text[:n]}..." if len(text) > n else text
+
+
+def _fmt_ownership_change(i):
+    result = f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('經營權異動日期', 'N/A')}\n"
+    desc = i.get("經營權異動說明", "")
+    if desc:
+        result += f"  說明: {_truncate(desc)}\n"
+    return result
+
+
+def _fmt_cumulative_voting(i):
+    result = f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('董監事選任方式', 'N/A')}"
+    meeting_date = i.get("股東常(臨時)會日期-日期", "")
+    if meeting_date:
+        result += f" (股東會日期: {meeting_date})"
+    return result + "\n"
+
+
+def _fmt_proposal_exercise(i):
+    result = f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): 股東會 {i.get('召開股東會日期', 'N/A')}\n"
+    period = i.get("股東依公司法第172條之1行使提案權-提案受理期間", "")
+    if period:
+        result += f"  提案受理期間: {period}\n"
+    content = i.get("提案內容", "")
+    if content:
+        result += f"  提案內容: {_truncate(content)}\n"
+    return result
+
+
+def _list_doc(summary: str, name_label: str, has_name: bool = True) -> str:
+    lines = [summary, "", "        Args:"]
+    if has_name:
+        lines.append(f"            name: {name_label}（選填）")
+    lines.append("            limit: 回傳筆數上限（預設 50）")
+    lines.append("            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）")
+    return "\n".join(lines)
+
+
+# Simple list tools: fetch → optional name filter → paginate.
+# (endpoint, name, summary, label, empty_data_type, filter_field, name_label, formatter)
+SIMPLE_LIST_TOOLS = [
+    (
+        "/announcement/punish", "get_market_disposal_stocks",
+        "查詢集中市場公布處置股票。", "集中市場公布處置股票", "集中市場公布處置股票",
+        "Name", "股票名稱關鍵字",
+        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('DispositionMeasures', 'N/A')} - {i.get('ReasonsOfDisposition', 'N/A')}\n",
+    ),
+    (
+        "/opendata/t187ap24_L", "get_companies_with_ownership_changes",
+        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動公司。", "上市公司經營權異動資料", "上市公司經營權異動",
+        "公司名稱", "公司名稱關鍵字", _fmt_ownership_change,
+    ),
+    (
+        "/opendata/t187ap26_L", "get_companies_ownership_changes_business_scope",
+        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。",
+        "經營權異動且營業範圍重大變更停止買賣公司資料", "經營權異動且營業範圍重大變更停止買賣公司",
+        None, None,
+        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('停止買賣日期', 'N/A')}\n",
+    ),
+    (
+        "/opendata/t187ap27_L", "get_companies_ownership_changes_business_scope_trading",
+        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。",
+        "經營權異動且營業範圍重大變更列為變更交易公司資料", "經營權異動且營業範圍重大變更列為變更交易公司",
+        None, None,
+        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('變更日期', 'N/A')}\n",
+    ),
+    (
+        "/opendata/t187ap33_L", "get_company_ceo_dual_role",
+        "查詢上市公司董事長是否兼任總經理。", "上市公司董事長兼任總經理資料", "上市公司董事長兼任總經理",
+        "公司名稱", "公司名稱關鍵字",
+        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('董事長是否兼任總經理', 'N/A')}\n",
+    ),
+    (
+        "/opendata/t187ap34_L", "get_companies_cumulative_voting",
+        "查詢上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表。",
+        "上市公司採累積投票制選任董監事資料", "上市公司採累積投票制選任董監事",
+        "公司名稱", "公司名稱關鍵字", _fmt_cumulative_voting,
+    ),
+    (
+        "/opendata/t187ap35_L", "get_company_shareholder_proposal_exercise",
+        "查詢上市公司股東行使提案權情形彙總表。", "上市公司股東行使提案權資料", "上市公司股東行使提案權",
+        "公司名稱", "公司名稱關鍵字", _fmt_proposal_exercise,
+    ),
+]
 
 # Simple tools: (endpoint, function_name, mcp_description)
 # All follow the same pattern: fetch_company_data(endpoint, code) → format as properties.
@@ -59,6 +149,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     for endpoint, name, doc in SIMPLE_BASIC_INFO_TOOLS:
         create_company_tool(mcp, endpoint, name, doc, client)
+
+    for endpoint, name, summary, label, empty_type, filter_field, name_label, formatter in SIMPLE_LIST_TOOLS:
+        create_list_tool(
+            mcp, endpoint, name,
+            _list_doc(summary, name_label, has_name=filter_field is not None),
+            label, empty_type, formatter, filter_field=filter_field, client=client,
+        )
 
     # --- Complex tools with custom logic ---
 
@@ -164,31 +261,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_disposal_stocks(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢集中市場公布處置股票。
-
-        Args:
-            name: 股票名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/announcement/punish")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場公布處置股票")
-
-        if name:
-            data = [d for d in data if name in d.get("Name", "")]
-
-        def formatter(item):
-            return (
-                f"- {item.get('Name', 'N/A')} ({item.get('Code', 'N/A')}): "
-                f"{item.get('DispositionMeasures', 'N/A')} - {item.get('ReasonsOfDisposition', 'N/A')}\n"
-            )
-
-        return format_list_response(data, "集中市場公布處置股票", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
     def get_company_board_insufficient_shares_consecutive() -> str:
         """查詢上市公司董事、監察人持股不足法定成數連續達3個月以上彙總表。"""
         data = _client.fetch_data("/opendata/t187ap10_L")
@@ -266,35 +338,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_ownership_changes(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動公司。
-
-        Args:
-            name: 公司名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap24_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市公司經營權異動")
-
-        if name:
-            data = [d for d in data if name in d.get("公司名稱", "")]
-
-        def formatter(item):
-            company_code = item.get("公司代號", "N/A")
-            company_name = item.get("公司名稱", "N/A")
-            change_date = item.get("經營權異動日期", "N/A")
-            change_desc = item.get("經營權異動說明", "")
-            result = f"- {company_name} ({company_code}): {change_date}\n"
-            if change_desc:
-                result += f"  說明: {change_desc[:100]}...\n" if len(change_desc) > 100 else f"  說明: {change_desc}\n"
-            return result
-
-        return format_list_response(data, "上市公司經營權異動資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
     def get_company_shareholder_meeting_dates(name: str = "", limit: int = 50, offset: int = 0) -> str:
         """查詢上市公司召開股東常(臨時)會日期、地點及採用電子投票情形等資料彙總表。
 
@@ -366,67 +409,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_ownership_changes_business_scope(limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap26_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="經營權異動且營業範圍重大變更停止買賣公司")
-
-        def formatter(item):
-            return f"- {item.get('公司名稱', 'N/A')} ({item.get('公司代號', 'N/A')}): {item.get('停止買賣日期', 'N/A')}\n"
-
-        return format_list_response(data, "經營權異動且營業範圍重大變更停止買賣公司資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_companies_ownership_changes_business_scope_trading(limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap27_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="經營權異動且營業範圍重大變更列為變更交易公司")
-
-        def formatter(item):
-            return f"- {item.get('公司名稱', 'N/A')} ({item.get('公司代號', 'N/A')}): {item.get('變更日期', 'N/A')}\n"
-
-        return format_list_response(data, "經營權異動且營業範圍重大變更列為變更交易公司資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_company_ceo_dual_role(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司董事長是否兼任總經理。
-
-        Args:
-            name: 公司名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap33_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市公司董事長兼任總經理")
-
-        if name:
-            data = [d for d in data if name in d.get("公司名稱", "")]
-
-        def formatter(item):
-            return (
-                f"- {item.get('公司名稱', 'N/A')} ({item.get('公司代號', 'N/A')}): "
-                f"{item.get('董事長是否兼任總經理', 'N/A')}\n"
-            )
-
-        return format_list_response(data, "上市公司董事長兼任總經理資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
     def get_company_board_pledged_shares() -> str:
         """查詢上市公司董事、監察人質權設定占董事及監察人實際持有股數彙總表。"""
         data = _client.fetch_data("/opendata/t187ap09_L")
@@ -441,63 +423,3 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 result += f"質權比例 {percentage_range}%：\n{companies_text}\n\n"
         return result
 
-    @mcp.tool
-    @handle_api_errors()
-    def get_companies_cumulative_voting(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表。
-
-        Args:
-            name: 公司名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap34_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市公司採累積投票制選任董監事")
-
-        if name:
-            data = [d for d in data if name in d.get("公司名稱", "")]
-
-        def formatter(item):
-            company_code = item.get("公司代號", "N/A")
-            company_name = item.get("公司名稱", "N/A")
-            voting_system = item.get("董監事選任方式", "N/A")
-            meeting_date = item.get("股東常(臨時)會日期-日期", "")
-            result = f"- {company_name} ({company_code}): {voting_system}"
-            if meeting_date:
-                result += f" (股東會日期: {meeting_date})"
-            return result + "\n"
-
-        return format_list_response(data, "上市公司採累積投票制選任董監事資料", formatter, limit=limit, offset=offset)
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_company_shareholder_proposal_exercise(name: str = "", limit: int = 50, offset: int = 0) -> str:
-        """查詢上市公司股東行使提案權情形彙總表。
-
-        Args:
-            name: 公司名稱關鍵字（選填）
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/opendata/t187ap35_L")
-        if not data:
-            return MSG_NO_DATA.format(data_type="上市公司股東行使提案權")
-
-        if name:
-            data = [d for d in data if name in d.get("公司名稱", "")]
-
-        def formatter(item):
-            company_code = item.get("公司代號", "N/A")
-            company_name = item.get("公司名稱", "N/A")
-            meeting_date = item.get("召開股東會日期", "N/A")
-            proposal_period = item.get("股東依公司法第172條之1行使提案權-提案受理期間", "")
-            proposal_content = item.get("提案內容", "")
-            result = f"- {company_name} ({company_code}): 股東會 {meeting_date}\n"
-            if proposal_period:
-                result += f"  提案受理期間: {proposal_period}\n"
-            if proposal_content:
-                result += f"  提案內容: {proposal_content[:100]}...\n" if len(proposal_content) > 100 else f"  提案內容: {proposal_content}\n"
-            return result
-
-        return format_list_response(data, "上市公司股東行使提案權資料", formatter, limit=limit, offset=offset)
