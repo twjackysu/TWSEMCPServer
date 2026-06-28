@@ -59,7 +59,7 @@ Value/growth stock selection, ESG risk assessment
 }
 ```
 
-### 🐳 Docker (stdio — no server needed)
+### 🐳 Docker (stdio)
 ```json
 {
   "twstockmcpserver": {
@@ -73,19 +73,6 @@ Value/growth stock selection, ESG risk assessment
       "MCP_STDIO=1",
       "ghcr.io/twjackysu/twsemcpserver:latest"
     ]
-  }
-}
-```
-
-### 🐳 Docker (HTTP — self-hosted)
-```bash
-docker run -d -p 8000:8000 -e PORT=8000 ghcr.io/twjackysu/twsemcpserver:latest
-```
-```json
-{
-  "twstockmcpserver": {
-    "transport": "streamable_http",
-    "url": "http://localhost:8000/mcp"
   }
 }
 ```
