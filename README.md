@@ -104,7 +104,7 @@ uv sync && uv run fastmcp dev server.py
 | [TWSE OpenAPI](https://openapi.twse.com.tw) | 台灣證交所官方 API — 公司治理、ESG、財報、交易、指數等 | 143 個 |
 | [TWSE Web API](https://www.twse.com.tw) | 證交所網頁 API — 個股日K、月均價、估值、融資融券、上市三大法人買賣超 | 6 個 |
 | [MIS 即時報價](https://mis.twse.com.tw) | 盤中即時多股報價（上市+上櫃） | 1 個 |
-| [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | 櫃買中心 — 上櫃日收盤、三大法人、本益比 | 3 個 |
+| [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | 櫃買中心 — 上櫃日收盤、三大法人（個股/彙總）、本益比、融資融券、注意/處置股、除權息、零股、指數 | 10 個 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | 期交所 — 三大法人系列、大額交易人部位、每日行情、選擇權分析、保證金、年月統計 | 16 個 |
 
 ## 🤝 參與貢獻

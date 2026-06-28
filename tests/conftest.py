@@ -3,7 +3,6 @@
 import pytest
 import logging
 import time
-
 from utils.config import TestConfig, APIConfig
 
 # 設定測試日誌
@@ -14,6 +13,7 @@ logging.basicConfig(
 
 # 使用集中管理的配置
 TEST_DELAY = TestConfig.TEST_DELAY
+
 
 @pytest.fixture
 def sample_stock_code():
