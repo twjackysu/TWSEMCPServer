@@ -4,7 +4,7 @@
 """
 
 import pytest
-from utils.api_client import TWSEAPIClient
+from tests.helpers import fetch_or_skip
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 FIXED_STOCK = "2330"     # 台積電，流動性高必有法人進出
@@ -14,7 +14,7 @@ T86_URL = "https://www.twse.com.tw/rwd/zh/fund/T86"
 
 @pytest.fixture(scope="class")
 def t86_data():
-    return TWSEAPIClient.get_json(
+    return fetch_or_skip(
         T86_URL,
         params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
     )
@@ -28,18 +28,15 @@ class TestT86API:
       row[18] 三大法人合計買賣超（summary 排序 / 過濾用）
     """
 
-    def test_api_returns_ok_with_data(self, t86_data):
-        """API 可達，stat=OK，有資料列."""
-        assert t86_data.get("stat") == "OK"
-        assert len(t86_data.get("data", [])) > 0
-
     def test_standard_rows_have_19_columns(self, t86_data):
         """主力資料列應為 19 欄，確保 row[18]（IDX_TOTAL_NET）可存取."""
+        assert t86_data.get("stat") == "OK"
         rows_19 = [r for r in t86_data["data"] if len(r) == 19]
         assert len(rows_19) > 0, "找不到 19 欄資料列，欄位結構可能已變更"
 
     def test_stock_code_at_index_0_and_total_net_at_index_18(self, t86_data):
         """row[0] 應為股票代號，row[18] 應可解析為整數（兩個 tool 的核心依賴）."""
+        assert t86_data.get("stat") == "OK"
         tsmc = next((r for r in t86_data["data"] if len(r) == 19 and r[0] == FIXED_STOCK), None)
         assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 可能已不再是股票代號"
         int(tsmc[18].replace(",", ""))  # 拋出 ValueError 即代表欄位位移

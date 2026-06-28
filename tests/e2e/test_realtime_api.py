@@ -1,6 +1,6 @@
 """測試 mis.twse.com.tw 即時報價 API。"""
 
-from utils.api_client import TWSEAPIClient
+from tests.helpers import fetch_or_skip
 
 MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp"
 
@@ -13,9 +13,7 @@ class TestRealtimeQuoteAPI:
 
     def test_api_returns_msg_array_with_required_fields(self):
         """確認 API 可達且 tool 依賴的關鍵欄位存在。"""
-        result = TWSEAPIClient.get_json(
-            MIS_URL, params={"ex_ch": "tse_2330.tw", "json": 1, "delay": 0}
-        )
+        result = fetch_or_skip(MIS_URL, params={"ex_ch": "tse_2330.tw", "json": 1, "delay": 0})
         assert "msgArray" in result
         assert len(result["msgArray"]) > 0
         item = result["msgArray"][0]
