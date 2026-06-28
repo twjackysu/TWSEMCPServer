@@ -7,9 +7,6 @@
 
 A comprehensive **Model Context Protocol (MCP) server** designed for Taiwan Stock Exchange (TWSE) data analysis, providing real-time stock information, financial statements, ESG data, and trend analysis functionality.
 
-<a href="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer/badge" />
-</a>
 
 ## 🌏 Language Versions
 

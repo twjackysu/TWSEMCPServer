@@ -7,9 +7,6 @@
 
 一個全面的**模型上下文協議 (MCP) 伺服器**，專為台灣證券交易所 (TWSE) 數據分析設計，提供即時股票資訊、財務報表、ESG 數據和趨勢分析功能。
 
-<a href="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@twjackysu/TWSEMCPServer/badge" />
-</a>
 
 ## 🌏 語言版本
 
