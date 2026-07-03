@@ -46,15 +46,7 @@ Value/growth stock selection, ESG risk assessment
 
 ## ⚙️ Quick Start
 
-### 🚀 Online Usage (Recommended)
-```json
-{
-  "twstockmcpserver": {
-    "transport": "streamable_http",
-    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
-  }
-}
-```
+> ⚠️ **About the hosted service**: This project previously offered a free remote MCP Server via a third-party platform (Horizon). Since this project is a non-profit open-source project, that platform will cap the free tier at 500 tool calls/month starting end of August 2026 and no longer offers unlimited free usage, so the hosted option has been discontinued. Please use Docker or a local install below instead.
 
 ### 🐳 Docker (stdio)
 ```json

@@ -46,15 +46,7 @@
 
 ## ⚙️ 快速開始
 
-### 🚀 線上使用（推薦）
-```json
-{
-  "twstockmcpserver": {
-    "transport": "streamable_http",
-    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
-  }
-}
-```
+> ⚠️ **關於線上託管服務**：本專案先前透過第三方平台（Horizon）提供免費的遠端 MCP Server。由於本專案為非營利開源專案，該平台自 2026 年 8 月底起將免費額度限制為每月 500 次工具呼叫，不再提供無限制的免費使用，因此已停止提供該線上服務。請改用下方 Docker 或本機安裝方式使用。
 
 ### 🐳 Docker 使用（stdio）
 ```json
