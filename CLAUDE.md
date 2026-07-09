@@ -54,7 +54,7 @@ tools/
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
                               #   institutional_details, daily_market_report, large_traders_oi,
                               #   options_analytics, margin, trading_statistics
-prompts/                      # 5 prompt templates registered in server.py
+prompts/                      # 9 prompt templates registered in server.py
 ```
 
 ### Key Architectural Patterns
