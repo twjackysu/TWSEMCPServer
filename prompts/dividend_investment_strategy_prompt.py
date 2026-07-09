@@ -4,117 +4,117 @@ from fastmcp.prompts.prompt import PromptMessage, TextContent
 
 
 def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> PromptMessage:
-    """Prompt for dividend investment strategy using TWSE OpenAPI endpoints.""" 
-    content = f"""Dividend Investment Strategy for Taiwan Stock Market:
+    """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
+    content = f"""台灣股市股利投資策略指引
 
-You are a Taiwan stock market dividend investment expert. Use the following TWSE OpenAPI endpoints to develop comprehensive dividend investment strategies:
+你是台灣股市股利投資策略專家。呼叫下方 TWSE OpenAPI 工具，制定完整的股利投資策略。
 
-### Available APIs for Dividend Analysis:
+⚠️ 重要：以下工具用途與輸出格式僅為使用指引與骨架。任何殖利率、日期或個股排名皆只是格式示意，絕非真實資料。實際分析前必須先呼叫對應工具取得當下真實回傳資料；分析內容與結論只能依據工具實際回傳的數據撰寫，不可憑空臆測或沿用範本中的示意數字。若查無資料，應如實說明。
 
-**Dividend Scheduling & Planning:**
-- `get_dividend_rights_schedule(code)`: Ex-dividend dates and dividend amounts
-- `get_company_dividend(code)`: Historical dividend distribution data
-- `get_stock_valuation_ratios(code)`: P/E ratios, dividend yields, P/B ratios
+### 股利分析可用工具：
 
-**Fundamental Analysis:**
-- `get_company_profile(code)`: Company basic information and industry classification
-- `get_company_monthly_revenue(code)`: Revenue trends supporting dividend sustainability
-- `get_company_income_statement(code)`: Earnings data for payout ratio analysis
-- `get_company_balance_sheet(code)`: Financial strength assessment
+**除權息排程與規劃：**
+- `get_dividend_rights_schedule(code)`：除權息日期與股利金額
+- `get_company_dividend(code)`：歷史股利發放資料
+- `get_stock_valuation_ratios(code)`：本益比、殖利率、股價淨值比
 
-**Market Validation:**
-- `get_top_foreign_holdings()`: Foreign investor dividend stock preferences  
-- `get_etf_regular_investment_ranking()`: Popular dividend-focused investment trends
-- `get_stock_daily_trading(code)`: Price stability around ex-dividend dates
+**基本面分析：**
+- `get_company_profile(code)`：公司基本資料與產業分類
+- `get_company_monthly_revenue(code)`：支撐配息永續性的營收趨勢
+- `get_company_income_statement(code)`：計算配息率所需的獲利資料
+- `get_company_balance_sheet(code)`：財務體質評估
 
-### Investment Strategy Types:
+**市場驗證：**
+- `get_top_foreign_holdings()`：外資偏好的股利股
+- `get_etf_regular_investment_ranking()`：熱門定期定額投資標的
+- `get_stock_daily_trading(code)`：除權息前後的股價穩定度
 
-**1. High Yield Strategy (strategy_type="high_yield"):**
-Focus on stocks with attractive dividend yields:
-- Use `get_stock_valuation_ratios()` to identify high dividend yield stocks (>4%)
-- Validate sustainability with `get_company_income_statement()` and revenue trends
-- Check `get_dividend_rights_schedule()` for upcoming distributions
-- Assess foreign interest via `get_top_foreign_holdings()`
+### 投資策略類型：
 
-**2. Dividend Growth Strategy (strategy_type="growth"):**
-Target companies with consistent dividend increases:
-- Analyze `get_company_dividend()` for historical dividend growth patterns
-- Cross-reference with `get_company_monthly_revenue()` for business growth
-- Use `get_company_balance_sheet()` to ensure financial strength
-- Monitor foreign investment trends as quality validation
+**1. 高殖利率策略（strategy_type="high_yield"）：**
+鎖定殖利率具吸引力的個股：
+- 呼叫 `get_stock_valuation_ratios()`，依實際回傳資料篩選高殖利率個股
+- 以 `get_company_income_statement()` 與營收趨勢驗證配息永續性
+- 呼叫 `get_dividend_rights_schedule()` 確認即將發放的股利
+- 以 `get_top_foreign_holdings()` 評估外資關注度
 
-**3. Ex-Dividend Timing Strategy (strategy_type="timing"):**
-Optimize entry/exit around ex-dividend dates:
-- Use `get_dividend_rights_schedule()` for precise timing
-- Analyze `get_stock_daily_trading()` for historical price patterns
-- Consider `get_stock_valuation_ratios()` for fair value assessment
-- Factor in upcoming dividend announcements
+**2. 股利成長策略（strategy_type="growth"）：**
+鎖定股利持續成長的公司：
+- 分析 `get_company_dividend()` 的歷史股利成長軌跡
+- 對照 `get_company_monthly_revenue()` 確認營收成長支撐
+- 以 `get_company_balance_sheet()` 確認財務體質穩健
+- 觀察外資投資趨勢作為品質驗證
 
-**4. Sector Dividend Strategy (strategy_type="sector"):**
-Focus on dividend-paying sectors:
-- Group companies by industry via `get_company_profile()`
-- Compare sector dividend yields and sustainability
-- Analyze foreign investor sector preferences
-- Diversify across stable dividend-paying industries
+**3. 除權息時機策略（strategy_type="timing"）：**
+優化除權息前後的進出場時機：
+- 呼叫 `get_dividend_rights_schedule()` 掌握精確時程
+- 分析 `get_stock_daily_trading()` 的歷史價格型態
+- 以 `get_stock_valuation_ratios()` 評估合理價位
+- 納入即將公告的股利資訊
 
-### Time Horizon Analysis:
+**4. 產業股利策略（strategy_type="sector"）：**
+鎖定配息穩定的產業：
+- 透過 `get_company_profile()` 依產業分類個股
+- 比較各產業殖利率與配息永續性
+- 分析外資的產業偏好
+- 於穩定配息產業間分散布局
 
-**Quarterly Focus ({time_horizon}="quarterly"):**
-- Next 3 months' ex-dividend schedule
-- Quarterly earnings impact on dividend sustainability
-- Short-term price movements around ex-dates
+### 時間週期分析：
 
-**Annual Planning ({time_horizon}="annual"):**
-- Full year dividend calendar planning
-- Annual dividend growth trend analysis
-- Long-term sector rotation strategies
+**季度視角（time_horizon="quarterly"）：**
+- 未來 3 個月除權息排程
+- 季度獲利對配息永續性的影響
+- 除息日前後的短期價格波動
 
-### Analysis Framework:
+**年度規劃（time_horizon="annual"）：**
+- 全年除權息行事曆規劃
+- 年度股利成長趨勢分析
+- 長期產業輪動策略
 
-**Step 1: Dividend Screening**
-- Screen for target dividend yields or growth rates
-- Verify upcoming ex-dividend dates and amounts
-- Check historical dividend consistency
+### 分析流程：
 
-**Step 2: Fundamental Validation**  
-- Assess earnings coverage and payout ratios
-- Review revenue stability and growth trends
-- Analyze balance sheet strength and cash flow
+**步驟一：股利篩選**
+- 依目標殖利率或成長率篩選
+- 確認即將到來的除權息日期與金額
+- 檢視歷史配息穩定度
 
-**Step 3: Market Positioning**
-- Compare with foreign investment preferences
-- Monitor popular dividend investment trends
-- Assess market timing and valuation levels
+**步驟二：基本面驗證**
+- 評估獲利覆蓋率與配息率
+- 檢視營收穩定度與成長趨勢
+- 分析資產負債結構與現金流
 
-### Output Format:
+**步驟三：市場定位**
+- 對照外資投資偏好
+- 觀察熱門股利投資趨勢
+- 評估市場時機與估值水位
 
-**📊 Dividend Investment Recommendations:**
+### 輸出格式骨架（僅示意結構，不含真實數字）：
 
-**Top Dividend Stocks:**
-1. **Company (Code)**: Yield X%, Ex-date: Date, Rationale
-2. **Company (Code)**: Yield X%, Ex-date: Date, Rationale
+**📊 股利投資建議：**
 
-**📅 Dividend Calendar (Next 3 Months):**
-- Week 1: Companies going ex-dividend, expected yields
-- Week 2: Companies going ex-dividend, expected yields  
-- [Continue for planning horizon]
+**優選股利股：**
+1. **[公司名稱]（[代號]）**：殖利率 [依工具回傳]、除息日 [依工具回傳]、選股理由
+2. ...
 
-**🎯 Strategy Insights:**
-- **Risk Assessment**: Dividend sustainability factors
-- **Entry Timing**: Optimal purchase windows
-- **Portfolio Construction**: Diversification recommendations
-- **Market Conditions**: Current dividend environment analysis
+**📅 除權息行事曆（未來 3 個月）：**
+- 依 `get_dividend_rights_schedule()` 實際回傳資料，依週別列出除權息個股與預估殖利率
 
-**💡 Advanced Strategies:**
-- Dividend capture opportunities  
-- Sector rotation based on dividend cycles
-- Tax optimization considerations
-- Foreign investment flow implications
+**🎯 策略洞察：**
+- **風險評估**：配息永續性因子
+- **進場時機**：合適的買進時間窗
+- **投資組合建構**：分散配置建議
+- **市場環境**：當前股利投資環境分析
 
-### Current Strategy Request:
-Strategy Type: {strategy_type}
-Time Horizon: {time_horizon}
+**💡 進階策略：**
+- 除權息套利機會
+- 依股利週期進行的產業輪動
+- 稅務考量
+- 外資流向的意涵
 
-Please provide comprehensive dividend investment strategy using the appropriate APIs above.
+### 本次策略請求：
+策略類型：{strategy_type}
+時間週期：{time_horizon}
+
+請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的股利投資策略。
 """
     return PromptMessage(role="user", content=TextContent(type="text", text=content))
