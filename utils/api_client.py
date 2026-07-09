@@ -16,17 +16,20 @@ class TWSEAPIClient:
     # Global instance for backward compatibility
     _instance: Optional['TWSEAPIClient'] = None
     
-    def __init__(self, 
-                 base_url: str = APIConfig.BASE_URL, 
+    def __init__(self,
+                 base_url: str = APIConfig.BASE_URL,
                  user_agent: str = APIConfig.USER_AGENT,
                  request_interval: float = APIConfig.REQUEST_INTERVAL,
-                 verify_ssl: bool = APIConfig.VERIFY_SSL):
+                 verify_ssl: bool = APIConfig.VERIFY_SSL,
+                 cache_ttl: float = APIConfig.CACHE_TTL):
         """Initialize the API client."""
         self.base_url = base_url
         self.user_agent = user_agent
         self.request_interval = request_interval
         self.verify_ssl = verify_ssl
+        self.cache_ttl = cache_ttl
         self._last_request_time = 0.0
+        self._cache: Dict[str, tuple[float, List[TWSEDataItem]]] = {}
 
     @classmethod
     def get_instance(cls) -> 'TWSEAPIClient':
@@ -66,8 +69,20 @@ class TWSEAPIClient:
         return resp
 
     def fetch_data(self, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
-        """Fetch from a TWSE OpenAPI endpoint (base_url-relative) and normalise to a list."""
+        """Fetch from a TWSE OpenAPI endpoint (base_url-relative) and normalise to a list.
+
+        Results are cached in-memory per endpoint for ``self.cache_ttl`` seconds. OpenAPI
+        list endpoints (company profiles, financials, governance, etc.) change at most daily,
+        but a single prompt often triggers several tools that read the same full list within
+        seconds of each other — the cache turns those into one HTTP round-trip.
+        """
         url = f"{self.base_url}{endpoint}"
+
+        if self.cache_ttl > 0:
+            cached = self._cache.get(url)
+            if cached is not None and time.time() - cached[0] < self.cache_ttl:
+                return cached[1]
+
         try:
             resp = self._request(url, timeout=timeout)
             try:
@@ -75,7 +90,10 @@ class TWSEAPIClient:
             except Exception as parse_err:
                 logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list")
                 return []
-            return data if isinstance(data, list) else ([data] if data else [])
+            result = data if isinstance(data, list) else ([data] if data else [])
+            if self.cache_ttl > 0:
+                self._cache[url] = (time.time(), result)
+            return result
         except Exception as e:
             logger.error(f"Failed to fetch data from {url}: {e}")
             raise
