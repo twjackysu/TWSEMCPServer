@@ -89,6 +89,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 - `TWSE_REQUEST_INTERVAL` (default: `0.5` seconds)
 - `TWSE_API_TIMEOUT` (default: `30.0` seconds)
 - `TWSE_VERIFY_SSL` (default: `false` — required for TWSE API compatibility)
+- `TWSE_CACHE_TTL` (default: `60` seconds — in-memory cache for `fetch_data` OpenAPI list responses; `0` disables)
 - `DISPLAY_LIMIT` (default: `20`)
 - `PYTEST_DELAY_SECONDS` (default: `1.0` — rate limit delay between tests)
 

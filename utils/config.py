@@ -40,6 +40,15 @@ class APIConfig:
         'false'
     ).lower() in ('true', '1', 'yes')
 
+    # TTL (seconds) for the in-memory OpenAPI list-response cache in TWSEAPIClient.fetch_data.
+    # A single prompt often triggers several tools that hit the same endpoint (e.g. multiple
+    # company-lookup tools reading the same full company list) within seconds of each other;
+    # this avoids re-downloading the whole list for each one. Set to 0 to disable caching.
+    CACHE_TTL: Final[float] = float(os.getenv(
+        'TWSE_CACHE_TTL',
+        '60'
+    ))
+
 
 class DisplayConfig:
     """Display and formatting configuration."""
