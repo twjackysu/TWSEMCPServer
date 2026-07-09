@@ -37,7 +37,7 @@ utils/
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
-├── decorators.py             # @handle_api_errors, @handle_empty_response
+├── decorators.py             # @handle_api_errors
 ├── formatters.py             # Data → string formatting functions
 ├── tool_factory.py           # create_company_tool() for dynamically named tools
 └── types.py                  # TWSEDataItem TypedDict, DataFormatter Protocol
@@ -72,8 +72,7 @@ The `client` is captured via closure. Tools are registered with `@mcp.tool` — 
 **API Client**: `TWSEAPIClient` has instance methods (`fetch_data`, `fetch_company_data`, `fetch_latest_market_data`) and class-method wrappers (`get_data`, `get_company_data`, `get_latest_market_data`) for backward compatibility. Instance methods are preferred. Includes built-in rate limiting (0.5s between requests). For non-OpenAPI sources (legacy TWSE, MIS, TPEx, TAIFEX), use `fetch_json(url, params)` / `get_json(url, params)` which accepts full URLs with query parameters and returns raw JSON.
 
 **Decorators**: Tool functions use decorators from `utils/decorators.py`:
-- `@handle_api_errors(data_type="...", use_code_param=True)` — wraps in try/except, returns localized error message
-- `@handle_empty_response(data_type="...")` — returns localized "no data" message for None/empty results
+- `@handle_api_errors(use_code_param=True)` — wraps in try/except, returns localized error message via `MSG_QUERY_FAILED`
 
 **Formatters**: `utils/formatters.py` provides:
 - `format_properties_with_values_multiline(data)` — single record dict → multiline string
@@ -111,7 +110,7 @@ Tests are E2E — they call real TWSE APIs (no mocking). The `conftest.py` has a
 1. Add tool function in the appropriate module under `tools/` (or create a new module)
 2. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
 3. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
-4. Use `@handle_api_errors()` and `@handle_empty_response()` decorators for standardized error handling
+4. Use `@handle_api_errors()` for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
 5. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
 6. Format output with utilities from `utils/formatters.py`
 7. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
