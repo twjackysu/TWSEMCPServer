@@ -46,7 +46,7 @@ Value/growth stock selection, ESG risk assessment
 
 ## ⚙️ Quick Start
 
-### 🚀 Online Usage (powered by [Prefect Horizon](https://www.prefect.io/))
+### 🚀 Online Usage (powered by [Prefect Horizon](https://horizon.prefect.io/))
 
 This project is powered by **Prefect Horizon**, which hosts a free remote MCP Server:
 ```json
@@ -58,9 +58,9 @@ This project is powered by **Prefect Horizon**, which hosts a free remote MCP Se
 }
 ```
 
-> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below, or a [Prefect Horizon](https://www.prefect.io/) paid plan.
+> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below, or a [Prefect Horizon](https://horizon.prefect.io/) paid plan.
 >
-> 🙏 Thanks to [Prefect Horizon](https://www.prefect.io/) for supporting this open-source project, making it easy for the community to try it out for free.
+> 🙏 Thanks to [Prefect Horizon](https://horizon.prefect.io/) for supporting this open-source project, making it easy for the community to try it out for free.
 
 ### 🐳 Docker (stdio)
 ```json

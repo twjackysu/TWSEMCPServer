@@ -46,7 +46,7 @@
 
 ## ⚙️ 快速開始
 
-### 🚀 線上使用（由 [Prefect Horizon](https://www.prefect.io/) 提供支援）
+### 🚀 線上使用（由 [Prefect Horizon](https://horizon.prefect.io/) 提供支援）
 
 本專案由 **Prefect Horizon** 提供支援，免費託管線上 remote MCP Server：
 ```json
@@ -58,9 +58,9 @@
 }
 ```
 
-> ⚠️ **使用限制**：為維持服務永續，此線上服務設有合理使用量上限（非無限制）。若需**商業使用**或較高呼叫量，強烈建議改用下方 Docker／本機方式自行架設伺服器，或使用 [Prefect Horizon](https://www.prefect.io/) 的付費方案。
+> ⚠️ **使用限制**：為維持服務永續，此線上服務設有合理使用量上限（非無限制）。若需**商業使用**或較高呼叫量，強烈建議改用下方 Docker／本機方式自行架設伺服器，或使用 [Prefect Horizon](https://horizon.prefect.io/) 的付費方案。
 >
-> 🙏 感謝 [Prefect Horizon](https://www.prefect.io/) 支援本開源專案，讓社群能免費輕鬆試用。
+> 🙏 感謝 [Prefect Horizon](https://horizon.prefect.io/) 支援本開源專案，讓社群能免費輕鬆試用。
 
 ### 🐳 Docker 使用（stdio）
 ```json
