@@ -46,7 +46,21 @@ Value/growth stock selection, ESG risk assessment
 
 ## ⚙️ Quick Start
 
-> ⚠️ **About the hosted service**: This project previously offered a free remote MCP Server via a third-party platform (Horizon). Since this project is a non-profit open-source project, that platform will cap the free tier at 500 tool calls/month starting end of August 2026 and no longer offers unlimited free usage, so the remote MCP Server is no longer the recommended way to use this project. We recommend self-hosting via Docker or a local install below instead.
+### 🚀 Online Usage (powered by [Prefect Horizon](https://www.prefect.io/))
+
+This project is powered by **Prefect Horizon**, which hosts a free remote MCP Server:
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
+  }
+}
+```
+
+> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below, or a [Prefect Horizon](https://www.prefect.io/) paid plan.
+>
+> 🙏 Thanks to [Prefect Horizon](https://www.prefect.io/) for supporting this open-source project, making it easy for the community to try it out for free.
 
 ### 🐳 Docker (stdio)
 ```json
