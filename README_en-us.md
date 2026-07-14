@@ -58,7 +58,7 @@ This project is powered by **Prefect Horizon**, which hosts a free remote MCP Se
 }
 ```
 
-> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below.
+> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below, or a [Prefect Horizon](https://www.prefect.io/) paid plan.
 >
 > 🙏 Thanks to [Prefect Horizon](https://www.prefect.io/) for supporting this open-source project, making it easy for the community to try it out for free.
 
