@@ -46,7 +46,9 @@ Value/growth stock selection, ESG risk assessment
 
 ## ⚙️ Quick Start
 
-### 🚀 Online Usage (hosted on Prefect Horizon)
+### 🚀 Online Usage (powered by [Prefect Horizon](https://www.prefect.io/))
+
+This project is powered by **Prefect Horizon**, which hosts a free remote MCP Server:
 ```json
 {
   "twstockmcpserver": {
@@ -56,9 +58,9 @@ Value/growth stock selection, ESG risk assessment
 }
 ```
 
-> ⚠️ **Usage limit**: This hosted service is provided free of charge by a third-party platform, [Prefect Horizon](https://www.prefect.io/). Starting end of August 2026, the free tier is capped at **500 tool calls per month**, after which the service stops. For **commercial use** or higher call volumes, please self-host via the Docker / local install below, or contact [Prefect Horizon](https://www.prefect.io/) about a paid plan.
+> ⚠️ **Usage limit**: To keep the service sustainable, it has a fair-use ceiling (not unlimited). For **commercial use** or higher call volumes, we strongly recommend self-hosting via Docker / local install below.
 >
-> 🙏 Thanks to [Prefect Horizon](https://www.prefect.io/) for graciously hosting this open-source project for free, making it easy for the community to try it out (it auto-syncs with the repo on every push).
+> 🙏 Thanks to [Prefect Horizon](https://www.prefect.io/) for supporting this open-source project, making it easy for the community to try it out for free.
 
 ### 🐳 Docker (stdio)
 ```json
