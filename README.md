@@ -46,7 +46,19 @@
 
 ## ⚙️ 快速開始
 
-> ⚠️ **關於線上託管服務**：本專案先前透過第三方平台（Horizon）提供免費的遠端 MCP Server。由於本專案為非營利開源專案，該平台自 2026 年 8 月底起將免費額度限制為每月 500 次工具呼叫，不再提供無限制的免費使用，因此不再首選推薦使用 remote MCP Server，建議改用下方 Docker 或本機方式自架 server。
+### 🚀 線上使用（由 Prefect Horizon 託管）
+```json
+{
+  "twstockmcpserver": {
+    "transport": "streamable_http",
+    "url": "https://TW-Stock-MCP-Server.fastmcp.app/mcp"
+  }
+}
+```
+
+> ⚠️ **使用限制**：此線上服務由第三方平台 [Prefect Horizon](https://www.prefect.io/) 免費託管。自 2026 年 8 月底起，免費方案上限為**每月 500 次工具呼叫**，超過後將停止服務。若需**商業使用**或較高呼叫量，建議改用下方 Docker／本機方式自行架設伺服器，或洽詢 [Prefect Horizon](https://www.prefect.io/) 的付費方案。
+>
+> 🙏 感謝 [Prefect Horizon](https://www.prefect.io/) 長期免費託管本開源專案，讓社群能輕鬆試用（每次 push 皆會自動同步 repo）。
 
 ### 🐳 Docker 使用（stdio）
 ```json
