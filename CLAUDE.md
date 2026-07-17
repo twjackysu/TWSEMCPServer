@@ -53,7 +53,11 @@ tools/
 ├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
                               #   institutional_details, daily_market_report, large_traders_oi,
-                              #   options_analytics, margin, trading_statistics
+                              #   options_analytics, margin, trading_statistics, futures_daily_history,
+                              #   institutional_futures_history (latter two scrape www.taifex.com.tw's
+                              #   HTML-form download endpoints for multi-day history; openapi.taifex.com.tw
+                              #   has no historical query support — every openapi endpoint returns only
+                              #   the latest trading day, confirmed by testing all 135 of its endpoints)
 prompts/                      # 9 prompt templates registered in server.py
 ```
 
