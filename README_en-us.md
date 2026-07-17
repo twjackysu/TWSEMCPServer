@@ -44,6 +44,30 @@ High-yield screening, ex-dividend calendar, payout stability analysis
 Value/growth stock selection, ESG risk assessment
 > *"Help me find some undervalued stocks" / "Which companies have good ESG performance?"*
 
+## 🧮 Advanced Features
+
+### Futures & Options Positioning
+Put/Call ratio, large-trader open interest, 三大法人 futures/options positions
+> *"Is TX futures positioning bullish or bearish right now?" / "Where are large options traders positioned?"*
+
+### Institutional Investor Flow
+TWSE/OTC 三大法人 buy/sell, foreign investment by industry
+> *"What are institutional investors buying today?" / "Which industry are foreign investors adding to?"*
+
+### Company Fundamental Health Check
+Profitability, growth, balance sheet, dividend policy, governance across five dimensions
+> *"Give me a fundamental health check on TSMC" / "Is this company's financial health solid?"*
+
+### Pre-Trade Risk Scan
+Cross-checks disposal/warning/day-trading-restriction/margin-restriction lists
+> *"Is this stock flagged for disposal or under a warning before I buy?"*
+
+### Futures / Institutional Historical Lookback
+openapi.taifex.com.tw only ever returns the latest trading day. This project additionally
+scrapes TAIFEX's own website download pages (www.taifex.com.tw) for real historical data —
+daily OHLC history for futures contracts, and 三大法人 futures position history
+> *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?"*
+
 ## ⚙️ Quick Start
 
 ### 🚀 Online Usage (powered by [Prefect Horizon](https://horizon.prefect.io/))
@@ -96,6 +120,7 @@ uv sync && uv run fastmcp dev server.py
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors (per-stock/summary), P/E ratio, margin balance, warning/disposal stocks, ex-rights/dividends, odd-lot, index | 10 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |
+| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own historical data-download pages — futures daily OHLC history, 三大法人 futures position history (openapi.taifex.com.tw only returns the latest trading day, no historical query support) | 2 |
 
 ## 🤝 Contributing
 PRs welcome!

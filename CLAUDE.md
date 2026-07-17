@@ -10,6 +10,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
+- **TAIFEX 網站下載** (`www.taifex.com.tw`) — 2 tools: 期貨每日OHLC歷史、三大法人期貨部位歷史（HTML表單下載頁面，非 openapi.taifex.com.tw；後者無任何歷史查詢功能，僅回傳最新一個交易日）
 
 ## Development Commands
 
