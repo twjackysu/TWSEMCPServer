@@ -5,13 +5,11 @@ which hits openapi.taifex.com.tw and only ever returns the latest trading day. T
 www.taifex.com.tw's HTML-form download endpoint, which genuinely accepts an arbitrary date range.
 """
 
-import csv
-import io
-from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 from .futures_position import TAIFEX_HEADERS
+from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
 
 FUT_CONTRACTS_DATE_DOWN_URL = "https://www.taifex.com.tw/cht/3/futContractsDateDown"
 
@@ -19,10 +17,6 @@ FUT_CONTRACTS_DATE_DOWN_URL = "https://www.taifex.com.tw/cht/3/futContractsDateD
 # ~3 rows/trading-day/contract (dealer/investment trust/foreign), so cap client-side to keep
 # tool output manageable.
 MAX_SPAN_DAYS = 92
-
-
-def _parse_yyyymmdd(value: str) -> datetime:
-    return datetime.strptime(value, "%Y%m%d")
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -48,8 +42,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             區間內每個交易日、自營商/投信/外資及陸資的多空交易口數、契約金額、未平倉資訊
         """
         try:
-            start_dt = _parse_yyyymmdd(start_date)
-            end_dt = _parse_yyyymmdd(end_date)
+            start_dt = parse_yyyymmdd(start_date)
+            end_dt = parse_yyyymmdd(end_date)
         except ValueError:
             return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260601），收到：start_date={start_date}, end_date={end_date}"
 
@@ -69,26 +63,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 "commodityId": contract,
             },
         )
-        text = body.decode("big5", errors="replace")
-
-        if "DateTime error" in text or text.lstrip().lower().startswith("<html"):
+        parsed = decode_and_parse_csv(body)
+        contract_label = contract or "全部契約"
+        if parsed is None:
             return (
-                f"查詢失敗，日期區間可能超出資料保存範圍（約近 3 年內）或格式有誤："
-                f"{start_date}～{end_date}"
+                f"查無契約 {contract_label} 在 {start_date}～{end_date} 的三大法人資料，"
+                f"請確認契約代碼是否正確；日期區間也可能超出資料保存範圍（約近 3 年內）"
             )
 
-        rows = list(csv.reader(io.StringIO(text)))
-        if len(rows) < 2:
-            contract_label = contract or "全部契約"
-            return f"查無契約 {contract_label} 在 {start_date}～{end_date} 的三大法人資料，請確認契約代碼是否正確"
-
-        header, data_rows = rows[0], rows[1:]
-        data_rows = [r for r in data_rows if len(r) >= len(header) and r[0].strip()]
-        if not data_rows:
-            contract_label = contract or "全部契約"
-            return f"查無契約 {contract_label} 在 {start_date}～{end_date} 的三大法人資料（可能非交易日或契約代碼錯誤）"
-
-        contract_label = contract or "全部契約"
+        _header, data_rows = parsed
         lines = [
             f"【三大法人期貨部位歷史】契約:{contract_label} 區間:{start_date}~{end_date}（共 {len(data_rows)} 筆）\n"
         ]

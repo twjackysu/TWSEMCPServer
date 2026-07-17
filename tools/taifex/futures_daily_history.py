@@ -1,9 +1,14 @@
-"""TAIFEX futures daily OHLC history (multi-day download, not exposed via openapi.taifex.com.tw)."""
+"""TAIFEX futures daily OHLC history (multi-day download, not exposed via openapi.taifex.com.tw).
+
+Also home to the shared helpers for parsing/decoding www.taifex.com.tw's HTML-form CSV
+download responses, reused by institutional_futures_history.py — the same pattern as
+TAIFEX_HEADERS living in futures_position.py and being imported by sibling modules.
+"""
 
 import csv
 import io
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Tuple
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 from .futures_position import TAIFEX_HEADERS
@@ -18,8 +23,31 @@ FUT_DATA_DOWN_URL = "https://www.taifex.com.tw/cht/3/futDataDown"
 MAX_SPAN_DAYS = 31
 
 
-def _parse_yyyymmdd(value: str) -> datetime:
+def parse_yyyymmdd(value: str) -> datetime:
     return datetime.strptime(value, "%Y%m%d")
+
+
+def decode_and_parse_csv(body: bytes) -> Optional[Tuple[List[str], List[List[str]]]]:
+    """Decode a Big5 CSV response body from a www.taifex.com.tw download endpoint.
+
+    These endpoints return an HTML alert page (not an HTTP error status) when the query is
+    rejected (bad/out-of-range dates), so that case is detected here and signaled as None
+    rather than surfaced as parsed rows. Returns (header, data_rows) on success.
+    """
+    text = body.decode("big5", errors="replace")
+    if "DateTime error" in text or text.lstrip().lower().startswith("<html"):
+        return None
+
+    rows = list(csv.reader(io.StringIO(text)))
+    if len(rows) < 2:
+        return None
+
+    header, data_rows = rows[0], rows[1:]
+    data_rows = [r for r in data_rows if len(r) >= len(header) and r[0].strip()]
+    if not data_rows:
+        return None
+
+    return header, data_rows
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -45,8 +73,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             區間內每個交易日、每個到期月份、一般與盤後時段的開高低收、成交量、未平倉資訊
         """
         try:
-            start_dt = _parse_yyyymmdd(start_date)
-            end_dt = _parse_yyyymmdd(end_date)
+            start_dt = parse_yyyymmdd(start_date)
+            end_dt = parse_yyyymmdd(end_date)
         except ValueError:
             return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260601），收到：start_date={start_date}, end_date={end_date}"
 
@@ -68,20 +96,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 "queryEndDate": end_dt.strftime("%Y/%m/%d"),
             },
         )
-        text = body.decode("big5", errors="replace")
+        parsed = decode_and_parse_csv(body)
+        if parsed is None:
+            return f"查無契約 {contract} 在 {start_date}～{end_date} 的行情資料，請確認契約代碼是否正確、日期區間是否為交易日"
 
-        if "DateTime error" in text or text.lstrip().lower().startswith("<html"):
-            return f"查詢失敗，日期區間可能超出資料範圍（{start_date}～{end_date}）或格式有誤"
-
-        rows = list(csv.reader(io.StringIO(text)))
-        if len(rows) < 2:
-            return f"查無契約 {contract} 在 {start_date}～{end_date} 的行情資料，請確認契約代碼是否正確"
-
-        header, data_rows = rows[0], rows[1:]
-        data_rows = [r for r in data_rows if len(r) >= len(header) and r[0].strip()]
-        if not data_rows:
-            return f"查無契約 {contract} 在 {start_date}～{end_date} 的行情資料（可能非交易日或契約代碼錯誤）"
-
+        _header, data_rows = parsed
         lines = [f"【期貨每日OHLC歷史行情】契約:{contract} 區間:{start_date}~{end_date}（共 {len(data_rows)} 筆）\n"]
         for r in data_rows:
             date, _contract, month, o, h, l, c = r[0], r[1], r[2].strip(), r[3], r[4], r[5], r[6]
