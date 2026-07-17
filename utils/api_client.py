@@ -52,13 +52,17 @@ class TWSEAPIClient:
         params: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
         timeout: float = APIConfig.DEFAULT_TIMEOUT,
+        method: str = "GET",
+        data: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
-        """Throttle, send GET, stamp last-request time, and return the response."""
+        """Throttle, send GET/POST, stamp last-request time, and return the response."""
         self._throttle()
-        logger.info(f"Fetching {url} params={params}")
-        resp = requests.get(
+        logger.info(f"Fetching {method} {url} params={params}")
+        resp = requests.request(
+            method,
             url,
             params=params,
+            data=data,
             headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
             verify=self.verify_ssl,
             timeout=timeout,
@@ -134,6 +138,26 @@ class TWSEAPIClient:
             return self._request(url, params=params, headers=headers, timeout=timeout).json()
         except Exception as e:
             logger.error(f"Failed to fetch JSON from {url}: {e}")
+            raise
+
+    def fetch_bytes(
+        self,
+        url: str,
+        data: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        timeout: float = APIConfig.DEFAULT_TIMEOUT,
+        method: str = "GET",
+    ) -> bytes:
+        """Fetch raw response bytes from an arbitrary full URL, supporting POST form submissions.
+
+        Used for HTML-form download endpoints that return non-JSON bodies (e.g. Big5-encoded
+        CSV from www.taifex.com.tw's data-download pages), which callers decode themselves.
+        """
+        try:
+            return self._request(url, params=params, data=data, headers=headers, timeout=timeout, method=method).content
+        except Exception as e:
+            logger.error(f"Failed to fetch bytes from {url}: {e}")
             raise
 
     @classmethod
