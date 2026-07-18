@@ -190,3 +190,69 @@ class TestOptionsDailyHistoryAPI:
         )
         contracts = set(r[1].strip() for r in rows[1:] if r and len(r) > 1)
         assert contracts == {"TXO"}, f"commodity_id 篩選行為可能已變更: {contracts}"
+
+
+class TestInstitutionalTotalHistoryAPI:
+    """Tool get_institutional_total_history 依 index 存取的欄位順序：
+    0=日期 1=身份別 2=多方交易口數 3=多方交易契約金額(百萬元) 4=空方交易口數
+    5=空方交易契約金額(百萬元) 6=多空交易口數淨額 7=多空交易契約金額淨額(百萬元)
+    8=多方未平倉口數 10=空方未平倉口數 12=多空未平倉口數淨額
+    """
+
+    def test_hardcoded_column_order(self):
+        rows = _post_csv(
+            "https://www.taifex.com.tw/cht/3/totalTableDateDown",
+            {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/03"},
+        )
+        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
+        header = rows[0]
+        expected = [
+            "日期", "身份別",
+            "多方交易口數", "多方交易契約金額(百萬元)", "空方交易口數", "空方交易契約金額(百萬元)",
+            "多空交易口數淨額", "多空交易契約金額淨額(百萬元)",
+            "多方未平倉口數", "多方未平倉契約金額(百萬元)", "空方未平倉口數", "空方未平倉契約金額(百萬元)",
+            "多空未平倉口數淨額", "多空未平倉契約金額淨額(百萬元)",
+        ]
+        assert header == expected, f"欄位順序異動: {header}"
+
+
+class TestOptionsInstitutionalByContractHistoryAPI:
+    """Tool get_options_institutional_by_contract_history 依 index 存取的欄位順序：
+    0=日期 1=商品名稱 2=身份別 3=多方交易口數 5=空方交易口數 7=多空交易口數淨額
+    9=多方未平倉口數 11=空方未平倉口數 13=多空未平倉口數淨額
+    """
+
+    def test_hardcoded_column_order(self):
+        rows = _post_csv(
+            "https://www.taifex.com.tw/cht/3/optContractsDateDown",
+            {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/03", "commodityId": "TXO"},
+        )
+        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
+        header = rows[0]
+        expected = [
+            "日期", "商品名稱", "身份別",
+            "多方交易口數", "多方交易契約金額(千元)", "空方交易口數", "空方交易契約金額(千元)",
+            "多空交易口數淨額", "多空交易契約金額淨額(千元)",
+            "多方未平倉口數", "多方未平倉契約金額(千元)", "空方未平倉口數", "空方未平倉契約金額(千元)",
+            "多空未平倉口數淨額", "多空未平倉契約金額淨額(千元)",
+        ]
+        assert header == expected, f"欄位順序異動: {header}"
+
+
+class TestInstitutionalFutOptSplitHistoryAPI:
+    """Tool get_institutional_fut_opt_split_history 依 index 存取的欄位（期貨=偶數index、選擇權=奇數index）：
+    0=日期 1=身份別 2/3=多方交易口數(期貨/選擇權) 6/7=空方交易口數 10/11=多空交易口數淨額
+    14/15=多方未平倉口數 18/19=空方未平倉口數 22/23=多空未平倉口數淨額
+    """
+
+    def test_hardcoded_column_order(self):
+        rows = _post_csv(
+            "https://www.taifex.com.tw/cht/3/futAndOptDateDown",
+            {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/03"},
+        )
+        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
+        header = rows[0]
+        assert len(header) == 26, f"欄位數不為 26，header 結構可能已變更: {header}"
+        assert header[0] == "日期" and header[1] == "身份別", f"前兩欄異動: {header[:2]}"
+        assert "期貨" in header[2] and "選擇權" in header[3], f"欄位2/3應為期貨/選擇權多方交易口數: {header[2:4]}"
+        assert "期貨" in header[22] and "選擇權" in header[23], f"欄位22/23應為期貨/選擇權多空未平倉口數淨額: {header[22:24]}"

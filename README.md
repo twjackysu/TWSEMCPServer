@@ -119,7 +119,7 @@ uv sync && uv run fastmcp dev server.py
 | [MIS 即時報價](https://mis.twse.com.tw) | 盤中即時多股報價（上市+上櫃） | 1 個 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | 櫃買中心 — 上櫃日收盤、三大法人（個股/彙總）、本益比、融資融券、注意/處置股、除權息、零股、指數 | 10 個 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | 期交所 — 三大法人系列、大額交易人部位、每日行情、選擇權分析、保證金、年月統計 | 16 個 |
-| [TAIFEX 網站下載](https://www.taifex.com.tw) | 期交所網站歷史資料下載頁面 — 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史、選擇權每日OHLC歷史（openapi.taifex.com.tw 僅提供最新一日，無歷史查詢功能） | 6 個 |
+| [TAIFEX 網站下載](https://www.taifex.com.tw) | 期交所網站歷史資料下載頁面 — 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史、選擇權每日OHLC歷史、三大法人期貨+選擇權總表歷史、三大法人期貨/選擇權分計歷史、三大法人各選擇權契約歷史（openapi.taifex.com.tw 僅提供最新一日，無歷史查詢功能） | 9 個 |
 
 ## 🤝 參與貢獻
 歡迎PR！
