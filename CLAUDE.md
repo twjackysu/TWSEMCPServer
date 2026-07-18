@@ -49,7 +49,10 @@ tools/
 ├── company/                  # Company tools: basic_info, financials, esg, listing, news
 ├── trading/                  # Trading tools: daily, periodic, valuation, dividend_schedule, etf, market, warrants
 ├── market/                   # Market tools: indices, statistics, foreign
-├── history/                  # TWSE legacy: stock_day, stock_day_avg, bwibbu_all, margin_balance (exchangeReport); institutional (T86)
+├── history/                  # TWSE legacy: stock_day, stock_day_avg, bwibbu_all, margin_balance (exchangeReport); institutional (T86);
+                              #   institutional_amounts, all_stocks_daily_close, market_turnover, taiex_index_history,
+                              #   foreign_holdings_history (rwd/* endpoints — accept arbitrary past dates, unlike the
+                              #   openapi.twse.com.tw equivalents which only return a rolling ~12-day window)
 ├── realtime/                 # MIS real-time quotes: stock_info
 ├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
