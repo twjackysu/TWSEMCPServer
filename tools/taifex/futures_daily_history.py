@@ -43,7 +43,10 @@ def decode_and_parse_csv(body: bytes) -> Optional[Tuple[List[str], List[List[str
         return None
 
     header, data_rows = rows[0], rows[1:]
-    data_rows = [r for r in data_rows if len(r) >= len(header) and r[0].strip()]
+    # Tolerate a 1-column length mismatch: some endpoints (e.g. optDataDown) have a
+    # trailing comma in the header row that isn't present in data rows.
+    min_cols = len(header) - 1
+    data_rows = [r for r in data_rows if len(r) >= min_cols and r[0].strip()]
     if not data_rows:
         return None
 
