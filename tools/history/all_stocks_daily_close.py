@@ -19,13 +19,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_all_stocks_daily_close(date: str, name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_all_stocks_daily_close(date: str, stock_no: str = "", name: str = "",
+                                    limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢指定日期全部上市股票的每日收盤行情（開高低收、成交量、本益比）。
         與 get_stock_history（單一股票查一整月）互補：此工具是「單一日期查全市場」，
         適合抓某天的市場快照或篩選特定條件的股票。
 
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
+            stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
@@ -50,6 +52,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"查無 {date} 的個股收盤行情資料"
 
         data = stock_table["data"]
+        if stock_no:
+            data = [row for row in data if row[0].strip() == stock_no]
+            if not data:
+                return f"查無股票代號 {stock_no} 在 {date} 的收盤行情"
         if name:
             data = [row for row in data if name in row[1]]
             if not data:
