@@ -64,7 +64,7 @@ Cross-checks disposal/warning/day-trading-restriction/margin-restriction lists
 
 ### Futures / Institutional Historical Lookback
 openapi.taifex.com.tw only ever returns the latest trading day. This project additionally
-scrapes TAIFEX's own website download pages (www.taifex.com.tw) for real historical data —
+scrapes TAIFEX's own website download pages (`www.taifex.com.tw`) for real historical data —
 daily OHLC history for futures contracts, and 三大法人 futures position history
 > *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?"*
 
