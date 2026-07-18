@@ -53,6 +53,6 @@
 
 ## 進度
 
-- [ ] PR-A：TWSE Tier 1（#1–#5）
-- [ ] PR-B：TAIFEX Tier 1（#6–#9）
+- [x] PR-A：TWSE Tier 1（#1–#5）— #53
+- [x] PR-B：TAIFEX Tier 1（#6–#9）— #54
 - [ ] PR-C：Tier 2（#10–#15）
