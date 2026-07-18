@@ -69,9 +69,41 @@ class TestDailyOptionsMarketReportAPI:
         assert any(x.get("Contract") == "TXO" for x in daily_market_report_opt)
 
 
+def _fetch_large_traders_oi_futures() -> list:
+    """OpenInterestOfLargeTradersFutures started returning CSV instead of JSON as of
+    2026-07 (confirmed genuine upstream regression, not a header/format issue on our
+    side — the sibling Options endpoint is unaffected). Tool get_large_traders_futures_oi
+    tolerates this via a JSON-with-CSV-fallback helper; mirror that here so this test
+    keeps validating the fields the tool actually depends on regardless of which format
+    the API happens to be serving.
+    """
+    resp = requests.get(
+        "https://openapi.taifex.com.tw/v1/OpenInterestOfLargeTradersFutures",
+        headers=HEADERS, verify=False, timeout=15,
+    )
+    try:
+        return resp.json()
+    except requests.exceptions.JSONDecodeError:
+        pass
+
+    import csv
+    import io
+
+    header_map = {
+        "日期": "Date", "契約": "Contract", "商品名稱(契約名稱)": "ContractName",
+        "到期月份(週別)": "SettlementMonth", "交易人類別": "TypeOfTraders",
+        "前五大交易人買方數量": "Top5Buy", "前五大交易人賣方數量": "Top5Sell",
+        "前十大交易人買方數量": "Top10Buy", "前十大交易人賣方數量": "Top10Sell",
+        "全市場未沖銷部位數": "OIOfMarket",
+    }
+    rows = list(csv.reader(io.StringIO(resp.content.decode("utf-8-sig", errors="replace"))))
+    header = [header_map.get(h.strip(), h.strip()) for h in rows[0]]
+    return [dict(zip(header, r)) for r in rows[1:] if r and r[0].strip()]
+
+
 @pytest.fixture(scope="class")
 def large_traders_oi_futures():
-    return _fetch("OpenInterestOfLargeTradersFutures")
+    return _fetch_large_traders_oi_futures()
 
 
 class TestLargeTradersOIFuturesAPI:
