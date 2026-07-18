@@ -1,6 +1,9 @@
 """TAIFEX large traders open interest data."""
 
-from typing import Optional
+import csv
+import io
+import json
+from typing import Any, Dict, List, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 from .futures_position import TAIFEX_HEADERS
@@ -10,6 +13,42 @@ TAIFEX_LT_OPT_URL = "https://openapi.taifex.com.tw/v1/OpenInterestOfLargeTraders
 
 _TYPE_LABELS = {"0": "所有交易人", "1": "特定法人"}
 _SETTLE_LABELS = {"666666": "所有月份合計", "999912": "所有月份總計"}
+
+# As of 2026-07, OpenInterestOfLargeTradersFutures started returning CSV instead of the
+# documented JSON (confirmed via curl with an explicit Accept: application/json header —
+# a genuine upstream regression, not a request-formatting issue on our side). The sibling
+# OpenInterestOfLargeTradersOptions endpoint is unaffected. Map CSV header text (Chinese)
+# to the JSON field names the rest of this module already expects, so a future reversal
+# back to JSON needs no further changes here.
+_CSV_HEADER_TO_FIELD = {
+    "日期": "Date",
+    "契約": "Contract",
+    "商品名稱(契約名稱)": "ContractName",
+    "到期月份(週別)": "SettlementMonth",
+    "交易人類別": "TypeOfTraders",
+    "前五大交易人買方數量": "Top5Buy",
+    "前五大交易人賣方數量": "Top5Sell",
+    "前十大交易人買方數量": "Top10Buy",
+    "前十大交易人賣方數量": "Top10Sell",
+    "全市場未沖銷部位數": "OIOfMarket",
+}
+
+
+def _fetch_json_with_csv_fallback(client: TWSEAPIClient, url: str, headers: Dict[str, str]) -> List[Dict[str, Any]]:
+    """Fetch a TAIFEX OpenAPI list endpoint, tolerating a CSV response where JSON is expected."""
+    body = client.fetch_bytes(url, headers=headers)
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        pass
+
+    text = body.decode("utf-8-sig", errors="replace")
+    rows = list(csv.reader(io.StringIO(text)))
+    if len(rows) < 2:
+        return []
+
+    header = [_CSV_HEADER_TO_FIELD.get(h.strip(), h.strip()) for h in rows[0]]
+    return [dict(zip(header, row)) for row in rows[1:] if row and row[0].strip()]
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -28,7 +67,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             前五大／前十大交易人的多空部位及市場總未平倉，區分所有交易人與特定法人
         """
-        data = _client.fetch_json(TAIFEX_LT_FUT_URL, headers=TAIFEX_HEADERS)
+        data = _fetch_json_with_csv_fallback(_client, TAIFEX_LT_FUT_URL, TAIFEX_HEADERS)
 
         if not isinstance(data, list) or not data:
             return "查無期貨大額交易人未沖銷部位資料"
