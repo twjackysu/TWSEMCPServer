@@ -13,21 +13,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_institutional_amounts_history(date: str, period: str = "day") -> str:
-        """查詢台灣上市市場三大法人（自營商、投信、外資及陸資）買賣金額統計表。
+    def get_market_institutional_amounts_history(date: str) -> str:
+        """查詢台灣上市市場三大法人（自營商、投信、外資及陸資）買賣金額統計表（單日）。
         與 get_twse_institutional_investors_summary（個股買賣超股數）不同，此工具回傳的是
         「市場層級」的買賣「金額」總計，適合快速回答「外資今天整體買超/賣超多少」。
 
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
-            period: 統計區間，"day"（日）、"week"（週）或 "month"（月），預設 "day"
 
         Returns:
             自營商（自行買賣/避險）、投信、外資及陸資（含外資自營商）的買進/賣出/買賣差額金額（元），及三大法人合計
         """
         resp = _client.fetch_json(
             BFI82U_URL,
-            params={"response": "json", "dayDate": date, "type": period},
+            params={"response": "json", "dayDate": date, "type": "day"},
         )
 
         if not resp or resp.get("stat") != "OK":
