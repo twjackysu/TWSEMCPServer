@@ -10,7 +10,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
-- **TAIFEX 網站下載** (`www.taifex.com.tw`) — 6 tools: 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史（無伺服器端契約篩選，本地端過濾）、選擇權每日OHLC歷史（HTML表單下載頁面，非 openapi.taifex.com.tw；後者無任何歷史查詢功能，僅回傳最新一個交易日）
+- **TAIFEX 網站下載** (`www.taifex.com.tw`) — 9 tools: 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史（無伺服器端契約篩選，本地端過濾）、選擇權每日OHLC歷史、三大法人期貨+選擇權總表歷史、三大法人期貨/選擇權分計歷史、三大法人各選擇權契約歷史（HTML表單下載頁面，非 openapi.taifex.com.tw；後者無任何歷史查詢功能，僅回傳最新一個交易日）
 
 ## Development Commands
 
@@ -61,10 +61,13 @@ tools/
                               #   options_analytics, margin, trading_statistics, futures_daily_history,
                               #   institutional_futures_history, put_call_ratio_history,
                               #   options_institutional_history, large_traders_futures_history,
-                              #   options_daily_history (latter six scrape www.taifex.com.tw's
-                              #   HTML-form download endpoints for multi-day history; openapi.taifex.com.tw
-                              #   has no historical query support — every openapi endpoint returns only
-                              #   the latest trading day, confirmed by testing all 135 of its endpoints)
+                              #   options_daily_history, institutional_total_history,
+                              #   institutional_fut_opt_split_history,
+                              #   options_institutional_by_contract_history (latter nine scrape
+                              #   www.taifex.com.tw's HTML-form download endpoints for multi-day
+                              #   history; openapi.taifex.com.tw has no historical query support —
+                              #   every openapi endpoint returns only the latest trading day,
+                              #   confirmed by testing all 135 of its endpoints)
 prompts/                      # 9 prompt templates registered in server.py
 ```
 

@@ -120,7 +120,7 @@ uv sync && uv run fastmcp dev server.py
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors (per-stock/summary), P/E ratio, margin balance, warning/disposal stocks, ex-rights/dividends, odd-lot, index | 10 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |
-| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own historical data-download pages — futures daily OHLC history, 三大法人 futures position history, Put/Call Ratio history, 三大法人 options calls/puts history, large-trader futures OI history, options daily OHLC history (openapi.taifex.com.tw only returns the latest trading day, no historical query support) | 6 |
+| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own historical data-download pages — futures daily OHLC history, 三大法人 futures position history, Put/Call Ratio history, 三大法人 options calls/puts history, large-trader futures OI history, options daily OHLC history, 三大法人 futures+options total history, futures/options split history, options-by-contract history (openapi.taifex.com.tw only returns the latest trading day, no historical query support) | 9 |
 
 ## 🤝 Contributing
 PRs welcome!
