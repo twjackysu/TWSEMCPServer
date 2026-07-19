@@ -1,6 +1,6 @@
 """測試第二批新增 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在。"""
 
-import requests
+from tests.helpers import fetch_or_skip
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -9,11 +9,10 @@ HEADERS = {
 
 
 def _fetch(endpoint: str) -> list:
-    resp = requests.get(
+    return fetch_or_skip(
         f"https://openapi.taifex.com.tw/v1/{endpoint}",
-        headers=HEADERS, verify=False, timeout=15,
+        headers=HEADERS, timeout=15,
     )
-    return resp.json()
 
 
 class TestInstitutionalTradersByFuturesAPI:

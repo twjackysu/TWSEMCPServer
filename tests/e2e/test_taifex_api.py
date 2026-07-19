@@ -1,6 +1,6 @@
 """測試 openapi.taifex.com.tw 期交所 API。只驗證 tool 寫死的欄位。"""
 
-import requests
+from tests.helpers import fetch_or_skip
 
 # TAIFEX requires browser-like User-Agent
 HEADERS = {
@@ -10,11 +10,10 @@ HEADERS = {
 
 
 def _fetch(endpoint: str) -> list:
-    resp = requests.get(
+    return fetch_or_skip(
         f"https://openapi.taifex.com.tw/v1/{endpoint}",
-        headers=HEADERS, verify=False, timeout=15,
+        headers=HEADERS, timeout=15,
     )
-    return resp.json()
 
 
 class TestFuturesInstitutionalAPI:
