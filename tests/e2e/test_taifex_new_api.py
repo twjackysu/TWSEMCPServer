@@ -1,6 +1,7 @@
 """測試新增的 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在，不驗證動態欄位。"""
 
 import pytest
+import requests
 from tests.helpers import fetch_or_skip
 
 HEADERS = {
