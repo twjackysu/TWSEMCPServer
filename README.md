@@ -1,5 +1,7 @@
 # 🚀 TWStockMCPServer
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Ftwjackysu%2FTWSEMCPServer.svg)](https://mcptoplist.com/server/glama%2Ftwjackysu%2FTWSEMCPServer)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://modelcontextprotocol.io/)
