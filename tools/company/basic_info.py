@@ -71,14 +71,14 @@ SIMPLE_LIST_TOOLS = [
         "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。",
         "經營權異動且營業範圍重大變更停止買賣公司資料", "經營權異動且營業範圍重大變更停止買賣公司",
         None, None,
-        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('停止買賣日期', 'N/A')}\n",
+        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('停止買賣開始日', 'N/A')}\n",
     ),
     (
         "/opendata/t187ap27_L", "get_companies_ownership_changes_business_scope_trading",
         "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。",
         "經營權異動且營業範圍重大變更列為變更交易公司資料", "經營權異動且營業範圍重大變更列為變更交易公司",
         None, None,
-        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('變更日期', 'N/A')}\n",
+        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('變更交易開始日', 'N/A')}\n",
     ),
     (
         "/opendata/t187ap33_L", "get_company_ceo_dual_role",
