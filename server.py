@@ -1,8 +1,10 @@
 """Main MCP server for Taiwan Stock Exchange data analysis."""
 
+from collections.abc import Mapping
 from fastmcp import FastMCP
 from fastmcp.prompts.prompt import PromptMessage
 import logging
+import os
 
 from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
 from prompts.foreign_investment_analysis_prompt import foreign_investment_analysis_prompt
@@ -15,13 +17,44 @@ from prompts.company_fundamental_healthcheck_prompt import company_fundamental_h
 from prompts.pre_trade_risk_scan_prompt import pre_trade_risk_scan_prompt
 from tools import register_all_tools
 from utils.api_client import TWSEAPIClient
+from utils.http_auth import APIKeyTokenVerifier
 
 # Configure logging (similar to .NET ILogger)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
+
+class TWSEFastMCP(FastMCP):
+    """FastMCP server that also secures HTTP runs started through the CLI."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._http_api_key_auth_configured = False
+
+    def configure_http_auth(
+        self, environ: Mapping[str, str] | None = None
+    ) -> None:
+        """Attach environment-managed API-key auth to HTTP transports."""
+        self.auth = APIKeyTokenVerifier.from_environment(environ)
+        self._http_api_key_auth_configured = True
+
+    async def run_async(
+        self, transport=None, show_banner: bool = True, **transport_kwargs
+    ) -> None:
+        if (
+            transport in {"http", "streamable-http", "sse"}
+            and not self._http_api_key_auth_configured
+        ):
+            self.configure_http_auth()
+        await super().run_async(
+            transport=transport,
+            show_banner=show_banner,
+            **transport_kwargs,
+        )
+
+
 # Initialize FastMCP server
-mcp = FastMCP("TWSE Stock Trend Analysis 🚀")
+mcp = TWSEFastMCP("TWSE Stock Trend Analysis 🚀")
 
 # Initialize API Client
 # This is the root of our Dependency Injection tree
@@ -76,11 +109,17 @@ def pre_trade_risk_scan(market: str = "twse", stock_symbol: str = "") -> PromptM
 # Pass dependencies to tool registration
 register_all_tools(mcp, api_client)
 
-if __name__ == "__main__":
-    import os
-    port = int(os.getenv("PORT", "8000"))
-    if os.getenv("MCP_STDIO", "").lower() in ("1", "true"):
+def run_server(environ: Mapping[str, str] | None = None) -> None:
+    """Run stdio directly or configure required bearer auth before HTTP starts."""
+    environment = os.environ if environ is None else environ
+    if environment.get("MCP_STDIO", "").lower() in ("1", "true"):
         # docker run -i --rm -e MCP_STDIO=1 ...
         mcp.run(transport="stdio")
     else:
+        mcp.configure_http_auth(environment)
+        port = int(environment.get("PORT", "8000"))
         mcp.run(transport="http", host="0.0.0.0", port=port)
+
+
+if __name__ == "__main__":
+    run_server()
