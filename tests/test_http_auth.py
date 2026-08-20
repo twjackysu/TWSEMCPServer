@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from unittest.mock import AsyncMock, Mock
 
-from fastmcp import FastMCP
 import pytest
+from fastmcp import FastMCP
 from starlette.testclient import TestClient
 
 import server
@@ -15,7 +15,6 @@ from utils.http_auth import (
     APIKeyTokenVerifier,
     HTTPAuthConfigurationError,
 )
-
 
 CURRENT_KEY = "current-test-secret"
 PREVIOUS_KEY = "previous-test-secret"

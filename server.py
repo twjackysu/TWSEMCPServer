@@ -1,20 +1,28 @@
 """Main MCP server for Taiwan Stock Exchange data analysis."""
 
-from collections.abc import Mapping
-from fastmcp import FastMCP
-from fastmcp.prompts.prompt import PromptMessage
 import logging
 import os
+from collections.abc import Mapping
+from typing import Literal, override
 
-from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
-from prompts.foreign_investment_analysis_prompt import foreign_investment_analysis_prompt
-from prompts.market_hotspot_monitoring_prompt import market_hotspot_monitoring_prompt
-from prompts.dividend_investment_strategy_prompt import dividend_investment_strategy_prompt
-from prompts.investment_screening_prompt import investment_screening_prompt
-from prompts.taifex_derivatives_prompt import taifex_derivatives_prompt
+from fastmcp import FastMCP
+from fastmcp.prompts.prompt import PromptMessage
+
+from prompts.company_fundamental_healthcheck_prompt import (
+    company_fundamental_healthcheck_prompt,
+)
+from prompts.dividend_investment_strategy_prompt import (
+    dividend_investment_strategy_prompt,
+)
+from prompts.foreign_investment_analysis_prompt import (
+    foreign_investment_analysis_prompt,
+)
 from prompts.institutional_flow_prompt import institutional_flow_prompt
-from prompts.company_fundamental_healthcheck_prompt import company_fundamental_healthcheck_prompt
+from prompts.investment_screening_prompt import investment_screening_prompt
+from prompts.market_hotspot_monitoring_prompt import market_hotspot_monitoring_prompt
 from prompts.pre_trade_risk_scan_prompt import pre_trade_risk_scan_prompt
+from prompts.taifex_derivatives_prompt import taifex_derivatives_prompt
+from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
 from tools import register_all_tools
 from utils.api_client import TWSEAPIClient
 from utils.http_auth import APIKeyTokenVerifier
@@ -27,9 +35,8 @@ logger = logging.getLogger(__name__)
 class TWSEFastMCP(FastMCP):
     """FastMCP server that also secures HTTP runs started through the CLI."""
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._http_api_key_auth_configured = False
+    auth: APIKeyTokenVerifier
+    _http_api_key_auth_configured: bool = False
 
     def configure_http_auth(
         self, environ: Mapping[str, str] | None = None
@@ -38,8 +45,12 @@ class TWSEFastMCP(FastMCP):
         self.auth = APIKeyTokenVerifier.from_environment(environ)
         self._http_api_key_auth_configured = True
 
+    @override
     async def run_async(
-        self, transport=None, show_banner: bool = True, **transport_kwargs
+        self,
+        transport: Literal["stdio", "http", "sse", "streamable-http"] | None = None,
+        show_banner: bool = True,
+        **transport_kwargs: object,
     ) -> None:
         if (
             transport in {"http", "streamable-http", "sse"}

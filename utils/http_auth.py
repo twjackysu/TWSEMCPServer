@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import dataclass
 import os
 import secrets
+from collections.abc import Mapping
+from dataclasses import dataclass
+from typing import override
 
 from fastmcp.server.auth import AccessToken, TokenVerifier
 
@@ -45,8 +46,8 @@ class APIKeyTokenVerifier(TokenVerifier):
 
     def __init__(self, config: APIKeyAuthConfig):
         super().__init__()
-        self._current_key = config.current_key.encode("utf-8")
-        self._previous_key = (
+        self._current_key: bytes = config.current_key.encode("utf-8")
+        self._previous_key: bytes | None = (
             config.previous_key.encode("utf-8")
             if config.previous_key is not None
             else None
@@ -59,6 +60,7 @@ class APIKeyTokenVerifier(TokenVerifier):
         """Create a verifier from the MCP API-key environment variables."""
         return cls(APIKeyAuthConfig.from_environment(environ))
 
+    @override
     async def verify_token(self, token: str) -> AccessToken | None:
         """Return access metadata when the token matches an accepted key."""
         presented_key = token.encode("utf-8")
