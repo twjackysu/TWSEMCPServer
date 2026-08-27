@@ -44,24 +44,54 @@ class TestStockDayAPI:
 
 
 @pytest.fixture(scope="class")
-def bwibbu_all_data():
+def bwibbu_d_data():
     return fetch_or_skip(
-        "https://www.twse.com.tw/exchangeReport/BWIBBU_ALL",
-        params={"response": "json", "date": FIXED_DATE},
+        "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
+        params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
     )
 
 
-class TestBwibbuAllAPI:
-    """全市場估值 - BWIBBU_ALL
-    Tool get_market_valuation_by_date 使用 row[0]~row[4]:
-    代號、名稱、本益比、殖利率、股價淨值比。
+class TestBwibbuDailyAPI:
+    """全市場估值 - BWIBBU_d
+    Tool get_market_valuation_by_date 依 COL_* 常數取用欄位，
+    並以回應的 date 欄位確認拿到的確實是所查日期的資料。
     """
 
-    def test_row_has_stock_code_and_valuation_fields(self, bwibbu_all_data):
-        """tool 用 row[0] 作為代號篩選，row[2]~row[4] 作為估值欄位，需至少 5 欄."""
-        assert bwibbu_all_data.get("stat") == "OK"
-        first_row = bwibbu_all_data["data"][0]
-        assert len(first_row) >= 5, f"欄位數不足 5，row 結構可能已變更: {first_row}"
+    def test_field_order_matches_column_constants(self, bwibbu_d_data):
+        """tool 寫死欄位索引，需確認 fields 順序未變."""
+        assert bwibbu_d_data.get("stat") == "OK"
+        fields = bwibbu_d_data["fields"]
+        expected = [
+            "證券代號", "證券名稱", "收盤價", "殖利率(%)",
+            "股利年度", "本益比", "股價淨值比", "財報年/季",
+        ]
+        assert fields == expected, f"欄位順序異動！實際值: {fields}"
+
+    def test_response_echoes_requested_date(self, bwibbu_d_data):
+        """tool 靠 date 欄位擋掉「拿到別天資料卻標成所查日期」."""
+        assert bwibbu_d_data.get("date") == FIXED_DATE, (
+            f"回應日期 {bwibbu_d_data.get('date')} 與所查日期 {FIXED_DATE} 不符"
+        )
+
+    def test_endpoint_actually_honours_date(self):
+        """兩個不同日期必須回傳不同資料——舊的 BWIBBU_ALL 端點就是敗在這裡."""
+        other_date = "20240315"
+        other = fetch_or_skip(
+            "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
+            params={"response": "json", "date": other_date, "selectType": "ALL"},
+        )
+        assert other.get("date") == other_date
+        assert other["data"][0] != _first_row_for(FIXED_DATE), (
+            "不同日期回傳相同資料，端點已不再支援歷史查詢"
+        )
+
+
+def _first_row_for(date: str):
+    resp = fetch_or_skip(
+        "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
+        params={"response": "json", "date": date, "selectType": "ALL"},
+    )
+    return resp["data"][0]
 
 
 class TestMarginBalanceAPI:
