@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 # rwd/zh/afterTrading/BWIBBU_d honours the `date` parameter and echoes it back.
 # The older /exchangeReport/BWIBBU_ALL silently ignores `date` entirely — every
@@ -20,7 +20,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_valuation_by_date(date: str, stock_no: str = "") -> str:
+    def get_market_valuation_by_date(date: str, stock_no: str = "",
+                                     limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢全市場上市股票的本益比（P/E）、殖利率、股價淨值比（P/B）。
         適合用於篩選低估值個股或比較產業估值水位。
         可指定特定股票代號只查單一個股。
@@ -28,6 +29,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             date: 查詢日期 YYYYMMDD，回傳該日的估值資料
             stock_no: 股票代號（選填），若指定則只回傳該股票的估值資料
+            limit: 回傳筆數上限（預設 50）。全市場逾 1000 檔，未分頁的完整輸出逾 60KB
+            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
 
         Returns:
             每支股票的代號、名稱、收盤價、本益比、殖利率(%)、股價淨值比
@@ -60,10 +63,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無股票代號 {stock_no} 在 {date} 的估值資料"
 
-        title = resp.get("title") or f"全市場估值資料 - {date}"
-        lines = [f"【{title}】（共 {len(data)} 筆）\n"]
+        total = len(data)
+        page = data[offset:offset + limit]
+        if not page:
+            return f"offset={offset} 已超出範圍，{date} 的估值資料共 {total} 筆"
 
-        for row in data:
+        title = resp.get("title") or f"全市場估值資料 - {date}"
+        page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""
+        lines = [f"【{title}】（共 {total} 筆{page_note}）\n"]
+
+        for row in page:
             code = row[COL_CODE].strip()
             name = row[COL_NAME].strip()
             close = row[COL_CLOSE] or "-"
@@ -73,5 +82,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             lines.append(
                 f"{code} {name} | 收盤價: {close} | 本益比: {pe} | 殖利率: {dy}% | 股價淨值比: {pb}"
             )
+
+        remaining = total - offset - len(page)
+        if remaining > 0:
+            lines.append(f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
 
         return "\n".join(lines)

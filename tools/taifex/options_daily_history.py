@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from .futures_position import TAIFEX_HEADERS
 from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
 
@@ -17,7 +17,11 @@ from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
 OPT_DATA_DOWN_URL = "https://www.taifex.com.tw/cht/3/optDataDown"
 
 MAX_SPAN_DAYS = 31
-ROW_LIMIT_WITHOUT_MONTH_FILTER = 300
+# Ceiling on rows written to the response. Applied on every path: narrowing to a
+# single contract_month still returns ~23,000 rows (~2.6 MB) for a month of TXO,
+# and the month-listing branch below never sees those because it only fires when
+# contract_month is empty.
+MAX_OUTPUT_ROWS = 300
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -80,7 +84,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if call_put:
             data_rows = [r for r in data_rows if r[4] == call_put]
 
-        if not contract_month and len(data_rows) > ROW_LIMIT_WITHOUT_MONTH_FILTER:
+        if not contract_month and len(data_rows) > MAX_OUTPUT_ROWS:
             months = sorted(set(r[2].strip() for r in data_rows))
             return (
                 f"契約 {contract} 在 {start_date}～{end_date} 共有 {len(data_rows)} 筆資料，"
@@ -92,11 +96,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not data_rows:
             return f"查無契約 {contract} 在 {start_date}～{end_date}（到期月份:{contract_month or '全部'}）的選擇權行情資料"
 
+        total = len(data_rows)
+        shown_rows, cap_note = cap_rows(
+            data_rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date，或加上 contract_month／call_put"
+        )
         lines = [
             f"【選擇權每日OHLC歷史行情】契約:{contract} 到期月份:{contract_month or '全部'} "
-            f"區間:{start_date}~{end_date}（共 {len(data_rows)} 筆）\n"
+            f"區間:{start_date}~{end_date}（共 {total} 筆{cap_note}）\n"
         ]
-        for r in data_rows:
+        for r in shown_rows:
             date, month, strike, cp = r[0], r[2].strip(), r[3], r[4]
             o, h, l, c = r[5], r[6], r[7], r[8]
             vol, settle, oi, session = r[9], r[10], r[11], r[17]

@@ -256,3 +256,37 @@ class TestInstitutionalFutOptSplitHistoryAPI:
         assert header[0] == "日期" and header[1] == "身份別", f"前兩欄異動: {header[:2]}"
         assert "期貨" in header[2] and "選擇權" in header[3], f"欄位2/3應為期貨/選擇權多方交易口數: {header[2:4]}"
         assert "期貨" in header[22] and "選擇權" in header[23], f"欄位22/23應為期貨/選擇權多空未平倉口數淨額: {header[22:24]}"
+
+
+class TestHistoryOutputLimits:
+    """歷史下載類工具的輸出上限。
+
+    這兩支從 www.taifex.com.tw 下載多日 CSV，沒有伺服器端分頁。
+    get_options_daily_history 原本的保護帶了 `not contract_month`，
+    而 docstring 又建議指定 contract_month——正好把呼叫者推進唯一沒有保護的
+    分支（實測單月 TXO 單一到期月仍有 23,032 列 / 2.65 MB）。
+    """
+
+    MAX_CHARS = 100_000
+
+    def test_options_daily_history_is_bounded_with_contract_month(self):
+        from utils.api_client import TWSEAPIClient
+        from tests.helpers import register_module_tools
+        import tools.taifex.options_daily_history as module
+
+        tools = register_module_tools(module, TWSEAPIClient())
+        result = tools["get_options_daily_history"](
+            "20250602", "20250630", "TXO", contract_month="202507"
+        )
+        assert len(result) < self.MAX_CHARS, f"輸出 {len(result):,} 字元，未設上限"
+
+    def test_institutional_futures_history_is_bounded(self):
+        from utils.api_client import TWSEAPIClient
+        from tests.helpers import register_module_tools
+        import tools.taifex.institutional_futures_history as module
+
+        tools = register_module_tools(module, TWSEAPIClient())
+        result = tools["get_institutional_traders_by_futures_history"](
+            "20250401", "20250630", ""
+        )
+        assert len(result) < self.MAX_CHARS, f"輸出 {len(result):,} 字元，未設上限"

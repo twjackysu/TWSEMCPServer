@@ -1,6 +1,6 @@
 """Data formatting utilities."""
 
-from typing import List, Union, Sequence
+from typing import Any, List, Union, Sequence
 from .constants import MSG_TOTAL_RECORDS, DEFAULT_DISPLAY_LIMIT
 from .types import TWSEDataItem, DataFormatter
 
@@ -204,3 +204,15 @@ def create_simple_list_formatter(
         return result + "\n"
     
     return formatter
+
+def cap_rows(rows: List[Any], limit: int, hint: str = "請縮小查詢範圍") -> tuple[List[Any], str]:
+    """Cap ``rows`` at ``limit`` and return the kept rows plus a header note.
+
+    For row-oriented (list-of-list) sources that have no server-side paging —
+    TAIFEX's CSV downloads, TWSE's legacy `tables` payloads — where dumping every
+    row would produce a multi-megabyte string. The note is empty when nothing was
+    dropped, so callers can append it unconditionally.
+    """
+    if len(rows) <= limit:
+        return rows, ""
+    return rows[:limit], f"，僅顯示前 {limit} 筆（{hint}）"

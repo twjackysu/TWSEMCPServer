@@ -7,7 +7,7 @@ www.taifex.com.tw's HTML-form download endpoint, which genuinely accepts an arbi
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from .futures_position import TAIFEX_HEADERS
 from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
 
@@ -17,6 +17,9 @@ FUT_CONTRACTS_DATE_DOWN_URL = "https://www.taifex.com.tw/cht/3/futContractsDateD
 # ~3 rows/trading-day/contract (dealer/investment trust/foreign), so cap client-side to keep
 # tool output manageable.
 MAX_SPAN_DAYS = 92
+# Ceiling on rows written to the response. A 92-day span with no contract filter
+# returns ~4,300 rows, each rendered as three lines.
+MAX_OUTPUT_ROWS = 300
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -72,10 +75,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             )
 
         _header, data_rows = parsed
+        total = len(data_rows)
+        shown_rows, cap_note = cap_rows(
+            data_rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date 或指定 contract"
+        )
         lines = [
-            f"【三大法人期貨部位歷史】契約:{contract_label} 區間:{start_date}~{end_date}（共 {len(data_rows)} 筆）\n"
+            f"【三大法人期貨部位歷史】契約:{contract_label} 區間:{start_date}~{end_date}"
+            f"（共 {total} 筆{cap_note}）\n"
         ]
-        for r in data_rows:
+        for r in shown_rows:
             date, name, identity = r[0], r[1], r[2]
             long_vol, long_amt = r[3], r[4]
             short_vol, short_amt = r[5], r[6]

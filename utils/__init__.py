@@ -21,6 +21,7 @@ from .formatters import (
     format_list_response,
     create_simple_list_formatter,
     truncate,
+    cap_rows,
 )
 from .tool_factory import create_company_tool, create_list_tool
 from .date_helper import roc_to_ad, ad_to_roc
@@ -47,6 +48,7 @@ __all__ = [
     "format_list_response",
     "create_simple_list_formatter",
     "truncate",
+    "cap_rows",
     "create_company_tool",
     "create_list_tool",
     "roc_to_ad",
