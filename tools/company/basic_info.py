@@ -240,12 +240,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        data = _client.fetch_data("/static/20151104/CSR103")
+        # TWSE 已下架這份 2015 年的靜態資料集：端點回 302 導向自家 /404.html。
+        # 這裡是唯一保留在地捕捉的地方——來源確定不存在，而非暫時故障，
+        # 回一句「查詢失敗」對使用者沒有幫助，不如直接指路。其餘端點一律讓
+        # 例外往上傳，避免故障被偽裝成查無資料。
+        unavailable = (
+            "查無 103 年度 CSR 報告名單：來源端點已由 TWSE 下架（轉址至 404）。\n"
+            "建議改查近年永續報告（ESG）相關端點，或至公司官網/公告查詢。"
+        )
+        try:
+            data = _client.fetch_data("/static/20151104/CSR103")
+        except ValueError:
+            return unavailable
         if not data:
-            return (
-                "查無 103 年度 CSR 報告名單或資料格式不符（來源可能為舊式靜態頁）。\n"
-                "建議改查近年永續報告（ESG）相關端點，或至公司官網/公告查詢。"
-            )
+            return unavailable
 
         valid = [it for it in data if isinstance(it, dict) and has_meaningful_data(it, ["公司代號", "公司名稱"])]
         if not valid:

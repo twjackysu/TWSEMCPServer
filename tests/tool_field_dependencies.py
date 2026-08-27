@@ -72,7 +72,8 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     "/opendata/t187ap35_L": ["公司代號", "公司名稱", "召開股東會日期", "提案內容", "股東依公司法第172條之1行使提案權-提案受理期間"],
     "/opendata/t187ap38_L": ["公司代號", "公司名稱"],
     "/opendata/t187ap41_L": ["公司代號", "公司名稱", "是否採電子投票", "股東常(臨時)會", "開會地點", "開會日期"],
-    "/static/20151104/CSR103": ["公司代號", "公司名稱"],
+    # /static/20151104/CSR103 已由 TWSE 下架（302 → /404.html），不再回傳 JSON，
+    # 無欄位可驗；get_companies_with_csr_reports_103 已改為回覆來源不存在。
 
     # --- company/listing.py ---
     "/company/applylistingForeign": ["ApplicationDate", "ApprovedDate", "Code", "Company", "ListingDate"],

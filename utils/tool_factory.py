@@ -5,6 +5,7 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
+    MSG_NO_DATA_FOR_CODE,
     DEFAULT_DISPLAY_LIMIT,
     format_list_response,
     format_properties_with_values_multiline,
@@ -12,7 +13,14 @@ from utils import (
 from utils.decorators import handle_api_errors
 from utils.types import DataFormatter
 
-def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str, client: Optional[TWSEAPIClient] = None) -> Callable[[str], str]:
+def create_company_tool(
+    mcp: FastMCP,
+    endpoint: str,
+    name: str,
+    docstring: str,
+    client: Optional[TWSEAPIClient] = None,
+    empty_data_type: str = "資料",
+) -> Callable[[str], str]:
     """
     Create and register a standard company data query tool.
 
@@ -22,6 +30,7 @@ def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str, 
         name: Function name for the tool
         docstring: Tool description
         client: TWSEAPIClient instance for dependency injection
+        empty_data_type: Noun used in the "查無…" message when the company has no row
 
     Returns:
         The registered tool function
@@ -30,7 +39,11 @@ def create_company_tool(mcp: FastMCP, endpoint: str, name: str, docstring: str, 
 
     def tool_fn(code: str) -> str:
         data = _client.fetch_company_data(endpoint, code)
-        return format_properties_with_values_multiline(data) if data else ""
+        if not data:
+            return MSG_NO_DATA_FOR_CODE.format(
+                query_target=f"公司代號 {code}", data_type=empty_data_type
+            )
+        return format_properties_with_values_multiline(data)
 
     tool_fn.__name__ = name
     decorated = handle_api_errors(use_code_param=True)(tool_fn)
