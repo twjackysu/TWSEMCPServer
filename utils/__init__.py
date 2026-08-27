@@ -9,6 +9,7 @@ from .constants import (
     MSG_QUERY_FAILED,
     MSG_NO_DATA_FOR_CODE,
     MSG_TOTAL_RECORDS,
+    SUMMARY_ROW_LABELS,
 )
 from .decorators import handle_api_errors
 from .formatters import (
@@ -38,6 +39,7 @@ __all__ = [
     "MSG_QUERY_FAILED",
     "MSG_NO_DATA_FOR_CODE",
     "MSG_TOTAL_RECORDS",
+    "SUMMARY_ROW_LABELS",
     "handle_api_errors",
     "format_properties_with_values_multiline",
     "format_multiple_records",
