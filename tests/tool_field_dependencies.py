@@ -81,7 +81,6 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     "/company/suspendListingCsvAndHtml": ["Code", "Company", "DelistingDate"],
 
     # --- company/financials.py ---
-    "/opendata/t187ap03_L": ["產業別"],
     "/opendata/t187ap17_L": [
         "出表日期", "年度", "季別", "公司代號", "公司名稱",
         "營業收入(百萬元)",
