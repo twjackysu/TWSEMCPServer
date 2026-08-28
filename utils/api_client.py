@@ -92,8 +92,12 @@ class TWSEAPIClient:
             try:
                 data = resp.json()
             except Exception as parse_err:
-                logger.warning(f"Response is not valid JSON for {url}: {parse_err}; returning empty list")
-                return []
+                # TWSE serves an HTML maintenance page on some outages. Returning []
+                # here would render that as "this endpoint has no data" — a false
+                # negative indistinguishable from a genuinely empty result.
+                raise ValueError(
+                    f"回應不是合法 JSON（來源可能正在維護）: {url}"
+                ) from parse_err
             result = data if isinstance(data, list) else ([data] if data else [])
             if self.cache_ttl > 0:
                 self._cache[url] = (time.time(), result)
@@ -103,30 +107,34 @@ class TWSEAPIClient:
             raise
 
     def fetch_company_data(self, endpoint: str, code: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> Optional[TWSEDataItem]:
-        """Instance method to fetch company data."""
-        try:
-            data = self.fetch_data(endpoint, timeout)
-            filtered_data = [
-                item for item in data
-                if isinstance(item, dict) and (
-                    item.get("公司代號") == code or
-                    item.get("Code") == code or
-                    item.get("權證代號") == code
-                )
-            ]
-            return filtered_data[0] if filtered_data else None
-        except Exception as e:
-            logger.error(f"Failed to fetch company data for {code}: {e}")
-            return None
+        """Fetch one company's record from a list endpoint, or None if absent.
+
+        Failures propagate deliberately. ``None`` means "this endpoint has no row
+        for ``code``" and nothing else; swallowing timeouts, 5xx or maintenance
+        pages here would collapse "the API is down" into that same ``None`` and
+        make every caller report a confident false negative. Callers are tools
+        wrapped in ``@handle_api_errors``, which turns the exception into
+        ``MSG_QUERY_FAILED``.
+        """
+        data = self.fetch_data(endpoint, timeout)
+        filtered_data = [
+            item for item in data
+            if isinstance(item, dict) and (
+                item.get("公司代號") == code or
+                item.get("Code") == code or
+                item.get("權證代號") == code
+            )
+        ]
+        return filtered_data[0] if filtered_data else None
 
     def fetch_latest_market_data(self, endpoint: str, count: Optional[int] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
-        """Instance method to fetch latest market data."""
-        try:
-            data = self.fetch_data(endpoint, timeout)
-            return data[-count:] if data and count is not None else data
-        except Exception as e:
-            logger.error(f"Failed to fetch latest market data: {e}")
-            return []
+        """Fetch the trailing ``count`` records of a list endpoint.
+
+        As with ``fetch_company_data``, failures propagate rather than degrading
+        to an empty list — an empty list is a factual claim about the market data.
+        """
+        data = self.fetch_data(endpoint, timeout)
+        return data[-count:] if data and count is not None else data
 
     def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT, headers: Optional[Dict[str, str]] = None) -> Any:
         """Fetch raw JSON from an arbitrary full URL (not base_url-relative).

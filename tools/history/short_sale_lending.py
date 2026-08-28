@@ -6,7 +6,7 @@ cover the securities-lending (借券) side of short selling.
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, SUMMARY_ROW_LABELS
 
 TWT93U_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U"
 TWTASU_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU"
@@ -43,6 +43,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"查無 {date} 的信用額度總量管制餘額資料，請確認該日期為交易日（非假日或週末）"
 
         data = resp.get("data", [])
+        # TWT93U 的末列是全市場「合計」：代號欄為空、名稱欄為「合計」
+        data = [row for row in data if row and row[1].strip() not in SUMMARY_ROW_LABELS]
         if not data:
             return f"查無 {date} 的信用額度總量管制餘額資料"
 
@@ -118,6 +120,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         for row in data:
             code_name = row[0].split(None, 1)
             code = code_name[0] if code_name else ""
+            # TWTASU 的末列 row[0] 就是「合計」，split 會把它當成股票代號
+            if code in SUMMARY_ROW_LABELS:
+                continue
             sname = code_name[1].strip() if len(code_name) > 1 else ""
             parsed.append((code, sname, row))
 

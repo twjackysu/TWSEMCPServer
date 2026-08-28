@@ -39,7 +39,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         ex_ch = "|".join(ex_ch_parts)
         resp = _client.fetch_json(MIS_URL, params={"ex_ch": ex_ch, "json": 1, "delay": 0})
 
-        msg_array = resp.get("msgArray", [])
+        # MIS 對前綴錯誤或不存在的代號不是略過，而是回一個佔位物件
+        # {"c": "", "n": null, "z": "-", ...}。留著會讓筆數灌水並印出一列空殼，
+        # 也會讓下方「查無報價」的訊息永遠不可達（msgArray 恆非空）。
+        msg_array = [item for item in resp.get("msgArray", []) if item.get("c")]
 
         # Check for stocks that returned no data (might be OTC)
         found_codes = {item.get("c") for item in msg_array if item.get("z") != "-" or item.get("y")}
@@ -51,7 +54,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             otc_resp = _client.fetch_json(
                 MIS_URL, params={"ex_ch": "|".join(otc_parts), "json": 1, "delay": 0}
             )
-            otc_array = otc_resp.get("msgArray", [])
+            otc_array = [item for item in otc_resp.get("msgArray", []) if item.get("c")]
             msg_array.extend(otc_array)
 
         if not msg_array:

@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, SUMMARY_ROW_LABELS
 
 BFIAUU_URL = "https://www.twse.com.tw/rwd/zh/block/BFIAUU"
 
@@ -39,6 +39,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"查無 {date} 的鉅額交易資料，請確認該日期為交易日（非假日或週末）"
 
         data = resp.get("data", [])
+        # 末列是全市場「總計」，其量/金額為當日所有鉅額交易的加總，與明細列同構。
+        # 留著會讓筆數多一筆，並在清單中出現一筆遠大於真實最大單筆的假交易。
+        data = [row for row in data if row and row[0].strip() not in SUMMARY_ROW_LABELS]
         if not data:
             return f"查無 {date} 的鉅額交易資料"
 

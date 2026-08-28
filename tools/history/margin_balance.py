@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
 
 MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
 MAX_RETRY_DAYS = 7
@@ -15,7 +15,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_margin_balance(date: str, stock_no: str = "") -> str:
+    def get_margin_balance(date: str, stock_no: str = "",
+                           limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢全市場融資融券餘額，用於判斷市場槓桿水位與多空情緒。
         若指定日期非交易日，會自動往前尋找最近的交易日資料。
         可指定特定股票代號只查單一個股。
@@ -23,6 +24,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             date: 查詢日期 YYYYMMDD
             stock_no: 股票代號（選填），若指定則只回傳該股票的融資融券資料
+            limit: 回傳筆數上限（預設 50）。全市場約 1300 檔，未分頁的完整輸出逾 100KB
+            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
 
         Returns:
             每支股票的融資買進、賣出、餘額、融券賣出、買進、餘額、資券互抵等資料
@@ -63,13 +66,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無股票代號 {stock_no} 在 {actual_date} 的融資融券資料"
 
+        total = len(data)
+        page = data[offset:offset + limit]
+        if not page:
+            return f"offset={offset} 已超出範圍，{actual_date} 的融資融券資料共 {total} 筆"
+
         date_note = f"（原查詢 {date}，實際資料日 {actual_date}）" if actual_date != date else ""
-        lines = [f"【融資融券餘額 - {actual_date}】{date_note}（共 {len(data)} 筆）\n"]
+        page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""
+        lines = [f"【融資融券餘額 - {actual_date}】{date_note}（共 {total} 筆{page_note}）\n"]
 
         if fields:
             lines.append("欄位: " + " | ".join(fields) + "\n")
 
-        for row in data:
+        for row in page:
             lines.append(" | ".join(str(cell) for cell in row))
+
+        remaining = total - offset - len(page)
+        if remaining > 0:
+            lines.append(f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
 
         return "\n".join(lines)
