@@ -48,6 +48,13 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     # --- statistics.py ---
     "/exchangeReport/MI_5MINS": ["AccAskOrders", "AccAskVolume", "AccBidOrders", "AccBidVolume", "AccTradeValue", "AccTradeVolume", "AccTransaction", "Time"],
 
+    # --- other.py ---
+    # get_fund_basic_info 讀基金名稱時有 基金中文名稱 → 基金名稱 → 基金簡稱 的備援鏈，
+    # 目前只有 基金名稱 存在；任一個在就不會顯示 N/A，故名稱欄位不列為必要欄位。
+    "/opendata/t187ap47_L": ["基金代號", "基金類型"],
+    "/exchangeReport/BFI61U": ["Code", "Name", "StartingDate"],
+    "/holidaySchedule/holidaySchedule": ["Date", "Description", "Name", "Weekday"],
+
     # --- broker.py ---
     "/opendata/t187ap01": ["合計", "受託買賣", "自行買賣", "職位"],
     "/opendata/t187ap19": ["出表日期", "公司總成交筆數", "成交月份", "成交筆數"],
