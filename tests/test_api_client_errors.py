@@ -6,6 +6,8 @@ None / []，導致 timeout、5xx、維護頁與「這家公司真的沒這筆資
 完全相同——@handle_api_errors 因此永遠不會觸發，MSG_QUERY_FAILED 形同死碼。
 """
 
+import time
+
 import pytest
 import requests
 
@@ -37,10 +39,14 @@ def _raise(exc):
     return _fake
 
 
-UPSTREAM_FAILURES = [
+# requests.request 本身就拋例外的故障（連 response 都拿不到）
+TRANSPORT_FAILURES = [
     pytest.param(_raise(requests.exceptions.Timeout("timed out")), id="timeout"),
     pytest.param(_raise(requests.exceptions.ConnectionError("refused")), id="connection-error"),
     pytest.param(_raise(requests.exceptions.HTTPError("503 Server Error")), id="http-503"),
+]
+
+UPSTREAM_FAILURES = TRANSPORT_FAILURES + [
     pytest.param(lambda *a, **kw: _MaintenancePage(), id="html-instead-of-json"),
 ]
 
@@ -76,6 +82,30 @@ def test_tool_reports_failure_not_missing_data(monkeypatch, client, fake_request
 
     result = mcp.tools["probe_tool"]("2330")
     assert result.startswith("查詢失敗"), f"故障被偽裝成正常回應: {result!r}"
+
+
+@pytest.mark.parametrize("fake_request", TRANSPORT_FAILURES)
+def test_rate_limit_still_applies_after_a_failure(monkeypatch, fake_request):
+    """故障也要計入節流：否則上游 429/5xx 時反而變成無間隔連打.
+
+    _request 曾經只在 raise_for_status() 之後才更新 _last_request_time，例外路徑
+    留下過期的時間戳，_throttle() 因此算出巨大的 elapsed 而完全跳過等待。
+    MI_MARGN 往前找 7 天、financials 逐一探測 6 個產業別端點這類重試迴圈，
+    會在上游最脆弱的時候變成毫無間隔的連續請求。
+    """
+    interval = 0.05
+    probe = TWSEAPIClient(request_interval=interval, cache_ttl=0)
+    monkeypatch.setattr(requests, "request", fake_request)
+
+    attempts = 4
+    start = time.monotonic()
+    for _ in range(attempts):
+        with pytest.raises(Exception):
+            probe.fetch_json("https://openapi.twse.com.tw/v1/probe")
+    elapsed = time.monotonic() - start
+
+    # attempts 次請求之間有 attempts-1 段間隔
+    assert elapsed >= interval * (attempts - 1), f"失敗後未節流，{attempts} 次僅耗時 {elapsed:.3f}s"
 
 
 def test_missing_company_still_reads_as_missing(client):
