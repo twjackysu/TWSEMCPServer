@@ -4,7 +4,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 from .futures_position import TAIFEX_HEADERS
-from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
+from .futures_daily_history import parse_date_range, decode_and_parse_csv
 
 # openapi.taifex.com.tw's PutCallRatio endpoint (get_put_call_ratio) already returns a
 # rolling ~21-trading-day window with no date param. This endpoint (www.taifex.com.tw's
@@ -33,16 +33,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             區間內每個交易日的賣權/買權成交量、買賣權成交量比率%、賣權/買權未平倉量、買賣權未平倉量比率%
         """
-        try:
-            start_dt = parse_yyyymmdd(start_date)
-            end_dt = parse_yyyymmdd(end_date)
-        except ValueError:
-            return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260501），收到：start_date={start_date}, end_date={end_date}"
-
-        if start_dt > end_dt:
-            return f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
-        if (end_dt - start_dt).days > MAX_SPAN_DAYS:
-            return f"查詢區間不可超過 {MAX_SPAN_DAYS} 天（收到 {(end_dt - start_dt).days} 天），請縮小 start_date～end_date 範圍後重試"
+        start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260501")
+        if error:
+            return error
 
         body = _client.fetch_bytes(
             PC_RATIO_DOWN_URL,
