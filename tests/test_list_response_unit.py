@@ -8,7 +8,7 @@ format_list_response 排版。過濾到一筆不剩是日常情況（關鍵字�
 import pytest
 
 from tests.helpers import register_module_tools
-from utils.constants import MSG_NO_MATCHING_DATA
+from utils.constants import MSG_NO_MATCHING_DATA, MSG_OFFSET_OUT_OF_RANGE
 from utils.formatters import format_list_response
 import tools.company.listing as listing
 import tools.trading.market as market
@@ -58,6 +58,46 @@ def test_direct_call_site_name_filter_with_no_match_is_explicit():
 
     assert result.strip(), "過濾後無資料時回了空字串"
     assert "查無" in result, f"未說明查無符合條件的資料: {result!r}"
+
+
+@pytest.mark.parametrize("offset", [2, 3, 100])
+def test_offset_past_the_last_record_is_explicit(offset):
+    """offset 翻過尾端時要講清楚，不能只回一個空頁的表頭."""
+    rows = [{"Code": "2330"}, {"Code": "2317"}]
+
+    result = format_list_response(rows, "測試資料", limit=50, offset=offset)
+
+    assert result == MSG_OFFSET_OUT_OF_RANGE.format(
+        offset=offset, data_type="測試資料", count=2
+    )
+
+
+def test_offset_past_the_last_record_does_not_print_an_impossible_range():
+    """回歸點：原本會輸出「共有 2 筆測試資料：（顯示第 101–2 筆）」後面接零列資料."""
+    result = format_list_response([{"Code": "2330"}, {"Code": "2317"}], "測試資料", offset=100)
+
+    assert "顯示第 101" not in result
+
+
+def test_last_page_within_range_is_unchanged():
+    """對照組：offset 還在範圍內時，分頁輸出不受影響."""
+    rows = [{"Code": "2330"}, {"Code": "2317"}]
+
+    result = format_list_response(rows, "測試資料", limit=1, offset=1)
+
+    assert "共有 2 筆測試資料" in result
+    assert "Code: 2317" in result
+    assert "超出範圍" not in result
+
+
+def test_tool_level_offset_past_the_last_record_is_explicit():
+    """走完整條工具路徑（create_list_tool → format_list_response）也要有訊息."""
+    client = _StubClient([{"Code": "2330", "Company": "台積電", "ListingDate": "1123456"}])
+    tools = register_module_tools(listing, client)
+
+    result = tools["get_recently_listed_companies"](offset=50)
+
+    assert "超出範圍" in result, f"offset 越界未給明確訊息: {result!r}"
 
 
 @pytest.mark.parametrize("rows", [[], [{"Code": "", "Name": ""}]])
