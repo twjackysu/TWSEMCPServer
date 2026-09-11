@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 
 # rwd/zh/afterTrading/BWIBBU_d honours the `date` parameter and echoes it back.
 # The older /exchangeReport/BWIBBU_ALL silently ignores `date` entirely — every
@@ -66,7 +66,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         total = len(data)
         page = data[offset:offset + limit]
         if not page:
-            return f"offset={offset} 已超出範圍，{date} 的估值資料共 {total} 筆"
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 的估值資料", count=total
+            )
 
         title = resp.get("title") or f"全市場估值資料 - {date}"
         page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""
