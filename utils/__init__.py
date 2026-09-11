@@ -8,6 +8,7 @@ from .constants import (
     MSG_NO_DATA,
     MSG_QUERY_FAILED,
     MSG_NO_DATA_FOR_CODE,
+    MSG_NO_MATCHING_DATA,
     MSG_TOTAL_RECORDS,
     SUMMARY_ROW_LABELS,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "MSG_NO_DATA",
     "MSG_QUERY_FAILED",
     "MSG_NO_DATA_FOR_CODE",
+    "MSG_NO_MATCHING_DATA",
     "MSG_TOTAL_RECORDS",
     "SUMMARY_ROW_LABELS",
     "handle_api_errors",

@@ -1,7 +1,7 @@
 """Data formatting utilities."""
 
 from typing import Any, List, Union, Sequence
-from .constants import MSG_TOTAL_RECORDS, DEFAULT_DISPLAY_LIMIT
+from .constants import MSG_TOTAL_RECORDS, MSG_NO_MATCHING_DATA, DEFAULT_DISPLAY_LIMIT
 from .types import TWSEDataItem, DataFormatter
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
@@ -130,10 +130,14 @@ def format_list_response(
         offset: Number of records to skip from the start (default 0)
 
     Returns:
-        Formatted string with header, items, and pagination info
+        Formatted string with header, items, and pagination info, or MSG_NO_MATCHING_DATA
+        when there is nothing to show
     """
     if not data:
-        return ""
+        # 呼叫端多半在抓完資料後才做 name 關鍵字或有效欄位過濾，過濾到一筆不剩時就會走到
+        # 這裡。回空字串等於讓工具回覆一片空白，呼叫端無從分辨是「查無符合的資料」還是
+        # 工具壞掉，所以這裡必須自己講清楚。
+        return MSG_NO_MATCHING_DATA.format(data_type=data_type)
 
     total = len(data)
     page_data = data[offset:offset + limit]

@@ -9,6 +9,9 @@ DEFAULT_DISPLAY_LIMIT = DisplayConfig.DEFAULT_DISPLAY_LIMIT
 MSG_NO_DATA = "目前沒有{data_type}資料。"
 MSG_QUERY_FAILED = "查詢失敗: {error}"
 MSG_NO_DATA_FOR_CODE = "查無{query_target}的{data_type}"
+# 清單經過篩選（name 關鍵字、有效欄位檢查）後一筆不剩時使用。與 MSG_NO_DATA 分開：
+# 那句是「來源整份沒有資料」，這句是「來源有資料，但沒有符合這次查詢條件的」。
+MSG_NO_MATCHING_DATA = "查無符合條件的{data_type}。"
 
 # Success messages
 MSG_TOTAL_RECORDS = "共有 {count} 筆{data_type}："
