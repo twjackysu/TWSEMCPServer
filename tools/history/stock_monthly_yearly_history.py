@@ -1,5 +1,6 @@
 """TWSE per-stock monthly/yearly aggregated trading history."""
 
+from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
@@ -63,9 +64,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             每年度的最高價（及日期）、最低價（及日期）、收盤平均價、成交股數、成交金額、成交筆數
         """
+        # FMNPTK 以 date 的年份當作歷年序列的終點。這裡原本寫死 "20260101"，等於把終點
+        # 凍結在當初寫程式的年份：跨年之後最新年度會從結果中默默消失（輸出格式完全正常，
+        # 只是少一列）。此工具不收日期參數——查的就是「到今天為止的歷年」——所以每次呼叫
+        # 都以當天日期查詢。
         resp = _client.fetch_json(
             FMNPTK_URL,
-            params={"response": "json", "date": "20260101", "stockNo": stock_no},
+            params={"response": "json", "date": datetime.now().strftime("%Y%m%d"), "stockNo": stock_no},
         )
 
         if not resp or resp.get("stat") != "OK":
