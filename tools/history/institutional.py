@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 
 T86_URL = "https://www.twse.com.tw/rwd/zh/fund/T86"
 
@@ -76,12 +76,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         # Filter rows where any institutional investor has non-zero net
         # Some rows (e.g. bond ETFs) have fewer than 19 columns — skip them
         active = [row for row in data if len(row) > IDX_TOTAL_NET and _parse_num(row[IDX_TOTAL_NET]) != 0]
+        if not active:
+            return f"查無 {date} 有法人進出的個股資料"
 
         # Sort by absolute value of total net descending
         active.sort(key=lambda r: abs(_parse_num(r[IDX_TOTAL_NET])), reverse=True)
 
         total = len(active)
         page_data = active[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 有法人進出的個股", count=total
+            )
         end = min(offset + limit, total)
 
         header = f"【{title}】（共 {total} 支有法人進出"
