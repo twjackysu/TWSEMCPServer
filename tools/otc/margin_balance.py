@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 
 TPEX_MARGIN_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance"
 
@@ -37,6 +37,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type="上櫃融資融券餘額資料", count=total
+            )
         end = min(offset + limit, total)
 
         header = f"【上櫃融資融券餘額】（共 {total} 筆"
