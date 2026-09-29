@@ -11,6 +11,8 @@ import pytest
 from tests.helpers import register_module_tools
 from tools.history import stock_monthly_yearly_history
 
+pytestmark = pytest.mark.offline
+
 # FMNPTK tables[0] 的 row 結構：年度,成交股數,成交金額,成交筆數,最高價,日期,最低價,日期,收盤平均價
 YEARLY_ROWS = [
     ["113", "1,000", "2,000", "30", "600.00", "113/01/02", "500.00", "113/03/04", "550.00"],

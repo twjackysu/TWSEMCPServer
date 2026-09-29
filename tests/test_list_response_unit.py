@@ -13,6 +13,8 @@ from utils.formatters import format_list_response
 import tools.company.listing as listing
 import tools.trading.market as market
 
+pytestmark = pytest.mark.offline
+
 
 class _StubClient:
     """只回固定資料的假 client，讓工具能離線跑完整條路徑."""

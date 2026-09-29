@@ -114,7 +114,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 Two kinds of tests, kept strictly apart:
 
 - **Live contract tests** (`tests/test_api_schemas.py`, `tests/e2e/`) call the real third-party APIs. Their only job is to detect an interface change on TWSE / TAIFEX / TPEx / MIS that would break our tools: endpoint gone, response format changed (JSON → CSV/HTML, list → dict), a field or column our tool hardcodes renamed/moved. They must **not** assert on our own logic (pagination, output caps, filtering, message wording), and must **not** assert that upstream has data today — an empty `[]` from a "latest day only" endpoint is not an interface change (TWSE `t187ap42_L` served `[]` for days after the 2026 Mid-Autumn long weekend). Use `records_or_skip()` from `tests/helpers.py` for such endpoints. Fixed historical dates (`FIXED_DATE`) are expected to have data, so an empty result there is still a failure.
-- **Offline unit tests** (`tests/test_*_unit.py`, `tests/test_api_client_errors.py`) test our own logic against canned payloads via `OfflineClient` (`tests/offline.py`). Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test.
+- **Offline unit tests** (every `tests/test_*.py` except `test_api_schemas.py`; most are named `*_unit.py`) test our own logic against canned payloads — via `OfflineClient` (`tests/offline.py`, stubs only the HTTP layer so client-side filtering still runs) or a small stub client. Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test.
 
 The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiting.
 

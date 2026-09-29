@@ -24,6 +24,8 @@ import tools.otc.odd_lot as otc_odd_lot
 import tools.otc.peratio as otc_peratio
 import tools.trading.market as market
 
+pytestmark = pytest.mark.offline
+
 TRADING_DATE = "20250102"
 
 

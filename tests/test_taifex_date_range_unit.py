@@ -8,6 +8,8 @@ import pytest
 
 from tools.taifex.futures_daily_history import parse_date_range
 
+pytestmark = pytest.mark.offline
+
 
 def test_valid_range_is_parsed():
     start_dt, end_dt, error = parse_date_range("20260601", "20260630", 31, "20260601")
