@@ -2,7 +2,13 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, SUMMARY_ROW_LABELS
+from utils import (
+    TWSEAPIClient,
+    handle_api_errors,
+    DEFAULT_DISPLAY_LIMIT,
+    SUMMARY_ROW_LABELS,
+    MSG_OFFSET_OUT_OF_RANGE,
+)
 
 BFIAUU_URL = "https://www.twse.com.tw/rwd/zh/block/BFIAUU"
 
@@ -56,6 +62,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 的鉅額交易資料", count=total
+            )
         end = min(offset + limit, total)
 
         title = resp.get("title", f"{date} 鉅額交易日成交資訊")

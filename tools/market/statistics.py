@@ -2,7 +2,14 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, MSG_NO_DATA, DEFAULT_DISPLAY_LIMIT, handle_api_errors, format_multiple_records
+from utils import (
+    TWSEAPIClient,
+    MSG_NO_DATA,
+    MSG_OFFSET_OUT_OF_RANGE,
+    DEFAULT_DISPLAY_LIMIT,
+    handle_api_errors,
+    format_multiple_records,
+)
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
@@ -24,6 +31,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type="集中市場融資融券餘額資料", count=total
+            )
         end = min(offset + limit, total)
 
         result = f"共有 {total} 筆集中市場融資融券餘額資料"

@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 
 MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
 MAX_RETRY_DAYS = 7
@@ -69,7 +69,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         total = len(data)
         page = data[offset:offset + limit]
         if not page:
-            return f"offset={offset} 已超出範圍，{actual_date} 的融資融券資料共 {total} 筆"
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{actual_date} 的融資融券資料", count=total
+            )
 
         date_note = f"（原查詢 {date}，實際資料日 {actual_date}）" if actual_date != date else ""
         page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""

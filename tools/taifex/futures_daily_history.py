@@ -1,8 +1,9 @@
 """TAIFEX futures daily OHLC history (multi-day download, not exposed via openapi.taifex.com.tw).
 
-Also home to the shared helpers for parsing/decoding www.taifex.com.tw's HTML-form CSV
-download responses, reused by institutional_futures_history.py — the same pattern as
-TAIFEX_HEADERS living in futures_position.py and being imported by sibling modules.
+Also home to the shared helpers for validating the start/end date pair and for
+parsing/decoding www.taifex.com.tw's HTML-form CSV download responses, reused by every
+*_history.py module in this package — the same pattern as TAIFEX_HEADERS living in
+futures_position.py and being imported by sibling modules.
 """
 
 import csv
@@ -25,6 +26,44 @@ MAX_SPAN_DAYS = 31
 
 def parse_yyyymmdd(value: str) -> datetime:
     return datetime.strptime(value, "%Y%m%d")
+
+
+def parse_date_range(
+    start_date: str,
+    end_date: str,
+    max_span_days: int,
+    example: str,
+) -> Tuple[Optional[datetime], Optional[datetime], Optional[str]]:
+    """Parse and validate the YYYYMMDD start/end pair every download tool takes.
+
+    All of these tools reject a range on the same three grounds (unparseable date,
+    reversed order, span over the client-side cap), so the checks live here instead of
+    once per module. Returns (start_dt, end_dt, None) when the range is usable, or
+    (None, None, message) carrying the Chinese message the tool should return verbatim.
+
+    ``example`` is echoed in the format-error message so it matches the calling tool's
+    own docstring example.
+    """
+    try:
+        start_dt = parse_yyyymmdd(start_date)
+        end_dt = parse_yyyymmdd(end_date)
+    except ValueError:
+        return None, None, (
+            f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 {example}），"
+            f"收到：start_date={start_date}, end_date={end_date}"
+        )
+
+    if start_dt > end_dt:
+        return None, None, f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
+
+    span_days = (end_dt - start_dt).days
+    if span_days > max_span_days:
+        return None, None, (
+            f"查詢區間不可超過 {max_span_days} 天（收到 {span_days} 天），"
+            f"請縮小 start_date～end_date 範圍後重試"
+        )
+
+    return start_dt, end_dt, None
 
 
 def decode_and_parse_csv(body: bytes) -> Optional[Tuple[List[str], List[List[str]]]]:
@@ -75,16 +114,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             區間內每個交易日、每個到期月份、一般與盤後時段的開高低收、成交量、未平倉資訊
         """
-        try:
-            start_dt = parse_yyyymmdd(start_date)
-            end_dt = parse_yyyymmdd(end_date)
-        except ValueError:
-            return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260601），收到：start_date={start_date}, end_date={end_date}"
-
-        if start_dt > end_dt:
-            return f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
-        if (end_dt - start_dt).days > MAX_SPAN_DAYS:
-            return f"查詢區間不可超過一個月（收到 {(end_dt - start_dt).days} 天），請縮小 start_date～end_date 範圍後重試"
+        start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260601")
+        if error:
+            return error
 
         contract = contract.strip().upper()
         body = _client.fetch_bytes(

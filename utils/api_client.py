@@ -58,17 +58,26 @@ class TWSEAPIClient:
         """Throttle, send GET/POST, stamp last-request time, and return the response."""
         self._throttle()
         logger.info(f"Fetching {method} {url} params={params}")
-        resp = requests.request(
-            method,
-            url,
-            params=params,
-            data=data,
-            headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
-            verify=self.verify_ssl,
-            timeout=timeout,
-        )
+        try:
+            resp = requests.request(
+                method,
+                url,
+                params=params,
+                data=data,
+                headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
+                verify=self.verify_ssl,
+                timeout=timeout,
+            )
+        finally:
+            # Stamp even when the call raises (timeout, connection error) or the
+            # response turns out to be an error status. A failed request still cost the
+            # upstream a hit, so leaving the stamp stale would make _throttle() see a
+            # huge elapsed time and skip the interval entirely — the retry loops that sit
+            # on top of this (MI_MARGN's 7-day walk-back, the industry-report probing in
+            # tools/company/financials.py) would then fire back-to-back with no spacing,
+            # exactly when TWSE is rate-limiting or down.
+            self._last_request_time = time.time()
         resp.raise_for_status()
-        self._last_request_time = time.time()
         resp.encoding = "utf-8"
         return resp
 

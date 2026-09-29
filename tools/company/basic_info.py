@@ -8,6 +8,8 @@ from utils import (
     has_meaningful_data,
     format_meaningful_fields_only,
     MSG_NO_DATA,
+    MSG_NO_MATCHING_DATA,
+    MSG_OFFSET_OUT_OF_RANGE,
     DEFAULT_DISPLAY_LIMIT,
     format_list_response,
     create_company_tool,
@@ -213,9 +215,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         sorted_companies = sorted(companies.items())
         if name:
             sorted_companies = [(c, n) for c, n in sorted_companies if name in n]
+            if not sorted_companies:
+                return MSG_NO_MATCHING_DATA.format(data_type="上市公司獨立董監事兼任情形")
 
         total = len(sorted_companies)
         page_data = sorted_companies[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type="具有獨立董監事資料的上市公司", count=total
+            )
         end = min(offset + limit, total)
 
         header = f"共有 {total} 家公司具有獨立董監事資料"

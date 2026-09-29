@@ -1,7 +1,12 @@
 """Data formatting utilities."""
 
 from typing import Any, List, Union, Sequence
-from .constants import MSG_TOTAL_RECORDS, DEFAULT_DISPLAY_LIMIT
+from .constants import (
+    MSG_TOTAL_RECORDS,
+    MSG_NO_MATCHING_DATA,
+    MSG_OFFSET_OUT_OF_RANGE,
+    DEFAULT_DISPLAY_LIMIT,
+)
 from .types import TWSEDataItem, DataFormatter
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
@@ -130,12 +135,24 @@ def format_list_response(
         offset: Number of records to skip from the start (default 0)
 
     Returns:
-        Formatted string with header, items, and pagination info
+        Formatted string with header, items, and pagination info, MSG_NO_MATCHING_DATA
+        when there is nothing to show, or MSG_OFFSET_OUT_OF_RANGE when offset is past
+        the last record
     """
     if not data:
-        return ""
+        # 呼叫端多半在抓完資料後才做 name 關鍵字或有效欄位過濾，過濾到一筆不剩時就會走到
+        # 這裡。回空字串等於讓工具回覆一片空白，呼叫端無從分辨是「查無符合的資料」還是
+        # 工具壞掉，所以這裡必須自己講清楚。
+        return MSG_NO_MATCHING_DATA.format(data_type=data_type)
 
     total = len(data)
+    if offset >= total:
+        # offset 已經翻過最後一筆。原本仍照常組表頭，輸出會變成「共有 2 筆…（顯示第
+        # 101–2 筆）」這種不可能的區間後面接零列資料，呼叫端無從分辨是自己翻過頭還是
+        # 工具壞掉。tools/history/margin_balance.py 與 bwibbu_all.py 兩支手寫分頁的工具
+        # 早就會講清楚（tests/e2e/test_output_limits.py 有斷言），這裡補上同樣的行為。
+        return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=data_type, count=total)
+
     page_data = data[offset:offset + limit]
     end = min(offset + limit, total)
 

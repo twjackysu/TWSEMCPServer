@@ -8,7 +8,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TWSE OpenAPI** (`openapi.twse.com.tw`) — 143 tools: 公司治理、ESG、財報、交易、指數、券商
 - **TWSE Web API** (`twse.com.tw`) — 16 tools: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
-- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 3 tools: 上櫃日收盤、三大法人、本益比
+- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 10 tools: 上櫃日收盤、三大法人（個股/彙總）、本益比、融資融券、注意股、處置股、除權息、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
 - **TAIFEX 網站下載** (`www.taifex.com.tw`) — 9 tools: 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史（無伺服器端契約篩選，本地端過濾）、選擇權每日OHLC歷史、三大法人期貨+選擇權總表歷史、三大法人期貨/選擇權分計歷史、三大法人各選擇權契約歷史（HTML表單下載頁面，非 openapi.taifex.com.tw；後者無任何歷史查詢功能，僅回傳最新一個交易日）
 
@@ -33,11 +33,11 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 
 ```
 server.py                     # Thin entrypoint: FastMCP init, prompt registration, tool registration
-models/                       # Pydantic-style data models (MarketInfo, BrokerInfo, RealTimeStats)
 utils/
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
+├── date_helper.py            # roc_to_ad() / ad_to_roc() for TWSE legacy ROC dates
 ├── decorators.py             # @handle_api_errors
 ├── formatters.py             # Data → string formatting functions
 ├── tool_factory.py           # create_company_tool() for dynamically named tools
@@ -56,7 +56,8 @@ tools/
                               #   short_sale_lending (rwd/* endpoints — accept arbitrary past dates, unlike the
                               #   openapi.twse.com.tw equivalents which only return a rolling ~12-day window)
 ├── realtime/                 # MIS real-time quotes: stock_info
-├── otc/                      # TPEx OTC market: daily_close, institutional, peratio
+├── otc/                      # TPEx OTC market: daily_close, institutional, institutional_summary, peratio,
+                              #   margin_balance, odd_lot, exright, index, trading_halt (注意股/處置股)
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
                               #   institutional_details, daily_market_report, large_traders_oi,
                               #   options_analytics, margin, trading_statistics, futures_daily_history,

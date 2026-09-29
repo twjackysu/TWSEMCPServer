@@ -50,6 +50,13 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     # --- statistics.py ---
     "/exchangeReport/MI_5MINS": ["AccAskOrders", "AccAskVolume", "AccBidOrders", "AccBidVolume", "AccTradeValue", "AccTradeVolume", "AccTransaction", "Time"],
 
+    # --- other.py ---
+    # get_fund_basic_info 讀基金名稱時有 基金中文名稱 → 基金名稱 → 基金簡稱 的備援鏈，
+    # 目前只有 基金名稱 存在；任一個在就不會顯示 N/A，故名稱欄位不列為必要欄位。
+    "/opendata/t187ap47_L": ["基金代號", "基金類型"],
+    "/exchangeReport/BFI61U": ["Code", "Name", "StartingDate"],
+    "/holidaySchedule/holidaySchedule": ["Date", "Description", "Name", "Weekday"],
+
     # --- broker.py ---
     "/opendata/t187ap01": ["合計", "受託買賣", "自行買賣", "職位"],
     "/opendata/t187ap19": ["出表日期", "公司總成交筆數", "成交月份", "成交筆數"],
@@ -64,6 +71,14 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     # --- company/basic_info.py ---
     "/opendata/t187ap08_L": ["全體監察人不足股數", "全體董事不足股數", "公司代號", "公司名稱"],
     "/opendata/t187ap09_L": ["公司名稱", "百分比"],
+    # get_company_board_insufficient_shares_consecutive 逐一讀這 11 個月份欄位，只在有值時
+    # 印出。欄位被改名時不會顯示 N/A，而是整份名單變空白——看起來像「目前沒有公司持股不足」，
+    # 比 N/A 更難察覺，故列入必要欄位。
+    "/opendata/t187ap10_L": [
+        "連續不足達3個月", "連續不足達4個月", "連續不足達5個月", "連續不足達6個月",
+        "連續不足達7個月", "連續不足達8個月", "連續不足達9個月", "連續不足達10個月",
+        "連續不足達11個月", "連續不足達12個月", "連續不足逾1年以上",
+    ],
     "/opendata/t187ap24_L": ["公司代號", "公司名稱", "經營權異動日期", "經營權異動說明"],
     "/opendata/t187ap25_L": ["公司代號", "公司名稱", "季別", "年度", "營業範圍重大變更說明"],
     "/opendata/t187ap26_L": ["停止買賣開始日", "公司代號", "公司名稱"],
@@ -108,4 +123,9 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
         "對缺少銀行服務之弱勢族群提供金融教育之參與人數(人)",
     ],
     "/opendata/t187ap46_L_20": ["公司代號", "公司名稱", "因與反競爭行為條例相關的法律訴訟而造成的金錢損失總額(仟元)", "報告年度"],
+
+    # --- trading/warrants.py ---
+    # 只有清單模式的 _format_warrant_summary 硬編欄位；指定 code 時走
+    # format_properties_with_values_multiline，不受欄位改名影響。
+    "/opendata/t187ap37_L": ["最後交易日", "最新履約價格(元)/履約指數", "標的證券/指數", "權證代號", "權證簡稱", "權證類型", "類別"],
 }

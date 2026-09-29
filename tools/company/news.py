@@ -49,15 +49,17 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         elif start_date and not end_date:
             # If only start_date provided, convert to 民國年 and use same month
             if len(start_date) == 8:  # YYYYMMDD format
-                year = int(start_date[:4]) - 1911
+                ad_year = int(start_date[:4])
+                year = ad_year - 1911
                 month = start_date[4:6]
                 day = start_date[6:8]
                 start_date = f"{year:03d}{month}{day}"
-                
-                # Set end_date to last day of that month
-                orig_year = int(start_date[:4]) + 1911 if len(start_date) == 7 else int(start_date[:3]) + 1911
-                orig_month = int(start_date[3:5]) if len(start_date) == 7 else int(start_date[3:5])
-                last_day = calendar.monthrange(orig_year, orig_month)[1]
+
+                # Set end_date to last day of that month. The leap-year rule has to be
+                # applied to the AD year: this used to re-read the already-converted
+                # 民國年 string, so "1130201" gave year 1130+1911=3041 and 2024-02 ended
+                # on the 28th, dropping every news item dated 1130229.
+                last_day = calendar.monthrange(ad_year, int(month))[1]
                 end_date = f"{year:03d}{month}{last_day:02d}"
         elif not start_date and end_date:
             # If only end_date provided, convert to 民國年 and use same month start

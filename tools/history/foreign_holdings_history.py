@@ -2,7 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 
 MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
 
@@ -53,6 +53,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 的外資及陸資持股資料", count=total
+            )
         end = min(offset + limit, total)
 
         title = resp.get("title", f"{date} 外資及陸資投資持股統計")

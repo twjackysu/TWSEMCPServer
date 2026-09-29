@@ -5,6 +5,8 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
+    MSG_NO_MATCHING_DATA,
+    MSG_OFFSET_OUT_OF_RANGE,
     handle_api_errors,
     format_list_response,
     create_list_tool,
@@ -164,6 +166,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         if name:
             data = [d for d in data if name in d.get("Name", "")]
+            if not data:
+                return MSG_NO_MATCHING_DATA.format(data_type="集中市場每日成交量前二十名證券")
 
         date = data[0].get("Date", "N/A") if data else "N/A"
 
@@ -185,6 +189,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type="集中市場每日成交量前二十名證券資料", count=total
+            )
         end = min(offset + limit, total)
 
         header = f"集中市場每日成交量前二十名證券 (日期: {date})（共 {total} 筆"
@@ -369,10 +377,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total_twse = len(twse_data)
         total_gretai = len(gretai_data)
+        # 兩個市場共用同一個 offset，所以要先切好頁再決定要印哪些區塊：只有「兩邊都翻過尾端」
+        # 才是真的越界；只有一邊沒資料時，該區塊整段不印即可。
+        page_twse = twse_data[offset:offset + limit]
+        page_gretai = gretai_data[offset:offset + limit]
+        if not page_twse and not page_gretai:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type="上市上櫃股票當日可借券賣出股數資料", count=len(data)
+            )
+
         result = f"共有 {len(data)} 筆上市上櫃股票當日可借券賣出股數資料：\n\n"
 
-        if twse_data:
-            page_twse = twse_data[offset:offset + limit]
+        if page_twse:
             result += f"【上市股票】（共 {total_twse} 筆，顯示第 {offset + 1}–{min(offset + limit, total_twse)} 筆）\n"
             for item in page_twse:
                 stock_code = item.get("TWSECode", "N/A")
@@ -382,8 +398,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if remaining_twse > 0:
                 result += f"... 還有 {remaining_twse} 筆，使用 offset={offset + limit} 查看更多\n"
 
-        if gretai_data:
-            page_gretai = gretai_data[offset:offset + limit]
+        if page_gretai:
             result += f"\n【上櫃股票】（共 {total_gretai} 筆，顯示第 {offset + 1}–{min(offset + limit, total_gretai)} 筆）\n"
             for item in page_gretai:
                 stock_code = item.get("GRETAICode", "N/A")

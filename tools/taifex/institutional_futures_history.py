@@ -9,7 +9,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from .futures_position import TAIFEX_HEADERS
-from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
+from .futures_daily_history import parse_date_range, decode_and_parse_csv
 
 FUT_CONTRACTS_DATE_DOWN_URL = "https://www.taifex.com.tw/cht/3/futContractsDateDown"
 
@@ -44,16 +44,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             區間內每個交易日、自營商/投信/外資及陸資的多空交易口數、契約金額、未平倉資訊
         """
-        try:
-            start_dt = parse_yyyymmdd(start_date)
-            end_dt = parse_yyyymmdd(end_date)
-        except ValueError:
-            return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260601），收到：start_date={start_date}, end_date={end_date}"
-
-        if start_dt > end_dt:
-            return f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
-        if (end_dt - start_dt).days > MAX_SPAN_DAYS:
-            return f"查詢區間不可超過 {MAX_SPAN_DAYS} 天（收到 {(end_dt - start_dt).days} 天），請縮小 start_date～end_date 範圍後重試"
+        start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260601")
+        if error:
+            return error
 
         contract = contract.strip().upper()
         body = _client.fetch_bytes(

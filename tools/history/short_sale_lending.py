@@ -6,7 +6,13 @@ cover the securities-lending (借券) side of short selling.
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, SUMMARY_ROW_LABELS
+from utils import (
+    TWSEAPIClient,
+    handle_api_errors,
+    DEFAULT_DISPLAY_LIMIT,
+    SUMMARY_ROW_LABELS,
+    MSG_OFFSET_OUT_OF_RANGE,
+)
 
 TWT93U_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U"
 TWTASU_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU"
@@ -59,6 +65,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(data)
         page_data = data[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 的信用額度總量管制餘額資料", count=total
+            )
         end = min(offset + limit, total)
 
         title = resp.get("title", f"{date} 信用額度總量管制餘額表")
@@ -137,6 +147,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         total = len(parsed)
         page_data = parsed[offset:offset + limit]
+        if not page_data:
+            return MSG_OFFSET_OUT_OF_RANGE.format(
+                offset=offset, data_type=f"{date} 的融券借券賣出成交量值資料", count=total
+            )
         end = min(offset + limit, total)
 
         title = resp.get("title", f"{date} 當日融券賣出與借券賣出成交量值")

@@ -4,7 +4,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 from .futures_position import TAIFEX_HEADERS
-from .futures_daily_history import parse_yyyymmdd, decode_and_parse_csv
+from .futures_daily_history import parse_date_range, decode_and_parse_csv
 
 # openapi.taifex.com.tw's get_large_traders_futures_oi only returns the latest trading
 # day. This endpoint (www.taifex.com.tw download page) accepts an arbitrary date range,
@@ -39,16 +39,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             區間內每個交易日，該契約各到期月份的前五大／前十大交易人買方、賣方部位數與全市場未沖銷部位數
         """
-        try:
-            start_dt = parse_yyyymmdd(start_date)
-            end_dt = parse_yyyymmdd(end_date)
-        except ValueError:
-            return f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 20260601），收到：start_date={start_date}, end_date={end_date}"
+        start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260601")
+        if error:
+            return error
 
-        if start_dt > end_dt:
-            return f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
-        if (end_dt - start_dt).days > MAX_SPAN_DAYS:
-            return f"查詢區間不可超過一個月（收到 {(end_dt - start_dt).days} 天），請縮小 start_date～end_date 範圍後重試"
         if not contract or not contract.strip():
             return "contract 為必填參數，請指定期貨契約代碼（例如 TX、MTX、TE、TF）"
 
