@@ -65,6 +65,20 @@ def fetch_or_skip(url: str, **kwargs):
         raise
 
 
+def records_or_skip(data, source: str) -> list:
+    """Return ``data`` for field checks; skip when upstream has no records today.
+
+    A list is part of the contract, so anything else fails. An empty list is not: these
+    "latest day only" endpoints legitimately return ``[]`` around holidays (TWSE
+    t187ap42_L served ``[]`` for days after the 2026 Mid-Autumn long weekend). That says
+    nothing about the interface, it just leaves no record to check fields on.
+    """
+    assert isinstance(data, list), f"{source} 應回傳 list，實際為 {type(data).__name__}"
+    if not data:
+        pytest.skip(f"{source} 目前沒有資料，無法驗證欄位（上游無資料，非 interface 變更）")
+    return data
+
+
 class _CapturingMCP:
     """Minimal stand-in for FastMCP that records the functions modules register.
 

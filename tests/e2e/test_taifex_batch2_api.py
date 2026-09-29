@@ -1,6 +1,6 @@
 """測試第二批新增 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在。"""
 
-from tests.helpers import fetch_or_skip
+from tests.helpers import fetch_or_skip, records_or_skip
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -9,9 +9,9 @@ HEADERS = {
 
 
 def _fetch(endpoint: str) -> list:
-    return fetch_or_skip(
-        f"https://openapi.taifex.com.tw/v1/{endpoint}",
-        headers=HEADERS, timeout=15,
+    return records_or_skip(
+        fetch_or_skip(f"https://openapi.taifex.com.tw/v1/{endpoint}", headers=HEADERS, timeout=15),
+        endpoint,
     )
 
 
@@ -24,7 +24,6 @@ class TestInstitutionalTradersByFuturesAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("MarketDataOfMajorInstitutionalTradersDetailsOfFuturesContractsBytheDate")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Date", "ContractCode", "Item",
@@ -47,7 +46,6 @@ class TestInstitutionalTradersByOptionsAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("MarketDataOfMajorInstitutionalTradersDetailsOfOptionsContractsBytheDate")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Date", "ContractCode", "Item",
@@ -70,7 +68,6 @@ class TestInstitutionalTradersCallsPutsAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("MarketDataOfMajorInstitutionalTradersDetailsOfCallsAndPutsBytheDate")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Date", "ContractCode", "CallPut", "Item",
@@ -91,7 +88,6 @@ class TestOptionsDeltaAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("DailyOptionsDelta")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Contract", "CallPut", "ContractMonth(Week)",
@@ -111,7 +107,6 @@ class TestOptionsOIChangeAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("va01")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in ["Date", "OpenInterest", "PreviousDay", "PreviousDayOpenInterest", "Change"]:
             assert field in record, f"缺少欄位: {field}"
@@ -124,7 +119,6 @@ class TestIndexFuturesMarginAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("IndexFuturesAndOptionsMargining")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in ["Contract", "ClearingMargin", "MaintenanceMargin", "InitialMargin", "Date"]:
             assert field in record, f"缺少欄位: {field}"
@@ -138,7 +132,6 @@ class TestStockFuturesMarginAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("SingleStockFuturesMargining")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Contract", "UnderlyingSecurityCode", "ContractName",
@@ -155,7 +148,6 @@ class TestAnnualTradingVolumeAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("AnnualTradingVolume")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "YYYY", "Contract", "ContractName",
@@ -175,7 +167,6 @@ class TestMonthlyTradingStatisticsAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("MonthlyTradingStatisticsFutures")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "YYYYMM", "ContactName", "TotalVolume", "MonthEndOpenInterest",

@@ -3,6 +3,7 @@
 import pytest
 import logging
 import time
+import requests
 from utils.config import TestConfig, APIConfig
 
 # 設定測試日誌
@@ -30,10 +31,30 @@ def api_timeout():
     """API 請求超時時間."""
     return APIConfig.DEFAULT_TIMEOUT
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "offline: 不打網路的 unit test，不需要 rate limit 延遲"
+    )
+
+
 @pytest.fixture(autouse=True)
-def rate_limit_delay():
+def block_network_in_offline_tests(request, monkeypatch):
+    """offline 測試一碰到真實 HTTP 就失敗，而不是悄悄連上外部 API."""
+    if not request.node.get_closest_marker("offline"):
+        return
+
+    def _refuse(self, method, url, *args, **kwargs):
+        raise AssertionError(f"offline 測試不得發出真實 HTTP 請求: {method} {url}")
+
+    monkeypatch.setattr(requests.Session, "request", _refuse)
+
+
+@pytest.fixture(autouse=True)
+def rate_limit_delay(request):
     """每個測試之間自動延遲，避免被視為 DDOS 攻擊."""
     yield
+    if request.node.get_closest_marker("offline"):
+        return
     # 測試執行後延遲，時間可透過環境變數 PYTEST_DELAY_SECONDS 設定
     if TEST_DELAY > 0:
         logging.info(f"Rate limiting: waiting {TEST_DELAY} seconds before next test")

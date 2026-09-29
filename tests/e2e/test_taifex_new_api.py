@@ -2,7 +2,7 @@
 
 import pytest
 import requests
-from tests.helpers import fetch_or_skip
+from tests.helpers import fetch_or_skip, records_or_skip
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -11,9 +11,9 @@ HEADERS = {
 
 
 def _fetch(endpoint: str) -> list:
-    return fetch_or_skip(
-        f"https://openapi.taifex.com.tw/v1/{endpoint}",
-        headers=HEADERS, timeout=15,
+    return records_or_skip(
+        fetch_or_skip(f"https://openapi.taifex.com.tw/v1/{endpoint}", headers=HEADERS, timeout=15),
+        endpoint,
     )
 
 
@@ -29,7 +29,6 @@ class TestDailyFuturesMarketReportAPI:
     """
 
     def test_hardcoded_fields_exist(self, daily_market_report_fut):
-        assert isinstance(daily_market_report_fut, list) and len(daily_market_report_fut) > 0
         record = daily_market_report_fut[0]
         for field in [
             "Date", "Contract", "ContractMonth(Week)",
@@ -55,7 +54,6 @@ class TestDailyOptionsMarketReportAPI:
     """
 
     def test_hardcoded_fields_exist(self, daily_market_report_opt):
-        assert isinstance(daily_market_report_opt, list) and len(daily_market_report_opt) > 0
         record = daily_market_report_opt[0]
         for field in [
             "Date", "Contract", "ContractMonth(Week)",
@@ -103,7 +101,7 @@ def _fetch_large_traders_oi_futures() -> list:
 
 @pytest.fixture(scope="class")
 def large_traders_oi_futures():
-    return _fetch_large_traders_oi_futures()
+    return records_or_skip(_fetch_large_traders_oi_futures(), "OpenInterestOfLargeTradersFutures")
 
 
 class TestLargeTradersOIFuturesAPI:
@@ -113,7 +111,6 @@ class TestLargeTradersOIFuturesAPI:
     """
 
     def test_hardcoded_fields_exist(self, large_traders_oi_futures):
-        assert isinstance(large_traders_oi_futures, list) and len(large_traders_oi_futures) > 0
         record = large_traders_oi_futures[0]
         for field in [
             "Date", "Contract", "ContractName", "SettlementMonth", "TypeOfTraders",
@@ -137,7 +134,6 @@ class TestLargeTradersOIOptionsAPI:
     """
 
     def test_hardcoded_fields_exist(self, large_traders_oi_options):
-        assert isinstance(large_traders_oi_options, list) and len(large_traders_oi_options) > 0
         record = large_traders_oi_options[0]
         for field in [
             "Date", "Contract", "ContractName", "CallPut",
@@ -161,7 +157,6 @@ class TestOptionsDeltaAPI:
     """
 
     def test_hardcoded_fields_exist(self, daily_options_delta):
-        assert isinstance(daily_options_delta, list) and len(daily_options_delta) > 0
         record = daily_options_delta[0]
         for field in [
             "Contract", "CallPut", "ContractMonth(Week)",
@@ -180,7 +175,6 @@ class TestOptionsOIChangeAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("va01")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in ["Date", "OpenInterest", "PreviousDay", "PreviousDayOpenInterest", "Change"]:
             assert field in record, f"缺少欄位: {field}"
@@ -193,7 +187,6 @@ class TestIndexFuturesMarginAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("IndexFuturesAndOptionsMargining")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in ["Contract", "ClearingMargin", "MaintenanceMargin", "InitialMargin", "Date"]:
             assert field in record, f"缺少欄位: {field}"
@@ -207,7 +200,6 @@ class TestStockFuturesMarginAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("SingleStockFuturesMargining")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "Contract", "UnderlyingSecurityCode", "ContractName",
@@ -224,7 +216,6 @@ class TestAnnualTradingVolumeAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("AnnualTradingVolume")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "YYYY", "Contract", "ContractName",
@@ -244,7 +235,6 @@ class TestMonthlyTradingStatisticsAPI:
 
     def test_hardcoded_fields_exist(self):
         data = _fetch("MonthlyTradingStatisticsFutures")
-        assert isinstance(data, list) and len(data) > 0
         record = data[0]
         for field in [
             "YYYYMM", "ContactName", "TotalVolume", "MonthEndOpenInterest",

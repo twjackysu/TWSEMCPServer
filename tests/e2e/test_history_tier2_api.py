@@ -5,6 +5,7 @@
 
 import pytest
 from tests.helpers import fetch_or_skip
+from utils.constants import SUMMARY_ROW_LABELS
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 FIXED_STOCK = "2330"     # 台積電
@@ -63,6 +64,16 @@ class TestBlockTradesDetailAPI:
         assert len(data) > 0
         assert len(data[0]) == 6, f"欄位數不為 6，row 結構可能已變更: {data[0]}"
 
+    def test_last_row_is_summary(self):
+        """tool 以 row[0] 濾掉末列「總計」；上游若不再附彙總列，過濾就成了無效程式碼."""
+        result = fetch_or_skip(
+            "https://www.twse.com.tw/rwd/zh/block/BFIAUU",
+            params={"response": "json", "date": FIXED_DATE},
+        )
+        assert result["data"][-1][0].strip() in SUMMARY_ROW_LABELS, (
+            f"末列不再是彙總列: {result['data'][-1]}"
+        )
+
 
 class TestShortSaleLendingBalanceHistoryAPI:
     """信用額度總量管制餘額表 - TWT93U
@@ -80,6 +91,16 @@ class TestShortSaleLendingBalanceHistoryAPI:
         data = result.get("data", [])
         assert len(data) > 0
         assert len(data[0]) >= 14, f"欄位數不足 14，row 結構可能已變更: {data[0]}"
+
+    def test_last_row_is_summary(self):
+        """tool 以 row[1] 濾掉末列「合計」."""
+        result = fetch_or_skip(
+            "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U",
+            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
+        )
+        assert result["data"][-1][1].strip() in SUMMARY_ROW_LABELS, (
+            f"末列不再是彙總列: {result['data'][-1]}"
+        )
 
 
 class TestShortSaleLendingTradesHistoryAPI:
@@ -99,3 +120,13 @@ class TestShortSaleLendingTradesHistoryAPI:
         assert len(data[0]) == 5, f"欄位數不為 5，row 結構可能已變更: {data[0]}"
         tsmc = next((r for r in data if r[0].split(None, 1)[0] == FIXED_STOCK), None)
         assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 的代號+名稱格式可能已變更"
+
+    def test_last_row_is_summary(self):
+        """tool 以 row[0] split 後的第一段濾掉末列「合計」."""
+        result = fetch_or_skip(
+            "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU",
+            params={"response": "json", "date": FIXED_DATE},
+        )
+        assert result["data"][-1][0].split(None, 1)[0] in SUMMARY_ROW_LABELS, (
+            f"末列不再是彙總列: {result['data'][-1]}"
+        )

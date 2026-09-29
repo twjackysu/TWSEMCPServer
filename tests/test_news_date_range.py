@@ -10,6 +10,8 @@ import pytest
 from tests.helpers import register_module_tools
 from tools.company import news
 
+pytestmark = pytest.mark.offline
+
 NEWS_ROWS = [
     {"Date": "1130201", "Title": "二月第一天"},
     {"Date": "1130228", "Title": "二月倒數第二天"},

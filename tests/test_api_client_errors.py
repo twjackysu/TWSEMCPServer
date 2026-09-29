@@ -15,6 +15,8 @@ from utils.api_client import TWSEAPIClient
 from utils.tool_factory import create_company_tool
 from tests.helpers import _CapturingMCP
 
+pytestmark = pytest.mark.offline
+
 ENDPOINT = "/opendata/t187ap06_L_ci"
 
 
@@ -108,10 +110,24 @@ def test_rate_limit_still_applies_after_a_failure(monkeypatch, fake_request):
     assert elapsed >= interval * (attempts - 1), f"失敗後未節流，{attempts} 次僅耗時 {elapsed:.3f}s"
 
 
-def test_missing_company_still_reads_as_missing(client):
+class _ListWithoutTarget:
+    """200 OK、合法 JSON，但清單裡沒有要查的公司."""
+
+    status_code = 200
+    encoding = "utf-8"
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return [{"公司代號": "2330", "公司名稱": "台積電"}]
+
+
+def test_missing_company_still_reads_as_missing(monkeypatch, client):
     """對照組：真的查無此公司時，訊息要與「查詢失敗」明確區分."""
     mcp = _CapturingMCP()
     create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
+    monkeypatch.setattr(requests, "request", lambda *a, **kw: _ListWithoutTarget())
 
     result = mcp.tools["probe_tool"]("9999")
     assert result.startswith("查無"), f"預期「查無」訊息，實際: {result!r}"

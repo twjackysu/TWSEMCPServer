@@ -11,6 +11,8 @@ Extra fields added by TWSE are fine; missing required fields mean a tool is brok
 
 from typing import Dict, List
 
+from tools.company.financials import INDUSTRY_SUFFIXES
+
 TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     # --- market.py ---
     "/Announcement/BFZFZU_T": ["Code", "Date", "Name", "Number"],
@@ -105,6 +107,12 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
         "稅前純益率(%)(稅前純益)/(營業收入)",
         "稅後純益率(%)(稅後純益)/(營業收入)",
     ],
+    # 產業別報表變體：_fetch_industry_report 經 fetch_company_data 以「公司代號」逐一探測
+    **{
+        f"/opendata/{report}{suffix}": ["公司代號"]
+        for report in ("t187ap06_L", "t187ap07_L")
+        for suffix in INDUSTRY_SUFFIXES
+    },
 
     # --- company/esg.py (specific endpoints with hardcoded fields) ---
     "/opendata/t187ap46_L_15": ["公司代號", "公司名稱", "在人口密集地區的煉油廠數量(座)", "報告年度"],
