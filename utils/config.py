@@ -49,6 +49,14 @@ class APIConfig:
         '60'
     ))
 
+    # Upper bound on entries in the per-call response cache used by fetch_json / fetch_bytes
+    # when a tool passes ``cache_ttl``. Keys include query parameters, so without a bound a
+    # long-running server would keep one entry per distinct query forever.
+    RESPONSE_CACHE_MAX_ENTRIES: Final[int] = int(os.getenv(
+        'TWSE_RESPONSE_CACHE_MAX_ENTRIES',
+        '256'
+    ))
+
 
 class DisplayConfig:
     """Display and formatting configuration."""

@@ -17,6 +17,9 @@ MARKETS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公開發
 # 影音連結資訊, 其他應敘明事項, 歷年法人說明會(按鈕)
 ROW_WIDTH = 12
 
+# The legacy page's own wording when a query has no rows.
+NO_DATA_TEXT = "查無資料"
+
 
 def parse_conference_rows(html: str) -> list:
     """Return the conference table's data rows (header rows dropped), ordered by date."""
@@ -69,6 +72,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             "co_id": code.strip(),
         })
         rows = parse_conference_rows(html)
+        if not rows and NO_DATA_TEXT not in html:
+            # 既沒有資料表也沒有「查無資料」：多半是 MOPS 的防爬封鎖頁或改版，不能回報成查無資料
+            raise ValueError("公開資訊觀測站回應非預期頁面（可能暫時限制存取或頁面改版），請稍後再試")
         scope = f"{MARKETS[market]} 民國{roc_year}年" + (f"{month_value}月" if month_value else "") + (f" {code}" if code else "")
         if not rows:
             return f"查無 {scope} 的法人說明會資料"

@@ -249,3 +249,13 @@ def test_conference_argument_validation():
     fn = tools["get_investor_conferences"]
     assert "market 只能是" in fn("2026", market="nyse")
     assert "month 必須是" in fn("2026", "13")
+
+
+def test_conference_unexpected_page_is_an_error_not_no_data():
+    """防爬封鎖頁或改版頁既無資料表也無「查無資料」，要回報錯誤而非「查無法說會」."""
+    pages = {"blocked": b"<html>FOR SECURITY REASONS, THIS PAGE CAN NOT BE ACCESSED!</html>",
+             "empty": "<html><center>查無資料</center></html>".encode("utf-8")}
+    fn = register_module_tools(investor_conference, OfflineClient({"/mops/web/ajax_t100sb02_1": lambda _p, b: pages[b["co_id"]]}))[
+        "get_investor_conferences"]
+    assert "查詢失敗" in fn("2026", code="blocked")
+    assert "查無" in fn("2026", code="empty") and "查詢失敗" not in fn("2026", code="empty")

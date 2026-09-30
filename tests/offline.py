@@ -5,6 +5,7 @@
 照常被執行。未設定路由的 URL 會直接拋錯，避免測試不小心連上真實 API。
 """
 
+import json
 from typing import Any, Callable, Dict, Union
 
 from utils.api_client import TWSEAPIClient
@@ -19,7 +20,8 @@ Route = Union[Payload, Callable[[Dict[str, Any], Dict[str, Any]], Payload]]
 class _CannedResponse:
     def __init__(self, payload: Payload):
         self._payload = payload
-        self.content = payload if isinstance(payload, bytes) else b""
+        # JSON payload 也提供 content，讓走快取（bytes 再 json.loads）的路徑同樣可用
+        self.content = payload if isinstance(payload, bytes) else json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
     def json(self):
         return self._payload

@@ -14,7 +14,7 @@ import pytest
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip
 from tools.mops.dividend import KEY_COLUMNS
 from tools.mops.monthly_revenue import CURRENT_MONTH_LABEL
-from tools.mops.investor_conference import ROW_WIDTH, parse_conference_rows
+from tools.mops.investor_conference import NO_DATA_TEXT, ROW_WIDTH, parse_conference_rows
 from utils.mops import (
     MOPS_API_BASE,
     MOPS_LEGACY_BASE,
@@ -168,3 +168,8 @@ class TestInvestorConferenceLegacyPage:
         rows = parse_conference_rows(self._fetch(co_id=FIXED_STOCK))
         assert rows, f"{FIXED_STOCK} 在民國{FIXED_ROC_YEAR}年應有法說會資料"
         assert {r[0] for r in rows} == {FIXED_STOCK}, "co_id 不再於伺服器端篩選"
+
+    def test_no_data_page_says_so(self):
+        """tool 以「查無資料」字樣區分真的沒資料與封鎖／改版頁，這段文字必須還在."""
+        html = self._fetch(month="01", co_id="9999")
+        assert NO_DATA_TEXT in html, f"查無資料時的頁面文字已變更: {html[:300]!r}"
