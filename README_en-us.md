@@ -68,6 +68,24 @@ scrapes TAIFEX's own website download pages (`www.taifex.com.tw`) for real histo
 daily OHLC history for futures contracts, and 三大法人 futures position history
 > *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?"*
 
+### Multi-Period Financials, Revenue & Dividends
+The TWSE OpenAPI only carries the latest period for financial statements, monthly revenue and
+dividends. This project also queries MOPS (公開資訊觀測站) for any past quarter's income
+statement, balance sheet and **cash-flow statement**, multi-month revenue, multi-year dividend
+history, and the investor-conference calendar
+> *"Compare TSMC's gross margin and free cash flow over the last four quarters" / "Has Hon Hai's dividend been stable for five years?"*
+
+### Shareholder Concentration & OTC History
+TDCC shareholding distribution (big-holder vs. retail ratios); OTC per-stock daily OHLC,
+三大法人 and margin balances for any past date; TWSE day-trading stats, ex-rights results and
+sector index history
+> *"What share of GlobalWafers do 1,000-lot holders own?" / "How did the semiconductor index do last month?"*
+
+### Macro
+NDC business-cycle signal (景氣燈號) and leading/coincident/lagging indicators, Taiwan PMI/NMI,
+central-bank daily exchange rates
+> *"What color is the business-cycle signal now?" / "Has the TWD strengthened this month?"*
+
 ## ⚙️ Quick Start
 
 ### 🚀 Online Usage (powered by [Prefect Horizon](https://horizon.prefect.io/))
@@ -115,12 +133,17 @@ uv sync && uv run fastmcp dev server.py
 
 | Source | Description | Tools |
 |--------|-------------|-------|
-| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financials, trading, indices, etc. | 143 |
-| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades | 16 |
+| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financials, trading, indices, etc. | 128 |
+| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades, ex-rights/dividend results, day-trading statistics, all index closes incl. sector indices | 19 |
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors (per-stock/summary), P/E ratio, margin balance, warning/disposal stocks, ex-rights/dividends, odd-lot, index | 10 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |
 | [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own historical data-download pages — futures daily OHLC history, 三大法人 futures position history, Put/Call Ratio history, 三大法人 options calls/puts history, large-trader futures OI history, options daily OHLC history, 三大法人 futures+options total history, futures/options split history, options-by-contract history (openapi.taifex.com.tw only returns the latest trading day, no historical query support) | 9 |
+| [MOPS](https://mops.twse.com.tw) | Market Observation Post System — income statement / balance sheet / cash-flow statement for any past quarter, multi-month revenue, multi-year dividends, investor conferences (the OpenAPI only has the latest period) | 6 |
+| [TPEx website](https://www.tpex.org.tw) | TPEx website JSON — OTC per-stock daily OHLC, 三大法人 and margin balances for any past date (TPEx OpenAPI only has the latest day) | 3 |
+| [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week, incl. big-holder / retail ratios) | 1 |
+| [National Development Council](https://data.gov.tw/dataset/6099) | Business-cycle signal & indicators (since 1982), Taiwan PMI/NMI | 2 |
+| [Central Bank](https://cpx.cbc.gov.tw) | Daily TWD and major trading-partner currencies vs. USD (since 1993) | 1 |
 
 ## 🤝 Contributing
 PRs welcome!
