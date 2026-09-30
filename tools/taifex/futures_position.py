@@ -10,6 +10,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from utils.taifex import (
+    TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
     TAIFEX_HEADERS,
     decode_and_parse_csv,
@@ -33,6 +34,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             method="POST",
             headers=TAIFEX_HEADERS,
             data=download_form(start_dt, end_dt),
+            cache_ttl=TAIFEX_CACHE_TTL,
         )
         return decode_and_parse_csv(body)
 

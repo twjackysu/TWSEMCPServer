@@ -22,6 +22,12 @@ TAIFEX_HEADERS = {
 
 TAIFEX_DOWNLOAD_BASE = "https://www.taifex.com.tw/cht/3"
 
+# Download pages are re-queried when a tool first lists contracts and then fetches one of
+# them, when the latest-day lookup re-walks the same empty days, and when several users ask
+# about the same day. Five minutes keeps that to one request while still picking up the
+# evening publication promptly.
+TAIFEX_CACHE_TTL = 300
+
 # How far back the "latest trading day" lookup walks. Covers the longest market closures
 # (Lunar New Year) with room to spare.
 LATEST_LOOKBACK_DAYS = 12

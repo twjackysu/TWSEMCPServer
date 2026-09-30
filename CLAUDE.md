@@ -113,7 +113,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 - `TWSE_API_TIMEOUT` (default: `30.0` seconds)
 - `TWSE_VERIFY_SSL` (default: `false` — required for TWSE API compatibility)
 - `TWSE_CACHE_TTL` (default: `60` seconds — in-memory cache for `fetch_data` OpenAPI list responses; `0` disables every cache, including the one below)
-- `TWSE_RESPONSE_CACHE_MAX_ENTRIES` (default: `256`) — bound on the per-call response cache that `fetch_json` / `fetch_bytes` use when a tool passes `cache_ttl=` (MOPS 600s, TDCC/CBC 1h, NDC 6h). It stores raw bytes, so callers can't mutate each other's data; only successful responses are cached
+- `TWSE_RESPONSE_CACHE_MAX_ENTRIES` (default: `256`) — bound on the per-call response cache that `fetch_json` / `fetch_bytes` use when a tool passes `cache_ttl=` (TAIFEX download pages 300s, MOPS 600s, TDCC/CBC 1h, NDC 6h). It stores raw bytes, so callers can't mutate each other's data; only successful responses are cached
 - `DISPLAY_LIMIT` (default: `50`)
 - `PYTEST_DELAY_SECONDS` (default: `1.0` — rate limit delay between tests)
 
