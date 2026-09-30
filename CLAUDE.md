@@ -137,7 +137,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 
 ## Adding New Tools
 
-1. Check for overlap first. Don't ship two tools for the same data: if a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
+1. Check for overlap first. Don't ship two tools for the same data. Decide overlap from the upstream data, never from tool names or descriptions: fetch both endpoints for the same day and compare row sets, columns and values. If a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
 2. Add tool function in the appropriate module under `tools/` (or create a new module)
 3. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
 4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
