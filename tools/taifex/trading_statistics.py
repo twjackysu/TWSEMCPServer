@@ -3,7 +3,7 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
-from .futures_position import TAIFEX_HEADERS
+from utils.taifex import TAIFEX_HEADERS
 
 _ANNUAL_URL = "https://openapi.taifex.com.tw/v1/AnnualTradingVolume"
 _MONTHLY_STATS_URL = "https://openapi.taifex.com.tw/v1/MonthlyTradingStatisticsFutures"

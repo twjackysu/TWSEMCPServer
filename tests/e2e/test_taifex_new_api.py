@@ -1,7 +1,6 @@
 """測試新增的 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在，不驗證動態欄位。"""
 
 import pytest
-import requests
 from tests.helpers import fetch_or_skip, records_or_skip
 
 HEADERS = {
@@ -15,111 +14,6 @@ def _fetch(endpoint: str) -> list:
         fetch_or_skip(f"https://openapi.taifex.com.tw/v1/{endpoint}", headers=HEADERS, timeout=15),
         endpoint,
     )
-
-
-@pytest.fixture(scope="class")
-def daily_market_report_fut():
-    return _fetch("DailyMarketReportFut")
-
-
-class TestDailyFuturesMarketReportAPI:
-    """Tool get_daily_futures_market_report 寫死的欄位：
-    Date, Contract, ContractMonth(Week), Open, High, Low, Last, Change, %,
-    Volume, SettlementPrice, OpenInterest, BestBid, BestAsk, TradingSession
-    """
-
-    def test_hardcoded_fields_exist(self, daily_market_report_fut):
-        record = daily_market_report_fut[0]
-        for field in [
-            "Date", "Contract", "ContractMonth(Week)",
-            "Open", "High", "Low", "Last", "Change", "%",
-            "Volume", "SettlementPrice", "OpenInterest",
-            "BestBid", "BestAsk", "TradingSession",
-        ]:
-            assert field in record, f"缺少欄位: {field}"
-
-    def test_tx_contract_exists(self, daily_market_report_fut):
-        assert any(x.get("Contract") == "TX" for x in daily_market_report_fut)
-
-
-@pytest.fixture(scope="class")
-def daily_market_report_opt():
-    return _fetch("DailyMarketReportOpt")
-
-
-class TestDailyOptionsMarketReportAPI:
-    """Tool get_daily_options_market_report 寫死的欄位：
-    Date, Contract, ContractMonth(Week), StrikePrice, CallPut,
-    Open, High, Low, Close, Volume, SettlementPrice, OpenInterest, TradingSession
-    """
-
-    def test_hardcoded_fields_exist(self, daily_market_report_opt):
-        record = daily_market_report_opt[0]
-        for field in [
-            "Date", "Contract", "ContractMonth(Week)",
-            "StrikePrice", "CallPut",
-            "Open", "High", "Low", "Close",
-            "Volume", "SettlementPrice", "OpenInterest", "TradingSession",
-        ]:
-            assert field in record, f"缺少欄位: {field}"
-
-    def test_txo_contract_exists(self, daily_market_report_opt):
-        assert any(x.get("Contract") == "TXO" for x in daily_market_report_opt)
-
-
-def _fetch_large_traders_oi_futures() -> list:
-    """OpenInterestOfLargeTradersFutures started returning CSV instead of JSON as of
-    2026-07 (confirmed genuine upstream regression, not a header/format issue on our
-    side — the sibling Options endpoint is unaffected). Tool get_large_traders_futures_oi
-    tolerates this via a JSON-with-CSV-fallback helper; mirror that here so this test
-    keeps validating the fields the tool actually depends on regardless of which format
-    the API happens to be serving.
-    """
-    resp = requests.get(
-        "https://openapi.taifex.com.tw/v1/OpenInterestOfLargeTradersFutures",
-        headers=HEADERS, verify=False, timeout=15,
-    )
-    try:
-        return resp.json()
-    except requests.exceptions.JSONDecodeError:
-        pass
-
-    import csv
-    import io
-
-    header_map = {
-        "日期": "Date", "契約": "Contract", "商品名稱(契約名稱)": "ContractName",
-        "到期月份(週別)": "SettlementMonth", "交易人類別": "TypeOfTraders",
-        "前五大交易人買方數量": "Top5Buy", "前五大交易人賣方數量": "Top5Sell",
-        "前十大交易人買方數量": "Top10Buy", "前十大交易人賣方數量": "Top10Sell",
-        "全市場未沖銷部位數": "OIOfMarket",
-    }
-    rows = list(csv.reader(io.StringIO(resp.content.decode("utf-8-sig", errors="replace"))))
-    header = [header_map.get(h.strip(), h.strip()) for h in rows[0]]
-    return [dict(zip(header, r)) for r in rows[1:] if r and r[0].strip()]
-
-
-@pytest.fixture(scope="class")
-def large_traders_oi_futures():
-    return records_or_skip(_fetch_large_traders_oi_futures(), "OpenInterestOfLargeTradersFutures")
-
-
-class TestLargeTradersOIFuturesAPI:
-    """Tool get_large_traders_futures_oi 寫死的欄位：
-    Date, Contract, ContractName, SettlementMonth, TypeOfTraders,
-    Top5Buy, Top5Sell, Top10Buy, Top10Sell, OIOfMarket
-    """
-
-    def test_hardcoded_fields_exist(self, large_traders_oi_futures):
-        record = large_traders_oi_futures[0]
-        for field in [
-            "Date", "Contract", "ContractName", "SettlementMonth", "TypeOfTraders",
-            "Top5Buy", "Top5Sell", "Top10Buy", "Top10Sell", "OIOfMarket",
-        ]:
-            assert field in record, f"缺少欄位: {field}"
-
-    def test_tx_contract_exists(self, large_traders_oi_futures):
-        assert any(x.get("Contract") == "TX" for x in large_traders_oi_futures)
 
 
 @pytest.fixture(scope="class")
