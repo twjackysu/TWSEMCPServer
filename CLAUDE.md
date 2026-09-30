@@ -8,13 +8,14 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TWSE OpenAPI** (`openapi.twse.com.tw`) — 106 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
 - **TWSE Web API** (`twse.com.tw`) — 19 tools（不帶 date 即回最新交易日／本月；取代了同資料的 OpenAPI 僅最新版）: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
-- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 7 tools: 上櫃日收盤（最新一日；`get_otc_daily` 帶 date 時改用網站 afterTrading/otc，該來源不含定價交易、無均價）、三大法人彙總、注意股、處置股、除權息、零股、櫃買指數
+- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 6 tools: 上櫃日收盤（最新一日；`get_otc_daily` 帶 date 時改用網站 afterTrading/otc，該來源不含定價交易、無均價）、三大法人彙總、注意股、處置股、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 7 tools: 選擇權大額交易人部位、選擇權分析（Delta/OI增減）、保證金、年月統計（這些沒有下載頁對應）
-- **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 5 tools: 上櫃個股日K、三大法人明細、融資融券、本益比/殖利率/淨值比、外資持股排行（預設最新交易日，可查任意過去日期）
+- **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 6 tools: 上櫃個股日K、三大法人明細、融資融券、本益比/殖利率/淨值比、外資持股排行、除權除息計算結果（預設最新交易日，可查任意過去日期）
 - **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`): 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、重大訊息（t05st01/t05st02 + 全文 *_detail）、董監持股與設質（stapap1）、內部人持股異動（query6_1）、庫藏股（t35sc09）、背書保證與資金貸與（t05st11）、法說會 — 11 tools
 - **TDCC 集保開放資料** (`opendata.tdcc.com.tw`) — 1 tool: 集保戶股權分散表（最新一週）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
+- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
 - **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`) — 9 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具
 
 ## Development Commands
@@ -65,9 +66,10 @@ tools/
                               #   major_news, insiders, treasury_guarantees
 ├── tdcc/                     # TDCC open data: shareholding_distribution
 ├── macro/                    # ndc_indicators (景氣燈號, PMI), exchange_rates (央行)
+├── analytics/                # price_tools: adjusted prices + technical indicators (utils/price_series.py, utils/indicators.py)
 ├── realtime/                 # MIS real-time quotes: stock_info
 ├── otc/                      # TPEx OTC market: daily_close, institutional_summary,
-                              #   odd_lot, exright, index, trading_halt (注意股/處置股) (openapi, latest day);
+                              #   odd_lot, index, trading_halt (注意股/處置股) (openapi, latest day); exright (website bulletin/exDailyQ);
                               #   history, valuation_holdings (www.tpex.org.tw website JSON: stock OHLC, 三大法人, 融資融券,
                               #   本益比, 外資持股; latest or any past date)
 └── taifex/                   # TAIFEX derivatives. Download pages (latest day or any period):
