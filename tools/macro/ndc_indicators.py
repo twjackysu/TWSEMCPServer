@@ -33,6 +33,8 @@ CYCLE_TABLES = {
     "lagging": "落後指標構成項目.csv",
 }
 MAX_MONTHS = 60
+# Monthly data; both files are re-downloaded whole on every call otherwise.
+NDC_CACHE_TTL = 6 * 3600
 
 
 def read_zip_csv(body: bytes, filename: str) -> list:
@@ -82,7 +84,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if filename is None:
             return f"table 只能是 {', '.join(CYCLE_TABLES)}"
         months = max(1, min(months, MAX_MONTHS))
-        body = _client.fetch_bytes(NDC_BUSINESS_CYCLE_ZIP_URL, timeout=60)
+        body = _client.fetch_bytes(NDC_BUSINESS_CYCLE_ZIP_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)
         rows = read_zip_csv(body, filename)
         if len(rows) < 2:
             return "目前沒有國發會景氣指標資料。"
@@ -101,7 +103,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             每月（由新到舊）的 PMI 與 NMI
         """
         months = max(1, min(months, MAX_MONTHS))
-        body = _client.fetch_bytes(NDC_PMI_CSV_URL, timeout=60)
+        body = _client.fetch_bytes(NDC_PMI_CSV_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)
         rows = list(csv.reader(io.StringIO(body.decode("utf-8-sig"))))
         if len(rows) < 2:
             return "目前沒有臺灣採購經理人指數資料。"

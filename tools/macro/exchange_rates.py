@@ -13,6 +13,9 @@ CBC_FX_URL = "https://cpx.cbc.gov.tw/API/DataAPI/Get"
 CBC_FX_FILE = "BP01D01"
 DEFAULT_DAYS = 10
 MAX_DAYS = 120
+# The whole 1993-to-date file (~1.3 MB) comes back on every request and CBC refreshes it
+# about monthly.
+CBC_CACHE_TTL = 3600
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -34,7 +37,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             每日各幣別匯率（標示方向，例如 NTD/USD＝1 美元兌多少新台幣、USD/EUR＝1 歐元兌多少美元）
         """
-        resp = _client.fetch_json(CBC_FX_URL, params={"FileName": CBC_FX_FILE}, timeout=60)
+        resp = _client.fetch_json(CBC_FX_URL, params={"FileName": CBC_FX_FILE}, timeout=60, cache_ttl=CBC_CACHE_TTL)
         data = (resp or {}).get("data") or {}
         columns = [c.get("data", "").strip() for c in (data.get("structure") or {}).get("Table1", [])]
         rows = data.get("dataSets") or []

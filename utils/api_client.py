@@ -1,5 +1,6 @@
 """TWSE API client utilities."""
 
+import json
 import requests
 import logging
 import time
@@ -30,6 +31,10 @@ class TWSEAPIClient:
         self.cache_ttl = cache_ttl
         self._last_request_time = 0.0
         self._cache: Dict[str, tuple[float, List[TWSEDataItem]]] = {}
+        # Raw response bodies for fetch_json / fetch_bytes calls that opt in with cache_ttl.
+        # Bytes, not parsed objects, so no caller can mutate what another caller receives.
+        self._response_cache: Dict[str, tuple[float, bytes]] = {}
+        self.response_cache_max_entries = APIConfig.RESPONSE_CACHE_MAX_ENTRIES
 
     @classmethod
     def get_instance(cls) -> 'TWSEAPIClient':
@@ -82,6 +87,39 @@ class TWSEAPIClient:
         resp.raise_for_status()
         resp.encoding = "utf-8"
         return resp
+
+    def _cached_content(
+        self,
+        cache_ttl: float,
+        url: str,
+        params: Optional[Dict[str, Any]],
+        headers: Optional[Dict[str, str]],
+        timeout: float,
+        method: str,
+        data: Optional[Dict[str, Any]] = None,
+        json_body: Optional[Dict[str, Any]] = None,
+    ) -> bytes:
+        """Response body for this exact request, served from cache for ``cache_ttl`` seconds.
+
+        Only successful responses are stored (``_request`` raises on HTTP errors). Caching
+        is off when the client's global ``cache_ttl`` is 0 (``TWSE_CACHE_TTL=0``).
+        """
+        if cache_ttl <= 0 or self.cache_ttl <= 0:
+            return self._request(url, params=params, headers=headers, timeout=timeout,
+                                 method=method, data=data, json_body=json_body).content
+        key = json.dumps([method, url, params, data, json_body], sort_keys=True, ensure_ascii=False, default=str)
+        now = time.time()
+        hit = self._response_cache.get(key)
+        if hit is not None and now - hit[0] < cache_ttl:
+            return hit[1]
+        content = self._request(url, params=params, headers=headers, timeout=timeout,
+                                method=method, data=data, json_body=json_body).content
+        self._response_cache.pop(key, None)
+        while len(self._response_cache) >= self.response_cache_max_entries:
+            # dicts keep insertion order: the first key is the oldest entry
+            self._response_cache.pop(next(iter(self._response_cache)))
+        self._response_cache[key] = (now, content)
+        return content
 
     def fetch_data(self, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
         """Fetch from a TWSE OpenAPI endpoint (base_url-relative) and normalise to a list.
@@ -154,6 +192,7 @@ class TWSEAPIClient:
         timeout: float = APIConfig.DEFAULT_TIMEOUT,
         headers: Optional[Dict[str, str]] = None,
         json_body: Optional[Dict[str, Any]] = None,
+        cache_ttl: float = 0,
     ) -> Any:
         """Fetch raw JSON from an arbitrary full URL (not base_url-relative).
 
@@ -161,9 +200,13 @@ class TWSEAPIClient:
         tpex.org.tw, taifex.com.tw) where callers supply the complete URL.
         Passing ``json_body`` sends a POST with that JSON payload instead of a GET
         (mops.twse.com.tw's ``/mops/api/*`` endpoints only accept JSON POSTs).
+        ``cache_ttl`` > 0 serves an identical request from memory for that many seconds.
         """
         try:
             method = "POST" if json_body is not None else "GET"
+            if cache_ttl > 0:
+                content = self._cached_content(cache_ttl, url, params, headers, timeout, method, json_body=json_body)
+                return json.loads(content.decode("utf-8", errors="replace"))
             return self._request(
                 url, params=params, headers=headers, timeout=timeout, method=method, json_body=json_body
             ).json()
@@ -179,13 +222,17 @@ class TWSEAPIClient:
         headers: Optional[Dict[str, str]] = None,
         timeout: float = APIConfig.DEFAULT_TIMEOUT,
         method: str = "GET",
+        cache_ttl: float = 0,
     ) -> bytes:
         """Fetch raw response bytes from an arbitrary full URL, supporting POST form submissions.
 
         Used for HTML-form download endpoints that return non-JSON bodies (e.g. Big5-encoded
         CSV from www.taifex.com.tw's data-download pages), which callers decode themselves.
+        ``cache_ttl`` > 0 serves an identical request from memory for that many seconds.
         """
         try:
+            if cache_ttl > 0:
+                return self._cached_content(cache_ttl, url, params, headers, timeout, method, data=data)
             return self._request(url, params=params, data=data, headers=headers, timeout=timeout, method=method).content
         except Exception as e:
             logger.error(f"Failed to fetch bytes from {url}: {e}")

@@ -23,6 +23,12 @@ from .api_client import TWSEAPIClient
 MOPS_API_BASE = "https://mops.twse.com.tw/mops/api"
 MOPS_LEGACY_BASE = "https://mopsov.twse.com.tw/mops/web"
 
+# MOPS data changes at most when a company files; past periods never do. Caching for a
+# few minutes lets a prompt that calls several statement/revenue tools for the same company
+# (or a multi-month revenue range repeated by another user) skip MOPS entirely, which also
+# keeps us clear of MOPS's anti-crawling throttle.
+MOPS_CACHE_TTL = 600
+
 # Every legacy ajax_* page is submitted with these hidden form fields (the SPA's
 # ``hideTheKey``); without them the old site answers with an empty shell page.
 MOPS_LEGACY_HIDDEN_FIELDS = {"encodeURIComponent": "1", "step": "1", "firstin": "1", "off": "1"}
@@ -50,7 +56,7 @@ def mops_post(client: TWSEAPIClient, api_name: str, body: Dict[str, Any]) -> Opt
     code raises ``MopsQueryError`` so the tool reports the upstream message instead of a
     misleading "no data".
     """
-    resp = client.fetch_json(f"{MOPS_API_BASE}/{api_name}", json_body=body)
+    resp = client.fetch_json(f"{MOPS_API_BASE}/{api_name}", json_body=body, cache_ttl=MOPS_CACHE_TTL)
     if not isinstance(resp, dict):
         raise ValueError(f"MOPS {api_name} 回應格式非預期: {type(resp).__name__}")
     code = str(resp.get("code"))
@@ -67,6 +73,7 @@ def mops_legacy_post(client: TWSEAPIClient, api_name: str, form: Dict[str, Any])
         f"{MOPS_LEGACY_BASE}/{api_name}",
         method="POST",
         data={**MOPS_LEGACY_HIDDEN_FIELDS, **form},
+        cache_ttl=MOPS_CACHE_TTL,
     )
     return body.decode("utf-8", errors="replace")
 

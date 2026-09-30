@@ -12,6 +12,9 @@ from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
+# Weekly data in one ~2.3 MB file: without a cache every single-stock lookup re-downloads
+# the whole market.
+TDCC_CACHE_TTL = 3600
 
 # 持股分級 1–17. Levels 1–15 are holding-size brackets in shares (1 張 = 1,000 股),
 # 16 is TDCC's 差異數調整 (reconciliation with the share register), 17 is the total.
@@ -92,7 +95,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             資料日期、17 個持股分級（1-999股 … 1000張以上、差異數調整、合計）的人數/股數/占比，
             以及大戶/散戶持股比例摘要
         """
-        body = _client.fetch_bytes(TDCC_DISTRIBUTION_URL, timeout=60)
+        body = _client.fetch_bytes(TDCC_DISTRIBUTION_URL, timeout=60, cache_ttl=TDCC_CACHE_TTL)
         rows = [r for r in parse_distribution_csv(body) if len(r) >= 6 and r[1].strip() == code.strip()]
         if not rows:
             return f"查無證券代號 {code} 的集保股權分散資料"
