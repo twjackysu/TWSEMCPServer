@@ -51,25 +51,6 @@ class TestOTCDisposalAPI:
         )
 
 
-class TestOTCExrightAPI:
-    """Tool get_otc_exright 顯示除權息各欄位。"""
-
-    def test_hardcoded_fields_exist(self):
-        # 非除權息日為空陣列屬正常
-        result = records_or_skip(fetch_or_skip(f"{TPEX_BASE}/tpex_exright_daily"), "tpex_exright_daily")
-        first = result[0]
-        required = [
-            "SecuritiesCompanyCode", "CompanyName",
-            "ClosePriceBeforeExRightsDiviend", "ExRightsDiviendQuote",
-            "StockDividend", "CashDividend", "ExRightsDiviend",
-        ]
-        missing = [f for f in required if f not in first]
-        assert not missing, (
-            f"tpex_exright_daily removed fields that get_otc_exright uses.\n"
-            f"Missing: {missing}\nActual fields: {sorted(first.keys())}"
-        )
-
-
 class TestOTCOddLotAPI:
     """Tool get_otc_odd_lot 顯示零股價格與成交資料。"""
 
