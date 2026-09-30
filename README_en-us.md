@@ -146,7 +146,7 @@ uv sync && uv run fastmcp dev server.py
 | [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week, incl. big-holder / retail ratios) | 1 |
 | [National Development Council](https://data.gov.tw/dataset/6099) | Business-cycle signal & indicators (since 1982), Taiwan PMI/NMI | 2 |
 | [Central Bank](https://cpx.cbc.gov.tw) | Daily TWD and major trading-partner currencies vs. USD (since 1993) | 1 |
-| Derived analytics (computed from the above) | Ex-rights-adjusted daily prices, technical indicators (MA, KD, RSI, MACD, Bollinger); listed/OTC detected automatically | 2 |
+| Derived analytics (computed from the above) | Ex-rights-adjusted daily prices, technical indicators (MA, KD, RSI, MACD, Bollinger), valuation screener, industry peer comparison (listed + OTC) | 4 |
 
 ## 🤝 Contributing
 PRs welcome!
