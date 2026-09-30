@@ -173,3 +173,78 @@ class TestInvestorConferenceLegacyPage:
         """tool 以「查無資料」字樣區分真的沒資料與封鎖／改版頁，這段文字必須還在."""
         html = self._fetch(month="01", co_id="9999")
         assert NO_DATA_TEXT in html, f"查無資料時的頁面文字已變更: {html[:300]!r}"
+
+
+class TestMajorNewsAPI:
+    """t05st01（公司年度）/ t05st02（某日全市場）：tool 依 row[0..5] 取用，row[5] 是全文連結
+    {apiName, parameters}；全文 *_detail 的 row[3],[4],[7],[8],[9] 是發言人、職稱、條款、事實發生日、說明。"""
+
+    def test_company_year_list_and_detail(self):
+        resp = _mops("t05st01", {"companyId": FIXED_STOCK, "year": FIXED_ROC_YEAR, "month": "all",
+                                 "firstDay": "", "lastDay": ""})
+        assert str(resp["code"]) == "200", f"t05st01 查詢失敗: {resp.get('message')}"
+        names = leaf_titles(resp["result"].get("titles", []))
+        assert names[:5] == ["公司代號", "公司名稱", "發言日期", "發言時間", "主旨"], f"欄位已變更: {names}"
+        rows = resp["result"].get("data") or []
+        assert rows and isinstance(rows[0][5], dict) and rows[0][5].get("apiName"), f"全文連結格式已變更: {rows[:1]}"
+        detail = _mops(rows[0][5]["apiName"], rows[0][5]["parameters"])
+        assert str(detail["code"]) == "200"
+        d = detail["result"]["data"][0]
+        assert len(d) >= 10 and d[1].count("/") == 2, f"全文欄位已變更: {d[:9]}"
+
+    def test_market_day_list_carries_market_kind(self):
+        resp = _mops("t05st02", {"year": FIXED_ROC_YEAR, "month": "06", "day": "02"})
+        assert str(resp["code"]) == "200", f"t05st02 查詢失敗: {resp.get('message')}"
+        names = leaf_titles(resp["result"].get("titles", []))
+        assert names[:5] == ["發言日期", "發言時間", "公司代號", "公司名稱", "主旨"], f"欄位已變更: {names}"
+        rows = resp["result"].get("data") or []
+        assert rows and rows[0][5]["parameters"].get("marketKind") in ("sii", "otc", "rotc", "pub"), (
+            f"市場別欄位已變更: {rows[:1]}"
+        )
+
+
+class TestInsiderHoldingsAPI:
+    """stapap1（董監持股）與 query6_1（內部人持股異動）：tool 依欄位位置與 total 的鍵名取用。"""
+
+    def test_board_holdings(self):
+        resp = _mops("stapap1", {"companyId": FIXED_STOCK, "dataType": "2", "year": FIXED_ROC_YEAR,
+                                 "month": "06", "subsidiaryCompanyId": ""})
+        assert str(resp["code"]) == "200", f"stapap1 查詢失敗: {resp.get('message')}"
+        parent = resp["result"]["parentCompany"]
+        assert leaf_titles(parent["titles"])[:6] == ["職稱", "姓名", "選任時持股", "目前持股", "設質股數", "設質股數佔持股比例"]
+        assert {"allDirectorSupervisor", "independentDirector", "nonIndependentDirector"} <= set(parent.get("total", {}))
+        assert parent.get("data") and str(parent.get("yymm", "")).endswith("06")
+
+    def test_monthly_changes_column_positions(self):
+        resp = _mops("query6_1", {"companyId": FIXED_STOCK, "dataType": "2", "year": FIXED_ROC_YEAR,
+                                  "month": "06", "subsidiaryCompanyId": ""})
+        assert str(resp["code"]) == "200", f"query6_1 查詢失敗: {resp.get('message')}"
+        cols = flatten_titles(resp["result"]["titles"])
+        assert len(cols) == 24, f"欄位數已變更: {cols}"
+        assert cols[4] == "上月實際持有股數" and cols[18] == "本月實際自有持有股數" and cols[21] == "截至本月底累計設質", cols
+        assert cols[8].startswith("本月增加") and cols[13].startswith("本月減少"), cols
+
+
+class TestTreasuryAndGuaranteesLegacyPages:
+    """ajax_t35sc09（庫藏股）資料列固定 20 格；ajax_t05st11（背書保證/資金貸放）以無 id 的表格呈現。"""
+
+    def _legacy(self, name: str, form: dict) -> str:
+        body = fetch_bytes_or_skip(f"{MOPS_LEGACY_BASE}/{name}", method="POST",
+                                   data={**MOPS_LEGACY_HIDDEN_FIELDS, **form})
+        return body.decode("utf-8", errors="replace")
+
+    def test_buyback_rows(self):
+        from utils.mops import parse_html_tables
+        from tools.mops.treasury_guarantees import BUYBACK_ROW_WIDTH
+
+        html = self._legacy("ajax_t35sc09", {"TYPEK": "sii", "d1": "1140101", "d2": "1140331", "RD": "1"})
+        rows = [r for t in parse_html_tables(html) for r in t if len(r) == BUYBACK_ROW_WIDTH and r[0].strip().isdigit()]
+        assert rows, "固定歷史區間應有庫藏股資料，資料列寬度可能已變更"
+        assert all(r[4].strip() in ("1", "2", "3") for r in rows), f"買回目的代碼已變更: {[r[4] for r in rows][:5]}"
+
+    def test_lending_and_guarantee_tables(self):
+        from utils.mops import parse_html_tables
+
+        html = self._legacy("ajax_t05st11", {"co_id": "2317", "isnew": "false", "year": FIXED_ROC_YEAR, "month": "06"})
+        text = " ".join(" ".join(r) for t in parse_html_tables(html) for r in t)
+        assert "資金貸放餘額" in text and "背書保證" in text and "民國114年06月" in text, f"頁面內容已變更: {text[:200]}"
