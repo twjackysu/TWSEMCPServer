@@ -1,8 +1,18 @@
-"""ROC (Republic of China) and AD (Anno Domini) date conversion utilities.
+"""Date utilities: ROC (Republic of China) / AD (Anno Domini) conversion, and today in Taiwan.
 
 Taiwan uses the ROC calendar where year = AD year - 1911.
 TWSE legacy APIs return dates in ROC format (e.g., "114/01/02" for 2025-01-02).
 """
+
+from datetime import datetime, timedelta, timezone
+
+_TAIPEI = timezone(timedelta(hours=8))
+
+
+def taipei_today() -> datetime:
+    """Today's date in Taiwan (the server may run in another timezone)."""
+    now = datetime.now(_TAIPEI)
+    return datetime(now.year, now.month, now.day)
 
 
 def roc_to_ad(roc_date: str) -> str:

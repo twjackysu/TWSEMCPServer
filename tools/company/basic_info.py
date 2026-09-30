@@ -110,8 +110,6 @@ SIMPLE_BASIC_INFO_TOOLS = [
      "根據股票代號查詢上市公司持股逾10%大股東名單。"),
     ("/opendata/t187ap14_L", "get_company_eps_statistics",
      "根據股票代號查詢上市公司各產業EPS統計資訊。"),
-    ("/opendata/t187ap11_L", "get_company_board_shareholdings",
-     "根據股票代號查詢上市公司董監事持股餘額明細資料。"),
     ("/opendata/t187ap12_L", "get_company_daily_insider_trades_preannounced",
      "根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股轉讓日報表。"),
     ("/opendata/t187ap13_L", "get_company_daily_insider_trades_untransferred",

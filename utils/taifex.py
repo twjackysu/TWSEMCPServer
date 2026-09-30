@@ -9,8 +9,10 @@ have no download-page counterpart.
 
 import csv
 import io
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Callable, List, Optional, Tuple
+
+from .date_helper import taipei_today  # noqa: F401  (re-exported; fetch_period and tools use it)
 
 # TAIFEX requires a browser-like User-Agent (the default stock-mcp/1.0 gets HTML)
 TAIFEX_HEADERS = {
@@ -24,15 +26,7 @@ TAIFEX_DOWNLOAD_BASE = "https://www.taifex.com.tw/cht/3"
 # (Lunar New Year) with room to spare.
 LATEST_LOOKBACK_DAYS = 12
 
-_TAIPEI = timezone(timedelta(hours=8))
-
 ParsedCsv = Tuple[List[str], List[List[str]]]
-
-
-def taipei_today() -> datetime:
-    """Today's date in Taiwan (the server may run in another timezone)."""
-    now = datetime.now(_TAIPEI)
-    return datetime(now.year, now.month, now.day)
 
 
 def parse_yyyymmdd(value: str) -> datetime:
