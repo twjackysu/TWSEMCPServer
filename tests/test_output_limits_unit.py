@@ -113,13 +113,13 @@ def valuation_tools():
 
 
 def test_market_valuation_is_bounded(valuation_tools):
-    result = valuation_tools["get_market_valuation_by_date"](TRADING_DATE)
+    result = valuation_tools["get_stock_valuation_ratios"](TRADING_DATE)
     assert len(result) < MAX_CHARS, f"輸出 {len(result):,} 字元，未分頁"
     assert "offset=" in result, "未提示如何取得後續資料"
 
 
 def test_market_valuation_offset_out_of_range_is_explicit(valuation_tools):
-    result = valuation_tools["get_market_valuation_by_date"](TRADING_DATE, offset=999_999)
+    result = valuation_tools["get_stock_valuation_ratios"](TRADING_DATE, offset=999_999)
     assert "超出範圍" in result, f"offset 越界未給明確訊息: {result[:120]!r}"
 
 

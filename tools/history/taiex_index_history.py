@@ -1,4 +1,8 @@
-"""TWSE 發行量加權股價指數 (TAIEX) daily OHLC history (whole month per call)."""
+"""TWSE 發行量加權股價指數 (TAIEX) daily OHLC history (whole month per call).
+
+Replaces the OpenAPI /indicesReport/MI_5MINS_HIST tool (get_market_historical_index): it only
+served the current month, whose rows on 2026-09-29 were identical to this endpoint's.
+"""
 
 from typing import Optional
 from fastmcp import FastMCP
@@ -13,22 +17,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_taiex_index_history(date: str) -> str:
-        """查詢發行量加權股價指數（大盤）每日開高低收歷史資料。
+    def get_taiex_index_history(date: str = "") -> str:
+        """查詢發行量加權股價指數（大盤）每日開高低收：預設本月，也可查任意過去月份。
         與個股的 get_stock_history 對應，但查的是大盤指數本身，適合大盤走勢/K線分析。
-        與 get_market_historical_index（openapi 版）不同：openapi 版只回傳最近約 12 個交易日的
-        滾動視窗，無法指定過去月份；此工具可查任意過去月份。
 
         Args:
-            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月）
+            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
 
         Returns:
             該月份每個交易日的加權指數開盤、最高、最低、收盤指數
         """
-        resp = _client.fetch_json(
-            MI_5MINS_HIST_URL,
-            params={"response": "json", "date": date},
-        )
+        params = {"response": "json"}
+        if date:
+            params["date"] = date
+        resp = _client.fetch_json(MI_5MINS_HIST_URL, params=params)
+        date = date or (resp or {}).get("date") or "本月"
 
         if not resp or resp.get("stat") != "OK":
             return f"查無 {date[:6]} 的加權指數歷史資料，請確認日期是否有效"

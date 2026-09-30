@@ -14,13 +14,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     
     @mcp.tool
     @handle_api_errors()
-    def get_market_historical_index() -> str:
-        """查詢發行量加權股價指數歷史資料。"""
-        data = _client.fetch_latest_market_data("/indicesReport/MI_5MINS_HIST", count=20)
-        return format_multiple_records(data)
-
-    @mcp.tool
-    @handle_api_errors()
     def get_taiwan_island_index_history() -> str:
         """查詢寶島股價指數歷史資料。"""
         data = _client.fetch_latest_market_data("/indicesReport/FRMSA", count=20)

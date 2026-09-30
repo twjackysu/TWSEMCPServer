@@ -1,4 +1,4 @@
-"""get_stock_yearly_history 送出的查詢日期不會凍結在某個年份（不打網路）。
+"""get_stock_yearly_trading 送出的查詢日期不會凍結在某個年份（不打網路）。
 
 FMNPTK 以 date 的年份當作歷年序列的終點。日期若寫死成某一年，跨年之後最新年度就會從
 結果中默默消失：輸出格式一切正常，只是少了一列，呼叫端沒有任何線索可以察覺。
@@ -37,24 +37,24 @@ def client():
 
 
 @pytest.fixture
-def get_stock_yearly_history(client):
+def get_stock_yearly_trading(client):
     tools = register_module_tools(stock_monthly_yearly_history, client)
-    return tools["get_stock_yearly_history"]
+    return tools["get_stock_yearly_trading"]
 
 
-def test_query_date_is_today(get_stock_yearly_history, client):
-    get_stock_yearly_history("2330")
+def test_query_date_is_today(get_stock_yearly_trading, client):
+    get_stock_yearly_trading("2330")
     assert client.last_params["date"] == datetime.now().strftime("%Y%m%d")
 
 
-def test_query_date_tracks_the_current_year(get_stock_yearly_history, client):
+def test_query_date_tracks_the_current_year(get_stock_yearly_trading, client):
     """真正會壞掉的是年份：年份寫死時，跨年後最新一年不會出現在結果裡."""
-    get_stock_yearly_history("2330")
+    get_stock_yearly_trading("2330")
     assert client.last_params["date"][:4] == str(datetime.now().year)
 
 
-def test_rows_are_still_rendered(get_stock_yearly_history):
+def test_rows_are_still_rendered(get_stock_yearly_trading):
     """對照組：確認上面兩項不是因為工具整個查詢失敗才通過."""
-    result = get_stock_yearly_history("2330")
+    result = get_stock_yearly_trading("2330")
     assert "共 2 年" in result
     assert "114年" in result

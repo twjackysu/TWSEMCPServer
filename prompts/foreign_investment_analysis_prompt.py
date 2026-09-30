@@ -15,7 +15,7 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 
 **外資投資總覽：**
 - `get_foreign_investment_by_industry()`：各產業外資持股比例
-- `get_top_foreign_holdings()`：外資持股前 20 大公司
+- `get_foreign_holdings(sort_by="ratio", limit=20)`：外資持股比率前 20 大公司
 - `get_company_profile(code)`：公司基本資料（提供背景脈絡）
 
 **進階分析：**
@@ -23,7 +23,7 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
   - `category="sector", format="summary"`：產業表現總覽
   - `category="major", count=5, format="simple"`：大盤整體情緒
 - `get_company_dividend(code)`：外資偏好個股的股利資訊
-- `get_stock_valuation_ratios(code)`：本益比、殖利率、股價淨值比
+- `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
 - `get_company_monthly_revenue(code)`：營收表現資料
 
 ### 分析類型：
@@ -36,7 +36,7 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 - 產業別投資型態
 
 **2. 前 20 大持股分析（analysis_type="top_holdings"）：**
-呼叫 `get_top_foreign_holdings()` 與 `get_company_profile()`，依實際回傳資料分析：
+呼叫 `get_foreign_holdings(sort_by="ratio", limit=20)` 與 `get_company_profile()`，依實際回傳資料分析：
 - 外資持股前 20 大公司名單
 - 可投資空間 vs 目前持股水位
 - 投資上限與限制

@@ -33,12 +33,6 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     "/block/BFIAUU_d": ["Date", "TradeValue", "TradeVolume"],
     "/block/BFIAUU_m": ["Month", "TradeValue", "TradeVolume"],
     "/block/BFIAUU_y": ["Month", "TradeValue", "TradeVolume"],
-    "/exchangeReport/BWIBBU_d": ["Code", "DividendYear", "DividendYield", "FiscalYearQuarter", "Name", "PBratio", "PEratio"],
-    "/exchangeReport/BWIBBU_ALL": ["Code", "Date", "DividendYield", "Name", "PBratio", "PEratio"],
-    "/exchangeReport/FMNPTK_ALL": ["AvgClosingPrice", "Code", "HDate", "HighestPrice", "LDate", "LowestPrice", "Name", "TradeValue", "TradeVolume", "Transaction", "Year"],
-    "/exchangeReport/FMSRFK_ALL": ["Code", "HighestPrice", "LowestPrice", "Month", "Name", "TradeValueA", "TradeVolumeB", "Transaction", "TurnoverRatio", "WeightedAvgPriceAB"],
-    "/exchangeReport/FMTQIK": ["Change", "Date", "TAIEX", "TradeValue", "TradeVolume", "Transaction"],
-    "/exchangeReport/STOCK_DAY_ALL": ["Change", "ClosingPrice", "Code", "Date", "HighestPrice", "LowestPrice", "Name", "OpeningPrice", "TradeValue", "TradeVolume", "Transaction"],
     "/SBL/TWT96U": ["GRETAIAvailableVolume", "GRETAICode", "TWSEAvailableVolume", "TWSECode"],
     "/opendata/twtazu_od": ["上漲", "下跌", "出表日期", "持平", "未成交", "漲停", "無比價", "跌停", "類型"],
 

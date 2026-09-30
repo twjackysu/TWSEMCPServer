@@ -13,22 +13,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_turnover_history(date: str) -> str:
+    def get_market_turnover_history(date: str = "") -> str:
         """查詢台灣上市市場每日成交量值與發行量加權股價指數。
         回傳指定月份每一個交易日的市場成交股數、成交金額、成交筆數、加權指數收盤與漲跌點數。
         與 get_daily_market_trading_info（openapi 版）不同：openapi 版只回傳最近約 12 個交易日的
         滾動視窗，無法指定過去月份；此工具可查任意過去月份。
 
         Args:
-            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月）
+            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
 
         Returns:
             該月份每個交易日的成交股數、成交金額、成交筆數、加權指數、漲跌點數
         """
-        resp = _client.fetch_json(
-            FMTQIK_URL,
-            params={"response": "json", "date": date},
-        )
+        params = {"response": "json"}
+        if date:
+            params["date"] = date
+        resp = _client.fetch_json(FMTQIK_URL, params=params)
+        date = date or (resp or {}).get("date") or "本月"
 
         if not resp or resp.get("stat") != "OK":
             return f"查無 {date[:6]} 的市場成交資訊，請確認日期是否有效"

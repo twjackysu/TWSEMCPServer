@@ -13,7 +13,7 @@ FIXED_STOCK = "2330"     # 台積電
 
 class TestStockMonthlyHistoryAPI:
     """個股月成交資訊 - FMSRFK
-    Tool get_stock_monthly_history 使用 row[0]~row[8]：
+    Tool get_stock_monthly_trading 使用 row[0]~row[8]：
     年度、月份、最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率。
     """
 
@@ -30,7 +30,7 @@ class TestStockMonthlyHistoryAPI:
 
 class TestStockYearlyHistoryAPI:
     """個股歷年成交資訊 - FMNPTK
-    Tool get_stock_yearly_history 使用 tables[0] 的 row[0]~row[8]：
+    Tool get_stock_yearly_trading 使用 tables[0] 的 row[0]~row[8]：
     年度、成交股數、成交金額、成交筆數、最高價、日期、最低價、日期、收盤平均價。
     """
 

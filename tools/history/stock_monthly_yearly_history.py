@@ -1,4 +1,9 @@
-"""TWSE per-stock monthly/yearly aggregated trading history."""
+"""TWSE per-stock monthly/yearly aggregated trading history.
+
+Replaces the OpenAPI /exchangeReport/FMSRFK_ALL and FMNPTK_ALL tools: per stock they only
+gave the latest month / year, whose values on 2026-09-29 equalled this endpoint's rows for
+that month / year; these endpoints return the whole year / all years.
+"""
 
 from datetime import datetime
 from typing import Optional
@@ -15,22 +20,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_stock_monthly_history(stock_no: str, date: str) -> str:
-        """查詢個股月成交資訊（最高價、最低價、加權平均價、週轉率）。
-        與 get_stock_monthly_avg_history（每日的月均價序列）不同，此工具是「每月一筆」的彙總。
-        只有 date 的年份會影響查詢結果：查當年會回傳至今每月資料，查過去年份則回傳該年全部12個月。
+    def get_stock_monthly_trading(stock_no: str, date: str = "") -> str:
+        """查詢上市個股月成交資訊（每月一筆：最高價、最低價、加權平均價、成交量值、週轉率）。
+        預設今年至今每個月，也可查過去年度的全部 12 個月。
 
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）
-            date: 任意日期 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年
+            date: 任意日期 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年（留空＝今年）
 
         Returns:
             該年度每月的最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率
         """
-        resp = _client.fetch_json(
-            FMSRFK_URL,
-            params={"response": "json", "date": date, "stockNo": stock_no},
-        )
+        params = {"response": "json", "stockNo": stock_no}
+        if date:
+            params["date"] = date
+        resp = _client.fetch_json(FMSRFK_URL, params=params)
 
         if not resp or resp.get("stat") != "OK":
             return f"查無股票代號 {stock_no} 的月成交資訊，請確認代號是否正確"
@@ -53,9 +57,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_stock_yearly_history(stock_no: str) -> str:
+    def get_stock_yearly_trading(stock_no: str) -> str:
         """查詢個股歷年成交資訊（最高價、最低價、收盤平均價），資料可回溯數十年。
-        與 get_stock_monthly_history（單一年度逐月）互補，此工具是「每年一筆」的長期彙總，
+        與 get_stock_monthly_trading（單一年度逐月）互補，此工具是「每年一筆」的長期彙總，
         適合看個股長期價格區間演變。
 
         Args:

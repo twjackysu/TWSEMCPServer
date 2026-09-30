@@ -31,7 +31,7 @@ class TestMarketInstitutionalAmountsAPI:
 
 class TestAllStocksDailyCloseAPI:
     """全市場每日收盤行情 - MI_INDEX
-    Tool get_all_stocks_daily_close 從 tables 中找標題含「每日收盤行情」的 table，
+    Tool get_stock_daily_trading 從 tables 中找標題含「每日收盤行情」的 table，
     使用該 table 的 row[0]~row[15]：代號、名稱、量、筆數、金額、開高低收、漲跌、
     漲跌價差、買賣揭示、本益比。
     """
@@ -50,6 +50,11 @@ class TestAllStocksDailyCloseAPI:
         data = stock_table.get("data", [])
         assert len(data) > 0
         assert len(data[0]) >= 16, f"欄位數不足 16，row 結構可能已變更: {data[0]}"
+        fields = stock_table.get("fields", [])
+        # tool 以 row[3] 顯示成交筆數，並從 row[9]（HTML）取漲跌正負號套到 row[10] 的漲跌價差上
+        assert fields[3] == "成交筆數" and fields[9] == "漲跌(+/-)" and fields[10] == "漲跌價差", (
+            f"成交筆數／漲跌欄位位置已變更: {fields}"
+        )
 
 
 class TestMarketTurnoverHistoryAPI:
@@ -88,8 +93,8 @@ class TestTaiexIndexHistoryAPI:
 
 class TestForeignHoldingsHistoryAPI:
     """外資及陸資持股統計 - MI_QFIIS
-    Tool get_foreign_holdings_history 使用 row[0],row[1],row[3]~row[7]：
-    代號、名稱、發行股數、尚可投資股數、持有股數、尚可投資比率、持股比率。
+    Tool get_foreign_holdings 使用 row[0],row[1],row[3],row[5]~row[8]：
+    代號、名稱、發行股數、持有股數、尚可投資比率、持股比率、投資上限比率；sort_by="ratio" 以 row[7] 排序。
     """
 
     def test_row_has_stock_code_and_holding_fields(self):
@@ -104,3 +109,7 @@ class TestForeignHoldingsHistoryAPI:
         assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 可能已不再是股票代號"
         assert len(tsmc) >= 8, f"欄位數不足 8，row 結構可能已變更: {tsmc}"
         float(str(tsmc[7]))  # 持股比率需可轉數字，拋出例外即代表欄位位移
+        fields = result.get("fields", [])
+        assert fields[5:9] == [
+            "全體外資及陸資持有股數", "外資及陸資尚可投資比率", "全體外資及陸資持股比率", "外資及陸資共用法令投資上限比率",
+        ], f"持股欄位位置已變更: {fields}"

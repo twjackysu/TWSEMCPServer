@@ -53,7 +53,7 @@ def bwibbu_d_data():
 
 class TestBwibbuDailyAPI:
     """全市場估值 - BWIBBU_d
-    Tool get_market_valuation_by_date 依 COL_* 常數取用欄位，
+    Tool get_stock_valuation_ratios 依 COL_* 常數取用欄位，
     並以回應的 date 欄位確認拿到的確實是所查日期的資料。
     """
 
@@ -113,7 +113,7 @@ class TestMarginBalanceAPI:
 
 class TestStockDayAvgAPI:
     """個股月均價 - STOCK_DAY_AVG
-    Tool get_stock_monthly_avg_history 使用 row[0] 作為日期（需含 /），row[1] 作為均價。
+    Tool get_stock_monthly_average 使用 row[0] 作為日期（需含 /），row[1] 作為均價。
     """
 
     def test_row_structure(self):

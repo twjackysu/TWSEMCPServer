@@ -133,8 +133,8 @@ uv sync && uv run fastmcp dev server.py
 
 | Source | Description | Tools |
 |--------|-------------|-------|
-| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financial ratios, trading, index history, etc. | 119 |
-| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades, ex-rights/dividend results, day-trading targets & statistics, all index closes incl. sector indices (latest or any past date) | 19 |
+| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financial ratios, announcement lists, warrants, brokers, etc. | 109 |
+| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints (latest trading day by default, any past date on request) — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades, ex-rights/dividend results, day-trading targets & statistics, all index closes incl. sector indices (latest or any past date) | 19 |
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors summary, P/E ratio, warning/disposal stocks, ex-rights/dividends, odd-lot, index | 8 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |

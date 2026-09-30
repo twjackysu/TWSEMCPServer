@@ -5,8 +5,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
-- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 119 tools: 公司治理、ESG、財務比率、交易、指數歷史、券商
-- **TWSE Web API** (`twse.com.tw`) — 19 tools: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
+- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 109 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
+- **TWSE Web API** (`twse.com.tw`) — 19 tools（不帶 date 即回最新交易日／本月；取代了同資料的 OpenAPI 僅最新版）: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 8 tools: 上櫃日收盤、三大法人彙總、本益比、注意股、處置股、除權息、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
@@ -53,7 +53,7 @@ tools/
 ├── broker.py                 # Broker data tools (top-level module)
 ├── other.py                  # Misc tools: funds, bonds, holidays (top-level module)
 ├── company/                  # Company tools: basic_info, financials, esg, listing, news
-├── trading/                  # Trading tools: daily, periodic, valuation, dividend_schedule, etf, market, warrants
+├── trading/                  # Trading tools: dividend_schedule, etf, market, warrants
 ├── market/                   # Market tools: indices, statistics, foreign
 ├── history/                  # TWSE legacy: stock_day, stock_day_avg, margin_balance (exchangeReport); bwibbu_all (rwd/*);
                               #   institutional (T86);
