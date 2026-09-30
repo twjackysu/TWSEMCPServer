@@ -140,7 +140,7 @@ uv sync && uv run fastmcp dev server.py
 | [集保結算所開放資料](https://opendata.tdcc.com.tw) | 集保戶股權分散表（最新一週，含大戶／散戶持股比例） | 1 個 |
 | [國發會](https://data.gov.tw/dataset/6099) | 景氣對策信號與景氣指標（1982 起）、臺灣採購經理人指數 PMI/NMI | 2 個 |
 | [中央銀行](https://cpx.cbc.gov.tw) | 新台幣及主要貿易對手通貨對美元每日匯率（1993 起） | 1 個 |
-| 衍生分析（由上述資料計算） | 還原權息日K、技術指標（MA、KD、RSI、MACD、布林通道），上市櫃自動判斷 | 2 個 |
+| 衍生分析（由上述資料計算） | 還原權息日K、技術指標（MA、KD、RSI、MACD、布林通道）、估值選股 screener、同業比較（上市+上櫃） | 4 個 |
 
 ## 🤝 參與貢獻
 歡迎PR！

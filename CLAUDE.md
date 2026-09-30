@@ -15,7 +15,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TDCC 集保開放資料** (`opendata.tdcc.com.tw`) — 1 tool: 集保戶股權分散表（最新一週）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
-- **衍生分析** (`tools/analytics/`) — 2 tools: 還原權息日K、技術指標。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
+- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
 - **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`) — 9 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具
 
 ## Development Commands
