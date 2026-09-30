@@ -2,7 +2,7 @@
 
 這些工具原本把整份資料 join 成單一字串回傳，實測 get_warrant_basic_info 產出
 37.85 MB、get_warrant_yearly_issuance_statistics 8.18M 字元、
-get_options_daily_history 指定 contract_month 後仍有 2.65 MB——遠超任何模型的
+get_daily_options_market_report 指定 contract_month 後仍有 2.65 MB——遠超任何模型的
 context window。此處以「字元數天花板」為斷言，避免日後有人拿掉分頁。
 
 假資料的筆數都刻意設成「沒分頁就會超過 MAX_CHARS」，所以斷言失敗只可能是分頁被拿掉。
@@ -15,8 +15,8 @@ from tests.offline import OfflineClient
 import tools.trading.warrants as warrants
 import tools.history.margin_balance as margin_balance
 import tools.history.bwibbu_all as bwibbu_all
-import tools.taifex.options_daily_history as options_daily_history
-import tools.taifex.institutional_futures_history as institutional_futures_history
+import tools.taifex.daily_market_report as daily_market_report
+import tools.taifex.institutional_details as institutional_details
 
 pytestmark = pytest.mark.offline
 
@@ -132,12 +132,12 @@ class TestTaifexHistoryOutputLimits:
     """歷史下載類工具的輸出上限。
 
     這兩支從 www.taifex.com.tw 下載多日 CSV，沒有伺服器端分頁。
-    get_options_daily_history 原本的保護帶了 `not contract_month`，
+    選擇權行情（原 get_options_daily_history）原本的保護帶了 `not contract_month`，
     而 docstring 又建議指定 contract_month——正好把呼叫者推進唯一沒有保護的
     分支（實測單月 TXO 單一到期月仍有 23,032 列 / 2.65 MB）。
     """
 
-    def test_options_daily_history_is_bounded_with_contract_month(self):
+    def test_options_market_report_is_bounded_with_contract_month(self):
         # 真實 header 尾端多一個逗號，欄位數比資料列多 1
         header = [
             "交易日期", "契約", "到期月份(週別)", "履約價", "買賣權", "開盤價", "最高價", "最低價",
@@ -150,14 +150,14 @@ class TestTaifexHistoryOutputLimits:
             for i in range(ROWS)
         ]
         client = OfflineClient({"/cht/3/optDataDown": _big5_csv(header, rows)})
-        tools = register_module_tools(options_daily_history, client)
-        result = tools["get_options_daily_history"](
-            "20250602", "20250630", "TXO", contract_month="202507"
+        tools = register_module_tools(daily_market_report, client)
+        result = tools["get_daily_options_market_report"](
+            "TXO", "20250602", "20250630", contract_month="202507"
         )
         assert len(result) < MAX_CHARS, f"輸出 {len(result):,} 字元，未設上限"
         assert f"共 {ROWS} 筆" in result
 
-    def test_institutional_futures_history_is_bounded(self):
+    def test_institutional_by_futures_is_bounded(self):
         header = [
             "日期", "商品名稱", "身份別",
             "多方交易口數", "多方交易契約金額(千元)", "空方交易口數", "空方交易契約金額(千元)",
@@ -167,7 +167,7 @@ class TestTaifexHistoryOutputLimits:
         ]
         rows = [["2025/04/01", "臺股期貨", "外資及陸資"] + [str(100000 + i)] * 12 for i in range(ROWS)]
         client = OfflineClient({"/cht/3/futContractsDateDown": _big5_csv(header, rows)})
-        tools = register_module_tools(institutional_futures_history, client)
-        result = tools["get_institutional_traders_by_futures_history"]("20250401", "20250630", "")
+        tools = register_module_tools(institutional_details, client)
+        result = tools["get_institutional_traders_by_futures"]("", "20250401", "20250630")
         assert len(result) < MAX_CHARS, f"輸出 {len(result):,} 字元，未設上限"
         assert f"共 {ROWS} 筆" in result

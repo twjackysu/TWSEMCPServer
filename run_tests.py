@@ -17,7 +17,8 @@ def run_tests(scope="all"):
         "mops": ["pytest", "tests/e2e/test_mops_api.py", "-v"],
         "macro": ["pytest", "tests/e2e/test_tdcc_macro_api.py", "-v"],
         "institutional": ["pytest", "tests/e2e/test_twse_institutional_api.py", "-v"],
-        "taifex": ["pytest", "tests/e2e/test_taifex_api.py", "tests/e2e/test_taifex_new_api.py", "tests/e2e/test_taifex_batch2_api.py", "-v"],
+        "taifex": ["pytest", "tests/e2e/test_taifex_api.py", "tests/e2e/test_taifex_new_api.py", "tests/e2e/test_taifex_batch2_api.py",
+                   "tests/e2e/test_taifex_history_api.py", "-v"],
         "e2e": ["pytest", "tests/e2e/", "-v", "--tb=short"],  # All E2E tests
         "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html", "--cov-report=term"],
         "quick": ["pytest", "tests/", "-x", "--tb=short"],  # Stop at first failure
