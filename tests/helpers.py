@@ -65,6 +65,28 @@ def fetch_or_skip(url: str, **kwargs):
         raise
 
 
+def fetch_bytes_or_skip(url: str, **kwargs) -> bytes:
+    """``fetch_bytes`` counterpart of ``fetch_or_skip`` for CSV / zip / HTML sources.
+
+    Skips on the same transient conditions (5xx, connection failure, truncated stream,
+    empty body); a 4xx or a body in the wrong format still reaches the caller's
+    assertions and fails.
+    """
+    try:
+        body = TWSEAPIClient.get_instance().fetch_bytes(url, **kwargs)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code >= 500:
+            pytest.skip(f"Upstream server error ({e.response.status_code}): {url}")
+        raise
+    except requests.ConnectionError as e:
+        pytest.skip(f"Cannot reach upstream: {url} — {e}")
+    except requests.exceptions.ChunkedEncodingError as e:
+        pytest.skip(f"Upstream connection dropped mid-response: {url} — {e}")
+    if not body.strip():
+        pytest.skip(f"Upstream returned an empty body: {url}")
+    return body
+
+
 def records_or_skip(data, source: str) -> list:
     """Return ``data`` for field checks; skip when upstream has no records today.
 
