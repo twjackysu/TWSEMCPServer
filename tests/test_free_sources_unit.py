@@ -257,3 +257,53 @@ def test_exchange_rates_range_drops_placeholder_and_reports_unknown_currency():
     assert "馬克" not in text  # "-" 代表停止報價的幣別
     assert "查無幣別「XYZ」" in fn(currency="XYZ")
     assert "查無 20270101" in fn("20270101")
+
+
+# ---------- TPEx quotes by date / valuation / foreign holdings ----------
+
+from tools.otc import daily_close as otc_daily_close  # noqa: E402
+from tools.otc import valuation_holdings as otc_valuation_holdings  # noqa: E402
+
+
+def _quote_row(code, name):
+    return [code, name, "10", "+1", "9", "11", "9", "1,000", "10,000", "5", "10", "1", "10.1", "1", "100", "11", "9"]
+
+
+def test_otc_daily_by_date_uses_stock_list_then_falls_back_to_all_securities():
+    seen = []
+
+    def route(params, _body):
+        seen.append(params["type"])
+        rows = [_quote_row("6488", "環球晶")]
+        if params["type"] == "AL":
+            rows.append(_quote_row("713046", "宜特凱基63購02"))
+        return {"date": "20260929", "tables": [{"data": rows}]}
+
+    fn = register_module_tools(otc_daily_close, OfflineClient({"/afterTrading/otc": route}))["get_otc_daily"]
+    assert "6488 環球晶" in fn("20260929", stock_no="6488") and seen == ["EW"]
+    text = fn("20260929", stock_no="713046")
+    assert seen == ["EW", "EW", "AL"] and "713046" in text and "含權證" in text
+
+
+def test_otc_daily_latest_uses_openapi_with_average_price():
+    payload = [{"Date": "1150929", "SecuritiesCompanyCode": "6488", "CompanyName": "環球晶", "Close": "945",
+                "Change": "-3 ", "Open": "940", "High": "964", "Low": "930", "Average": "946.19",
+                "TradingShares": "1", "TransactionAmount": "2", "TransactionNumber": "3"}]
+    fn = register_module_tools(otc_daily_close, OfflineClient({"tpex_mainboard_daily_close_quotes": payload}))["get_otc_daily"]
+    assert "均價: 946.19" in fn(stock_no="6488") and "漲跌: -3 |" in fn(stock_no="6488")
+
+
+def test_otc_foreign_holdings_filters_on_the_code_column_not_the_rank():
+    rows = [["1", "8455", "大拓-KY", "25", "3", "22", "12%", "87%", "100%", ""],
+            ["2", "6488", "環球晶", "50", "10", "40", "20%", "80%", "100%", ""]]
+    tools = register_module_tools(otc_valuation_holdings, OfflineClient({"/insti/qfii": {"date": "20260929", "tables": [{"data": rows}]}}))
+    text = tools["get_otc_foreign_holdings"](stock_no="6488")
+    assert "#2 6488 環球晶 | 外資持股比率:80%" in text and "8455" not in text
+    assert "查無符合條件" in tools["get_otc_foreign_holdings"](stock_no="1")
+
+
+def test_otc_valuation_shows_dividend_year_and_fiscal_quarter():
+    rows = [["6488", "環球晶          ", "45.87", "7.7", 114, "0.81", "4.67", "115Q2"]]
+    fn = register_module_tools(otc_valuation_holdings, OfflineClient({"/afterTrading/peQryDate": {"date": "20260929", "tables": [{"data": rows}]}}))["get_otc_valuation"]
+    assert "6488 環球晶 | 本益比: 45.87 | 殖利率: 0.81%（每股股利 7.7，股利年度 114）| 股價淨值比: 4.67（財報 115Q2）" in fn()
+    assert "日期格式錯誤" in fn("2026-09-29")
