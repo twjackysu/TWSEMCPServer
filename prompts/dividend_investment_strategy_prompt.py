@@ -15,7 +15,7 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 
 **除權息排程與規劃：**
 - `get_dividend_rights_schedule(code)`：除權息日期與股利金額
-- `get_company_dividend(code)`：歷史股利發放資料
+- `get_company_dividend(code, start_year, end_year)`：歷史股利發放資料（可回溯多年評估穩定性）
 - `get_stock_valuation_ratios(code)`：本益比、殖利率、股價淨值比
 
 **基本面分析：**
@@ -23,6 +23,7 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 - `get_company_monthly_revenue(code)`：支撐配息永續性的營收趨勢
 - `get_company_income_statement(code)`：計算配息率所需的獲利資料
 - `get_company_balance_sheet(code)`：財務體質評估
+- `get_company_cash_flow_statement(code)`：營業現金流與自由現金流是否足以支應配息
 
 **市場驗證：**
 - `get_top_foreign_holdings()`：外資偏好的股利股

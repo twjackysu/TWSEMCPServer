@@ -20,7 +20,7 @@ def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", da
 
 **市場活動指標：**
 - `get_real_time_trading_stats()`：即時市場統計
-- `get_market_index_info(category, count, format)`：市場指數分析（可彈性篩選）
+- `get_market_index_info(date, category, keyword)`：市場指數分析（可彈性篩選）
   - `category="major", format="summary"`：快速掌握大盤概況
   - `category="sector", format="simple"`：找出熱門類股
   - `category="thematic", count=10`：熱門主題（AI、5G、ESG 等）

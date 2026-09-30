@@ -40,12 +40,6 @@ SIMPLE_LIST_TOOLS = [
         lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Number', 'N/A')}\n",
     ),
     (
-        "/exchangeReport/TWTB4U", "get_daily_day_trading_targets",
-        "查詢上市股票每日當日沖銷交易標的及統計。", "上市股票每日當日沖銷交易標的資料",
-        "上市股票每日當日沖銷交易標的", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Suspension', 'N/A')}\n",
-    ),
-    (
         "/exchangeReport/TWTBAU1", "get_suspended_day_trading_announcement",
         "查詢集中市場暫停先賣後買當日沖銷交易標的預告表。", "集中市場暫停先賣後買當日沖銷交易標的預告表資料",
         "集中市場暫停先賣後買當日沖銷交易標的預告表", "Name",

@@ -18,7 +18,7 @@ def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> 
 - `get_today_notice_stocks(name="", limit=50, offset=0)`：當日注意股票
 - `get_abnormal_accumulated_notice_stocks(name="", limit=50, offset=0)`：累積注意股票
 - `get_securities_trading_changes(name="", limit=50, offset=0)`：證券變更交易
-- `get_daily_day_trading_targets(name="", limit=50, offset=0)`：每日當沖交易標的及統計
+- `get_daily_day_trading_targets(date="", stock_no="", name="", limit=50, offset=0)`：當沖交易標的、暫停先賣後買註記與當沖量值
 - `get_suspended_day_trading_announcement(name="", limit=50, offset=0)`：暫停先賣後買當沖交易標的預告
 - `get_margin_loan_restrictions_announcement(name="", limit=50, offset=0)`：停資停券預告表
 - `get_financial_program_abnormal_recommendations(name="", limit=50, offset=0)`：投資理財節目異常推介個股

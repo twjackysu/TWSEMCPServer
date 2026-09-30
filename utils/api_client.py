@@ -54,6 +54,7 @@ class TWSEAPIClient:
         timeout: float = APIConfig.DEFAULT_TIMEOUT,
         method: str = "GET",
         data: Optional[Dict[str, Any]] = None,
+        json_body: Optional[Dict[str, Any]] = None,
     ) -> requests.Response:
         """Throttle, send GET/POST, stamp last-request time, and return the response."""
         self._throttle()
@@ -64,6 +65,7 @@ class TWSEAPIClient:
                 url,
                 params=params,
                 data=data,
+                json=json_body,
                 headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
                 verify=self.verify_ssl,
                 timeout=timeout,
@@ -145,14 +147,26 @@ class TWSEAPIClient:
         data = self.fetch_data(endpoint, timeout)
         return data[-count:] if data and count is not None else data
 
-    def fetch_json(self, url: str, params: Optional[Dict[str, Any]] = None, timeout: float = APIConfig.DEFAULT_TIMEOUT, headers: Optional[Dict[str, str]] = None) -> Any:
+    def fetch_json(
+        self,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+        timeout: float = APIConfig.DEFAULT_TIMEOUT,
+        headers: Optional[Dict[str, str]] = None,
+        json_body: Optional[Dict[str, Any]] = None,
+    ) -> Any:
         """Fetch raw JSON from an arbitrary full URL (not base_url-relative).
 
         Used for legacy TWSE endpoints and external APIs (mis.twse.com.tw,
         tpex.org.tw, taifex.com.tw) where callers supply the complete URL.
+        Passing ``json_body`` sends a POST with that JSON payload instead of a GET
+        (mops.twse.com.tw's ``/mops/api/*`` endpoints only accept JSON POSTs).
         """
         try:
-            return self._request(url, params=params, headers=headers, timeout=timeout).json()
+            method = "POST" if json_body is not None else "GET"
+            return self._request(
+                url, params=params, headers=headers, timeout=timeout, method=method, json_body=json_body
+            ).json()
         except Exception as e:
             logger.error(f"Failed to fetch JSON from {url}: {e}")
             raise

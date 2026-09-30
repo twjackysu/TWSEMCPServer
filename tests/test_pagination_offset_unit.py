@@ -18,8 +18,6 @@ import tools.history.short_sale_lending as short_sale_lending
 import tools.market.statistics as statistics
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
-import tools.otc.institutional as otc_institutional
-import tools.otc.margin_balance as otc_margin_balance
 import tools.otc.odd_lot as otc_odd_lot
 import tools.otc.peratio as otc_peratio
 import tools.trading.market as market
@@ -126,12 +124,6 @@ CASES = [
         [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
     ),
     (
-        otc_margin_balance,
-        "get_otc_margin_balance",
-        {},
-        [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
-    ),
-    (
         otc_odd_lot,
         "get_otc_odd_lot",
         {},
@@ -140,12 +132,6 @@ CASES = [
     (
         otc_peratio,
         "get_otc_valuation",
-        {},
-        [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
-    ),
-    (
-        otc_institutional,
-        "get_otc_institutional",
         {},
         [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
     ),

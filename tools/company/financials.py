@@ -1,19 +1,14 @@
-"""Company financial statements tools."""
+"""Company financial report tools from the TWSE OpenAPI (forecast achievement, profitability
+analysis, etc.). The statements themselves (損益表/資產負債表/現金流量表) live in
+tools/mops/financial_statements.py."""
 
 from typing import Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     handle_api_errors,
-    format_properties_with_values_multiline,
     create_company_tool,
-    MSG_NO_DATA_FOR_CODE,
 )
-
-# Industry-specific report variants of t187ap06/t187ap07. They partition the
-# universe of companies, so a company appears in exactly one of them. '_ci'
-# (一般業) holds the overwhelming majority and is probed first.
-INDUSTRY_SUFFIXES = ("_ci", "_fh", "_basi", "_bd", "_ins", "_mim")
 
 # Simple tools: fetch_company_data(endpoint, code) → format as properties.
 SIMPLE_FINANCIAL_TOOLS = [
@@ -37,67 +32,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     for endpoint, name, doc in SIMPLE_FINANCIAL_TOOLS:
         create_company_tool(mcp, endpoint, name, doc, client)
-
-    def _fetch_industry_report(prefix: str, code: str):
-        """Fetch an industry-specific report by probing each endpoint variant.
-
-        The 產業別 field of t187ap03_L cannot drive this choice: it holds a numeric
-        code (e.g. '17' covers 金控, 銀行, 證券 and 保險 alike), and it is absent
-        entirely for 公發公司. Probing is exact instead — the variants partition all
-        companies, so the first endpoint containing ``code`` is the right format.
-        Each variant is cached by fetch_data, so repeat lookups cost no extra requests.
-        """
-        for suffix in INDUSTRY_SUFFIXES:
-            data = _client.fetch_company_data(f"{prefix}{suffix}", code)
-            if data:
-                return data
-        return None
-
-    # --- Tools that need industry-specific endpoints ---
-
-    @mcp.tool
-    @handle_api_errors(use_code_param=True)
-    def get_company_income_statement(code: str) -> str:
-        """根據股票代號查詢上市公司綜合損益表。
-        自動偵測公司所屬產業並使用對應的財務報表格式（一般業、金融業、證券期貨業、金控業、保險業、異業）。
-        """
-        data = _fetch_industry_report("/opendata/t187ap06_L", code)
-        if not data:
-            return MSG_NO_DATA_FOR_CODE.format(query_target=f"公司代號 {code}", data_type="綜合損益表")
-        return format_properties_with_values_multiline(data)
-
-    @mcp.tool
-    @handle_api_errors(use_code_param=True)
-    def get_company_balance_sheet(code: str) -> str:
-        """根據股票代號查詢上市公司資產負債表。
-        自動偵測公司所屬產業並使用對應的財務報表格式（一般業、金融業、證券期貨業、金控業、保險業、異業）。
-        """
-        data = _fetch_industry_report("/opendata/t187ap07_L", code)
-        if not data:
-            return MSG_NO_DATA_FOR_CODE.format(query_target=f"公司代號 {code}", data_type="資產負債表")
-        return format_properties_with_values_multiline(data)
-
-    @mcp.tool
-    @handle_api_errors(use_code_param=True)
-    def get_public_company_balance_sheet(code: str) -> str:
-        """根據股票代號查詢公開發行公司資產負債表。
-        自動偵測公司所屬產業並使用對應的財務報表格式。
-        """
-        data = _fetch_industry_report("/opendata/t187ap07_X", code)
-        if not data:
-            return MSG_NO_DATA_FOR_CODE.format(query_target=f"公司代號 {code}", data_type="資產負債表")
-        return format_properties_with_values_multiline(data)
-
-    @mcp.tool
-    @handle_api_errors(use_code_param=True)
-    def get_public_company_income_statement(code: str) -> str:
-        """根據股票代號查詢公開發行公司綜合損益表。
-        自動偵測公司所屬產業並使用對應的財務報表格式。
-        """
-        data = _fetch_industry_report("/opendata/t187ap06_X", code)
-        if not data:
-            return MSG_NO_DATA_FOR_CODE.format(query_target=f"公司代號 {code}", data_type="綜合損益表")
-        return format_properties_with_values_multiline(data)
 
     # --- Tool with custom sorting/pagination ---
 

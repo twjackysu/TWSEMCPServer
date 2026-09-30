@@ -19,7 +19,7 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 - `get_company_profile(code)`：公司基本資料（提供背景脈絡）
 
 **進階分析：**
-- `get_market_index_info(category, count, format)`：市場環境與類股表現
+- `get_market_index_info(date, category, keyword)`：市場環境與類股表現
   - `category="sector", format="summary"`：產業表現總覽
   - `category="major", count=5, format="simple"`：大盤整體情緒
 - `get_company_dividend(code)`：外資偏好個股的股利資訊

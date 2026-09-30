@@ -26,7 +26,7 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 - `get_company_dividend(code)`：股利歷史與穩定度
 
 **市場驗證：**
-- `get_market_index_info(category, count, format)`：類股表現與市場環境
+- `get_market_index_info(date, category, keyword)`：類股表現與市場環境
   - `category="sector", format="summary"`：找出表現領先的產業
   - `category="esg", count=10`：ESG 投資範圍
   - `category="dividend", format="simple"`：股利導向篩選

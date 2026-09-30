@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, Union
 
 from utils.api_client import TWSEAPIClient
 
-# 路由值可以是固定 payload，或依 (params, data) 動態回傳 payload 的函式。
+# 路由值可以是固定 payload，或依 (params, body) 動態回傳 payload 的函式；
+# body 是表單 data 或 JSON body（MOPS 新版 API）。
 # payload 為 bytes 時當作 response body（fetch_bytes），其餘當作已解析的 JSON。
 Payload = Union[bytes, Any]
 Route = Union[Payload, Callable[[Dict[str, Any], Dict[str, Any]], Payload]]
@@ -31,9 +32,11 @@ class OfflineClient(TWSEAPIClient):
         super().__init__(request_interval=0, cache_ttl=0)
         self.routes = routes
 
-    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None):
+    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None, json_body=None):
         for suffix, route in self.routes.items():
             if url.endswith(suffix):
-                payload = route(params or {}, data or {}) if callable(route) else route
+                # 動態路由的第二個參數是 request body：表單（data）或 JSON（json_body）
+                body = data if data is not None else json_body
+                payload = route(params or {}, body or {}) if callable(route) else route
                 return _CannedResponse(payload)
         raise AssertionError(f"OfflineClient 沒有設定此 URL 的路由: {url}")
