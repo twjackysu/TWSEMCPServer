@@ -259,3 +259,112 @@ def test_conference_unexpected_page_is_an_error_not_no_data():
         "get_investor_conferences"]
     assert "查詢失敗" in fn("2026", code="blocked")
     assert "查無" in fn("2026", code="empty") and "查詢失敗" not in fn("2026", code="empty")
+
+
+# ---------- parse_html_tables ----------
+
+from utils.mops import parse_html_tables  # noqa: E402
+from tools.mops import insiders, major_news, treasury_guarantees  # noqa: E402
+
+
+def test_parse_html_tables_splits_unclosed_tables():
+    """t35sc09 每數百列就開新 <table> 卻沒關上一張；不能把第二張當成巢狀而吞掉整張資料表."""
+    html = ("<table><tr><td>標題</td></tr></table>"
+            "<table class='hasBorder'><tr><td>1</td><td>6655</td></tr>"
+            "<table class='hasBorder'><tr><td>2</td><td>1437</td></tr></table>"
+            "<table><tr><td>合計<table><tr><td>巢狀</td></tr></table></td></tr></table>")
+    tables = parse_html_tables(html)
+    assert tables == [[["標題"]], [["1", "6655"]], [["2", "1437"]], [["合計巢狀"]]]
+
+
+# ---------- major news ----------
+
+def _news_link(api, code, serial=1):
+    return {"apiName": api, "parameters": {"marketKind": "otc", "companyId": code, "serialNumber": serial, "enterDate": "1150929"}}
+
+
+def test_company_news_newest_first_with_full_text_capped():
+    rows = [["6488", "環球晶", f"115/09/{d:02d}", "10:00:00", f"主旨{d}", _news_link("t05st01_detail", "6488", d)]
+            for d in range(1, 16)]
+
+    def route(_params, body):
+        if "serialNumber" in body:
+            return _ok({"data": [["1", "115/09/01", "10:00", "發言人", "財務長", "tel", "主旨", "第1款", "115/09/01",
+                                  "說明\n內容"]]})
+        return _ok({"companyAbbreviation": "環球晶", "data": rows})
+
+    client = OfflineClient({"/mops/api/t05st01": route, "/mops/api/t05st01_detail": route})
+    text = register_module_tools(major_news, client)["get_company_major_news"]("6488", year="2026")
+    assert text.index("115/09/15") < text.index("115/09/06")
+    assert "115/09/05" not in text  # 每頁最多 10 則含全文
+    assert text.count("說明:說明") == 10 and "offset=10" in text
+
+
+def test_market_news_walks_back_and_filters_market(monkeypatch):
+    monkeypatch.setattr(major_news, "taipei_today", lambda: __import__("datetime").datetime(2026, 9, 30))
+    asked = []
+
+    def route(_params, body):
+        asked.append(body["day"])
+        if body["day"] != "28":
+            return {"code": 406, "message": "查無相符資料", "result": None}
+        return _ok({"data": [["115/09/28", "20:00", "6488", "環球晶", "主旨\n換行", _news_link("t05st02_detail", "6488")],
+                             ["115/09/28", "20:01", "2330", "台積電", "主旨", {"apiName": "x", "parameters": {"marketKind": "sii"}}]]})
+
+    fn = register_module_tools(major_news, OfflineClient({"/mops/api/t05st02": route}))["get_company_major_news"]
+    text = fn(market="otc")
+    assert asked == ["30", "29", "28"] and "查詢日 20260928" in text
+    assert "上櫃 6488 環球晶 | 主旨 換行" in text and "2330" not in text
+    assert "market 只能是" in fn(market="nyse")
+
+
+# ---------- insiders ----------
+
+def test_period_body_latest_and_specific_month():
+    assert insiders.period_body("2330", "", "")[0]["dataType"] == "1"
+    body, _ = insiders.period_body("2330", "2026", "6")
+    assert (body["dataType"], body["year"], body["month"]) == ("2", "115", "06")
+    assert "同時指定" in insiders.period_body("2330", "2026", "")[1]
+
+
+def _insider_row(name, bought=0):
+    row = ["董事本人", name, "普通股", "0", "100", "0", "0", "0"] + ["0"] * 10 + ["100", "0", "0", "0", "0", ""]
+    row[8] = str(bought)
+    return row
+
+
+def test_insider_changes_list_only_movers_by_default():
+    titles = [{"main": f"c{i}", "sub": []} for i in range(24)]
+    payload = _ok({"companyAbbreviation": "台積電", "year": "115", "month": "08", "titles": titles,
+                   "data": [_insider_row("甲", 1000), _insider_row("乙")]})
+    fn = register_module_tools(insiders, OfflineClient({"/mops/api/query6_1": payload}))["get_company_insider_holding_changes"]
+    text = fn("2330")
+    assert "本月有異動 1 位" in text and "甲" in text and "乙" not in text and "c8:1000" in text
+    assert "乙" in fn("2330", only_changed=False)
+
+
+# ---------- treasury stock / lending ----------
+
+def _buyback_row(seq, code, purpose, done="N"):
+    return [str(seq), code, "名稱", "115/09/03", purpose, "1", "2", "3", "4", "115/09/04", "115/11/02", done] + [""] * 8
+
+
+def test_buybacks_decode_purpose_and_filter_code():
+    header = "<tr><th>序號</th></tr>"
+    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>"
+                   for r in [_buyback_row(1, "6655", "3"), _buyback_row(2, "1437", "1", "Y")])
+    html = f"<table><tr><td>上市公司買回自己公司股份彙總統計表</td></tr></table><table>{header}{body}</table>"
+    fn = register_module_tools(treasury_guarantees, OfflineClient({"/ajax_t35sc09": html.encode("utf-8")}))[
+        "get_treasury_stock_buybacks"]
+    text = fn("20260901", "20260930", code="1437")
+    assert "共有 1 筆" in text and "目的:轉讓股份予員工" in text and "是否執行完畢:Y" in text
+    assert "日期格式錯誤" in fn("2026-09-01")
+
+
+def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():
+    blocked = b"<html>FOR SECURITY REASONS</html>"
+    empty = "<html><table><tr><td>查無資料</td></tr></table></html>".encode("utf-8")
+    fn = register_module_tools(treasury_guarantees, OfflineClient({"/ajax_t05st11": lambda _p, b: blocked if b["co_id"] == "1" else empty}))[
+        "get_company_lending_and_guarantees"]
+    assert "查詢失敗" in fn("1") and "查無 2" in fn("2")
+    assert "同時指定" in fn("2", year="2026")

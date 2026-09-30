@@ -18,7 +18,6 @@ import tools.history.short_sale_lending as short_sale_lending
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
 import tools.otc.odd_lot as otc_odd_lot
-import tools.otc.peratio as otc_peratio
 import tools.trading.market as market
 
 pytestmark = pytest.mark.offline
@@ -119,12 +118,6 @@ CASES = [
     (
         otc_odd_lot,
         "get_otc_odd_lot",
-        {},
-        [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
-    ),
-    (
-        otc_peratio,
-        "get_otc_valuation",
         {},
         [{"SecuritiesCompanyCode": "6488", "CompanyName": "環球晶"}],
     ),

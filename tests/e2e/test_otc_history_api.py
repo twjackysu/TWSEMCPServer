@@ -92,3 +92,61 @@ def test_omitting_date_returns_latest_day():
             f"{url} 不帶 date 時不再回傳交易日期: {resp!r:.200}"
         )
         _first_table(resp)
+
+
+class TestOTCQuotesByDateAPI:
+    """afterTrading/otc：get_otc_daily 帶 date 時使用 row[0]~row[12]；預設 type=EW（股票及 ETF），
+    查不到指定代號時改用 type=AL（含權證）。兩種 type 的欄位相同，這裡以較小的 EW 驗證欄位。"""
+
+    def test_fields_and_stock_scope(self):
+        table = _first_table(fetch_or_skip(
+            "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc",
+            params={"date": FIXED_DATE, "type": "EW", "response": "json"},
+        ))
+        fields = [f.replace("<br>", "").strip() for f in table.get("fields") or []]
+        # row[11] 最後買量的單位標籤隨年份不同（千股／張數），tool 不讀它，故不比對
+        assert fields[:11] + fields[12:13] == [
+            "代號", "名稱", "收盤", "漲跌", "開盤", "最高", "最低", "成交股數", "成交金額(元)", "成交筆數",
+            "最後買價", "最後賣價",
+        ], f"欄位已變更: {fields}"
+        rows = table.get("data") or []
+        assert any(r[0] == FIXED_OTC_STOCK for r in rows), "type=EW 不再包含上櫃股票"
+        assert not any(len(r[0]) == 6 and r[0].startswith("7") for r in rows), "type=EW 開始包含權證，預設清單會暴增"
+
+
+class TestOTCValuationByDateAPI:
+    """afterTrading/peQryDate：get_otc_valuation 使用 row[0]~row[7]。"""
+
+    def test_fields(self):
+        table = _first_table(fetch_or_skip(
+            "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate",
+            params={"date": FIXED_DATE, "response": "json"},
+        ))
+        assert table.get("fields") == [
+            "股票代號", "公司名稱", "本益比", "每股股利", "股利年度", "殖利率(%)", "股價淨值比", "財報年/季",
+        ], f"欄位已變更: {table.get('fields')}"
+        assert table.get("data"), "固定歷史交易日應有資料"
+
+
+class TestOTCForeignHoldingsAPI:
+    """insti/qfii：get_otc_foreign_holdings 使用 row[0]~row[9]（row[0] 是排行，代號在 row[1]）。"""
+
+    def test_fields_and_ranking(self):
+        table = _first_table(fetch_or_skip(
+            "https://www.tpex.org.tw/www/zh-tw/insti/qfii",
+            params={"date": FIXED_DATE, "response": "json"},
+        ))
+        fields = table.get("fields") or []
+        assert fields[:3] == ["排行", "代號", "名稱"] and "持股比率" in fields[7] and "上限" in fields[8], (
+            f"欄位已變更: {fields}"
+        )
+        rows = table.get("data") or []
+        assert rows and rows[0][0] == "1", f"資料不再依持股比率排行: {rows[:1]}"
+
+
+def test_new_endpoints_return_latest_day_without_date():
+    """get_otc_valuation / get_otc_foreign_holdings 不帶 date 時依賴上游回最新交易日."""
+    for path in ("afterTrading/peQryDate", "insti/qfii"):
+        resp = fetch_or_skip(f"https://www.tpex.org.tw/www/zh-tw/{path}", params={"response": "json"})
+        assert len(str(resp.get("date", ""))) == 8, f"{path} 不帶 date 時不再回傳交易日期: {resp!r:.200}"
+        assert _first_table(resp).get("data"), f"{path} 不帶 date 時沒有資料"

@@ -20,8 +20,6 @@ SIMPLE_FINANCIAL_TOOLS = [
      "根據股票代號查詢上市公司營益分析。"),
     ("/opendata/t187ap31_L", "get_company_financial_reports_supervisor_acknowledgment",
      "根據股票代號查詢上市公司財務報告經監察人承認情形。"),
-    ("/opendata/t187ap11_P", "get_public_company_board_shareholdings",
-     "根據股票代號查詢公發公司董監事持股餘額明細。"),
 ]
 
 

@@ -109,13 +109,19 @@ def leaf_titles(titles: List[Dict[str, Any]]) -> List[str]:
 
 
 class _TableParser(HTMLParser):
-    """Collect every ``<tr>`` of the first ``<table>`` whose id matches, as text cells."""
+    """Collect the ``<tr>`` rows of a table as text cells.
 
-    def __init__(self, table_id: str):
+    With ``table_id`` it reads the first ``<table>`` carrying that id; with ``None`` it reads
+    every top-level table (legacy pages such as t35sc09 / t05st11 give their tables no id),
+    appending each table's rows to ``tables``.
+    """
+
+    def __init__(self, table_id: Optional[str]):
         super().__init__(convert_charrefs=True)
         self.table_id = table_id
         self.depth = 0  # nesting depth inside the target table; 0 = outside
         self.rows: List[List[str]] = []
+        self.tables: List[List[List[str]]] = []
         self._row: Optional[List[str]] = None
         self._cell: Optional[List[str]] = None
         self._done = False
@@ -124,10 +130,17 @@ class _TableParser(HTMLParser):
         if self._done:
             return
         if tag == "table":
+            if self.depth and self._cell is None:
+                # A <table> outside any cell cannot be nested: the legacy pages start a new
+                # table every few hundred rows without closing the previous one (t35sc09).
+                self._close_table()
+                if self._done:
+                    return
             if self.depth:
                 self.depth += 1
-            elif dict(attrs).get("id") == self.table_id:
+            elif self.table_id is None or dict(attrs).get("id") == self.table_id:
                 self.depth = 1
+                self.rows = []
             return
         if tag == "br" and self._cell is not None:
             self._cell.append(" ")
@@ -145,7 +158,8 @@ class _TableParser(HTMLParser):
         if tag == "table":
             self.depth -= 1
             if not self.depth:
-                self._done = True
+                self.depth = 1  # _close_table expects to be inside the table
+                self._close_table()
         elif self.depth != 1:
             return
         elif tag in ("td", "th") and self._cell is not None and self._row is not None:
@@ -154,6 +168,16 @@ class _TableParser(HTMLParser):
         elif tag == "tr" and self._row is not None:
             self.rows.append(self._row)
             self._row = None
+
+    def _close_table(self):
+        """Finish the table being read (depth 1) and record its rows."""
+        if self._row:
+            self.rows.append(self._row)
+        self._row, self._cell = None, None
+        self.depth = 0
+        self.tables.append(self.rows)
+        # With an id there is exactly one table to read; without, keep going.
+        self._done = self.table_id is not None
 
     def handle_data(self, data):
         if self.depth and self._cell is not None:
@@ -165,3 +189,10 @@ def parse_html_table(html: str, table_id: str) -> List[List[str]]:
     parser = _TableParser(table_id)
     parser.feed(html)
     return parser.rows
+
+
+def parse_html_tables(html: str) -> List[List[List[str]]]:
+    """Return every top-level ``<table>`` in the page as a list of text-cell rows."""
+    parser = _TableParser(None)
+    parser.feed(html)
+    return parser.tables
