@@ -32,7 +32,7 @@ def test_otc_institutional_maps_column_groups():
     client = OfflineClient({"/insti/dailyTrade": {"tables": [{"data": [
         _insti_row("6488", "環球晶"), _insti_row("3105", "穩懋"),
     ]}]}})
-    fn = register_module_tools(otc_history, client)["get_otc_institutional_history"]
+    fn = register_module_tools(otc_history, client)["get_otc_institutional"]
     text = fn("20260803", stock_no="6488")
     assert "共有 1 筆" in text and "3105" not in text
     assert "外資:120（不含自營商 100，外資自營商 20）" in text
@@ -53,12 +53,24 @@ def test_otc_history_sends_slash_date_and_rejects_bad_dates():
     assert seen["date"] == "2026/08/01"
     assert "開:870.00 高:930.00 低:843.00 收:866.00" in text
     assert "日期格式錯誤" in tools["get_otc_stock_history"]("6488", "2026-08-01")
-    assert "日期格式錯誤" in tools["get_otc_margin_balance_history"]("20261301")
+    assert "日期格式錯誤" in tools["get_otc_margin_balance"]("20261301")
+
+
+def test_otc_defaults_to_latest_day_and_reports_its_date():
+    seen = {}
+
+    def route(params, _body):
+        seen.update(params)
+        return {"date": "20260929", "tables": [{"data": [_insti_row("6488", "環球晶")]}]}
+
+    fn = register_module_tools(otc_history, OfflineClient({"/insti/dailyTrade": route}))["get_otc_institutional"]
+    assert "20260929 上櫃三大法人買賣超" in fn()
+    assert "date" not in seen
 
 
 def test_otc_empty_day_is_reported_as_non_trading_day():
     client = OfflineClient({"/insti/dailyTrade": {"tables": [{"data": []}]}})
-    fn = register_module_tools(otc_history, client)["get_otc_institutional_history"]
+    fn = register_module_tools(otc_history, client)["get_otc_institutional"]
     assert "請確認該日期為交易日" in fn("20260801")
 
 
@@ -71,7 +83,7 @@ def test_otc_margin_summary_only_without_filters():
         "data": [_margin_row("6488", "環球晶"), _margin_row("3105", "穩懋")],
         "summary": [["", "合計(張)", "", "", "", "", "999", "", "", "", "", "", "", "", "88", "", "", "", "", ""]],
     }]}
-    fn = register_module_tools(otc_history, OfflineClient({"/margin/balance": payload}))["get_otc_margin_balance_history"]
+    fn = register_module_tools(otc_history, OfflineClient({"/margin/balance": payload}))["get_otc_margin_balance"]
     assert "全市場合計: 合計(張) 資餘額999 券餘額88" in fn("20260803")
     filtered = fn("20260803", stock_no="6488")
     assert "全市場合計" not in filtered and "融資: 前日10 買1 賣2 現償0 餘額9" in filtered
@@ -84,16 +96,27 @@ def test_day_trading_prepends_market_summary_and_flags_suspension():
         {"data": [["2,686,586,000", "23.51", "311", "35.14", "312", "35.29"]]},
         {"data": [["2330", "台積電", "", "6,942,000", "16", "15"], ["00400A", "主動國泰", "Y", "1", "2", "3"]]},
     ]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_day_trading_history"]
+    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
     text = fn("20260803")
     assert text.startswith("全市場當沖: 成交股數 2,686,586,000（占 23.51%）")
     assert "00400A 主動國泰（暫停先賣後買）" in text
     assert "2330 台積電 | 當沖股數:6,942,000" in text
 
 
+def test_day_trading_before_evening_publication_lists_targets_only():
+    """晚間公布前當天只有「代號、名稱、註記」三格，不能因索引越界而查詢失敗."""
+    payload = {"stat": "OK", "date": "20260930", "tables": [
+        {}, {"data": [["2330", "台積電", ""], ["00400A", "主動國泰", "Y"]]},
+    ]}
+    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
+    text = fn()
+    assert "當日當沖量值尚未公布" in text
+    assert "2330 台積電\n" in text and "00400A 主動國泰（暫停先賣後買）" in text
+
+
 def test_day_trading_non_trading_day():
     payload = {"stat": "OK", "tables": [{"data": []}, {"data": []}]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_day_trading_history"]
+    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
     assert "請確認該日期為交易日" in fn("20260801")
 
 
@@ -105,11 +128,46 @@ def test_indices_keyword_filter_and_sign_from_html():
         ]},
         {"title": None, "data": []},
     ]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/afterTrading/MI_INDEX": payload}))["get_twse_indices_by_date"]
-    text = fn("20260803", keyword="半導體")
+    fn = register_module_tools(twse_extra, OfflineClient({"/afterTrading/MI_INDEX": payload}))["get_market_index_info"]
+    text = fn("20260803", category="all", keyword="半導體")
     assert "半導體類指數: 1,491.44 | -3.37 (-0.23%)" in text
     assert "發行量加權" not in text
-    assert "查無 20260803 名稱包含「航運」" in fn("20260803", keyword="航運")
+    assert "名稱包含「航運」" in fn("20260803", category="all", keyword="航運")
+
+
+INDEX_NAMES = ["發行量加權股價指數", "半導體類指數", "半導體類報酬指數", "臺指反向一倍指數", "臺灣高股息指數"]
+
+
+@pytest.mark.parametrize("category,expected", [
+    ("major", {"發行量加權股價指數", "臺灣高股息指數"}),
+    ("sector", {"半導體類指數"}),
+    ("return", {"半導體類報酬指數"}),
+    ("leverage", {"臺指反向一倍指數"}),
+    ("dividend", {"臺灣高股息指數"}),
+    ("all", set(INDEX_NAMES)),
+])
+def test_index_categories(category, expected):
+    rows = [[n, "1", "+", "1", "0.1", ""] for n in INDEX_NAMES]
+    fn = register_module_tools(twse_extra, OfflineClient({"/afterTrading/MI_INDEX": {"stat": "OK", "tables": [
+        {"title": "指數", "data": rows}]}}))["get_market_index_info"]
+    text = fn(category=category)
+    assert {n for n in INDEX_NAMES if f"{n}:" in text} == expected
+
+
+def test_index_and_day_trading_default_to_latest_day():
+    seen = []
+
+    def route(params, _body):
+        seen.append(dict(params))
+        return {"stat": "OK", "date": "20260929", "tables": [
+            {"title": "t", "data": [["發行量加權股價指數", "1", "+", "1", "0.1", ""]]}, {"data": [["2330", "台積電", "", "1", "2", "3"]]}]}
+
+    client = OfflineClient({"/afterTrading/MI_INDEX": route, "/dayTrading/TWTB4U": route})
+    tools = register_module_tools(twse_extra, client)
+    assert "【20260929 證交所指數收盤行情" in tools["get_market_index_info"]()
+    assert "20260929 上市個股當日沖銷交易" in tools["get_daily_day_trading_targets"]()
+    assert all("date" not in p for p in seen)
+    assert "category 只能是" in tools["get_market_index_info"](category="tech")
 
 
 def test_exright_filters_by_stock():

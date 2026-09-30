@@ -106,12 +106,6 @@ SIMPLE_LIST_TOOLS = [
 SIMPLE_BASIC_INFO_TOOLS = [
     ("/opendata/t187ap03_L", "get_company_profile",
      "根據股票代號查詢上市公司基本資料。"),
-    ("/opendata/t187ap45_L", "get_company_dividend",
-     "根據股票代號查詢上市公司股利分派情形。"),
-    ("/opendata/t187ap05_L", "get_company_monthly_revenue",
-     "根據股票代號查詢上市公司每月營業收入彙總表。"),
-    ("/opendata/t187ap05_P", "get_public_company_monthly_revenue",
-     "根據股票代號查詢公開發行公司每月營業收入彙總表。"),
     ("/opendata/t187ap02_L", "get_company_major_shareholders",
      "根據股票代號查詢上市公司持股逾10%大股東名單。"),
     ("/opendata/t187ap14_L", "get_company_eps_statistics",

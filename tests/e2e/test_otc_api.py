@@ -20,28 +20,6 @@ class TestOTCDailyCloseAPI:
         )
 
 
-class TestOTCInstitutionalAPI:
-    """Tool get_otc_institutional 用 SecuritiesCompanyCode 做篩選。"""
-
-    def test_hardcoded_fields_exist(self):
-        result = records_or_skip(fetch_or_skip(f"{TPEX_BASE}/tpex_3insti_daily_trading"), "tpex_3insti_daily_trading")
-        first = result[0]
-        required = [
-            "SecuritiesCompanyCode",
-            "CompanyName",
-            "ForeignInvestorsInclude MainlandAreaInvestors-Difference",
-            "SecuritiesInvestmentTrustCompanies-Difference",
-            "Dealers-Difference",
-            "TotalDifference",
-        ]
-        missing = [f for f in required if f not in first]
-        assert not missing, (
-            f"tpex_3insti_daily_trading removed fields that get_otc_institutional uses.\n"
-            f"Missing: {missing}\n"
-            f"Actual fields: {sorted(first.keys())}"
-        )
-
-
 class TestOTCValuationAPI:
     """Tool get_otc_valuation 用 SecuritiesCompanyCode 做篩選。"""
 
@@ -57,23 +35,6 @@ class TestOTCValuationAPI:
             f"Missing base fields: {missing}\n"
             f"YieldRatio present: {'YieldRatio' in first}, DividendYield present: {'DividendYield' in first}\n"
             f"Actual fields: {sorted(first.keys())}"
-        )
-
-
-class TestOTCMarginBalanceAPI:
-    """Tool get_otc_margin_balance 用 SecuritiesCompanyCode 篩選，3 個數值欄位顯示。"""
-
-    def test_hardcoded_fields_exist(self):
-        result = records_or_skip(fetch_or_skip(f"{TPEX_BASE}/tpex_mainboard_margin_balance"), "tpex_mainboard_margin_balance")
-        first = result[0]
-        required = [
-            "SecuritiesCompanyCode", "CompanyName",
-            "MarginPurchaseBalance", "ShortSaleBalance", "MarginPurchaseUtilizationRate",
-        ]
-        missing = [f for f in required if f not in first]
-        assert not missing, (
-            f"tpex_mainboard_margin_balance removed fields that get_otc_margin_balance uses.\n"
-            f"Missing: {missing}\nActual fields: {sorted(first.keys())}"
         )
 
 

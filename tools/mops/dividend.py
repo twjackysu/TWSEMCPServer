@@ -1,10 +1,11 @@
-"""Multi-year dividend distribution history (股利分派情形) from MOPS t05st09_2.
+"""Dividend distribution (股利分派情形) from MOPS t05st09_2, recent or any span of years.
 
-The OpenAPI's get_company_dividend (t187ap45_L) only lists the latest board resolutions;
-this covers any span of past years, including quarterly dividends.
+Replaces the OpenAPI t187ap45_L tool, which only listed the latest board resolutions of
+listed companies; this covers OTC/emerging/public companies and quarterly dividends too.
 """
 
 import re
+from datetime import date
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors
@@ -61,15 +62,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_company_dividend_history(code: str, start_year: str, end_year: str = "",
-                                     year_type: str = "dividend") -> str:
-        """查詢上市櫃公司「多年度」股利分派歷史（公開資訊觀測站），含季配息公司的每季股利。
-        與 get_company_dividend（OpenAPI，僅最新決議）不同，可回溯查詢多年，適合評估配息穩定性。
+    def get_company_dividend(code: str, start_year: str = "", end_year: str = "",
+                             year_type: str = "dividend") -> str:
+        """查詢公司股利分派（公開資訊觀測站）：預設近兩年，也可回溯多年評估配息穩定性。
+        上市、上櫃、興櫃、公開發行公司皆可，季配息公司會列出每一季的股利。
 
         Args:
             code: 股票代號，例如 "2330"
-            start_year: 起始年度，西元（"2021"）或民國（"110"）皆可
-            end_year: 結束年度（選填，預設同 start_year）。區間最多 10 年
+            start_year: 起始年度，西元（"2021"）或民國（"110"）皆可；留空＝去年起
+            end_year: 結束年度（選填，預設今年；有指定 start_year 時預設同 start_year）。區間最多 10 年
             year_type: "dividend"＝依股利所屬年度（預設，例如 2024 年盈餘所配的股利）；
                 "board"＝依董事會決議年度
 
@@ -81,8 +82,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         query_type = YEAR_TYPES.get(year_type.strip().lower())
         if query_type is None:
             return "year_type 只能是 \"dividend\"（股利所屬年度）或 \"board\"（董事會決議年度）"
-        first = to_roc_year(start_year)
-        last = to_roc_year(end_year) if end_year else first
+        this_year = date.today().year - 1911
+        if start_year.strip():
+            first = to_roc_year(start_year)
+            last = to_roc_year(end_year) if end_year.strip() else first
+        else:
+            # 預設涵蓋最近一次決議：今年與去年（股利所屬年度常落後決議一年）
+            first, last = this_year - 1, (to_roc_year(end_year) if end_year.strip() else this_year)
         if first > last:
             return "起始年度不可晚於結束年度"
         if last - first + 1 > MAX_YEARS:

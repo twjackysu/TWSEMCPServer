@@ -1,4 +1,4 @@
-"""TPEx website history endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
+"""TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
 tools/otc/history.py reads these rows by position, so each test pins the field list (or,
 where TPEx repeats identical column names, an arithmetic invariant that only holds for the
@@ -66,7 +66,7 @@ class TestOTCInstitutionalHistoryAPI:
 
 
 class TestOTCMarginHistoryAPI:
-    """margin/balance：get_otc_margin_balance_history 使用 row[0]~row[19] 與 summary。"""
+    """margin/balance：get_otc_margin_balance 使用 row[0]~row[19] 與 summary。"""
 
     EXPECTED_FIELDS = [
         "代號", "名稱", "前資餘額(張)", "資買", "資賣", "現償", "資餘額", "資屬證金", "資使用率(%)", "資限額",
@@ -82,3 +82,13 @@ class TestOTCMarginHistoryAPI:
         assert isinstance(summary, list) and summary and len(summary[0]) == 20, (
             f"summary（全市場合計）結構已變更: {summary!r:.200}"
         )
+
+
+def test_omitting_date_returns_latest_day():
+    """get_otc_institutional / get_otc_margin_balance 不帶 date 時依賴上游回最新交易日."""
+    for url, params in [(INSTI_DAILY_URL, {"type": "Daily", "sect": "EW"}), (MARGIN_BALANCE_URL, {})]:
+        resp = fetch_or_skip(url, params={**params, "response": "json"})
+        assert isinstance(resp, dict) and len(str(resp.get("date", ""))) == 8, (
+            f"{url} 不帶 date 時不再回傳交易日期: {resp!r:.200}"
+        )
+        _first_table(resp)

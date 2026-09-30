@@ -5,13 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
-- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 128 tools: 公司治理、ESG、財報、交易、指數、券商
+- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 119 tools: 公司治理、ESG、財務比率、交易、指數歷史、券商
 - **TWSE Web API** (`twse.com.tw`) — 19 tools: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
-- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 10 tools: 上櫃日收盤、三大法人（個股/彙總）、本益比、融資融券、注意股、處置股、除權息、零股、櫃買指數
+- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 8 tools: 上櫃日收盤、三大法人彙總、本益比、注意股、處置股、除權息、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
-- **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 3 tools: 上櫃個股日K、三大法人明細、融資融券（可查任意過去日期；TPEx OpenAPI 僅最新一日）
-- **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`) — 6 tools: 任意季度綜合損益表／資產負債表／現金流量表、多月份月營收、多年度股利、法說會
+- **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 3 tools: 上櫃個股日K、三大法人明細、融資融券（預設最新交易日，可查任意過去日期）
+- **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`) — 6 tools: 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、法說會
 - **TDCC 集保開放資料** (`opendata.tdcc.com.tw`) — 1 tool: 集保戶股權分散表（最新一週）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
@@ -61,14 +61,14 @@ tools/
                               #   foreign_holdings_history, stock_monthly_yearly_history, block_trades_detail,
                               #   short_sale_lending, exright_day_trading_indices (rwd/* endpoints — accept arbitrary past dates, unlike the
                               #   openapi.twse.com.tw equivalents which only return a rolling ~12-day window)
-├── mops/                     # MOPS: financial_statements_history, monthly_revenue_history, dividend_history,
+├── mops/                     # MOPS: financial_statements, monthly_revenue, dividend,
                               #   investor_conference
 ├── tdcc/                     # TDCC open data: shareholding_distribution
 ├── macro/                    # ndc_indicators (景氣燈號, PMI), exchange_rates (央行)
 ├── realtime/                 # MIS real-time quotes: stock_info
-├── otc/                      # TPEx OTC market: daily_close, institutional, institutional_summary, peratio,
-                              #   margin_balance, odd_lot, exright, index, trading_halt (注意股/處置股),
-                              #   history (www.tpex.org.tw website JSON: any past date)
+├── otc/                      # TPEx OTC market: daily_close, institutional_summary, peratio,
+                              #   odd_lot, exright, index, trading_halt (注意股/處置股) (openapi, latest day);
+                              #   history (www.tpex.org.tw website JSON: stock OHLC, 三大法人, 融資融券; latest or any past date)
 └── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
                               #   institutional_details, daily_market_report, large_traders_oi,
                               #   options_analytics, margin, trading_statistics, futures_daily_history,
@@ -133,7 +133,8 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 - `tests/test_api_schemas.py` — parametrized tests that verify fields tools **hardcode with `.get()`** still exist in live API responses. Endpoints are defined in `tests/tool_field_dependencies.py`. Only catches breakage that would silently return "N/A" in a tool.
 - `tests/tool_field_dependencies.py` — the source of truth: maps each TWSE OpenAPI endpoint to the list of field names its tool hardcodes. Edit this file when adding or changing hardcoded field access in a tool.
 - `tests/e2e/test_*.py` — per-category E2E tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
-- `tests/test_output_limits_unit.py`, `tests/test_summary_row_filtering_unit.py`, `tests/test_company_financials_unit.py` — offline guards for pagination/output caps, summary-row and placeholder filtering, and industry-variant probing.
+- `tests/test_output_limits_unit.py`, `tests/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
+- `tests/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -141,13 +142,14 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 
 ## Adding New Tools
 
-1. Add tool function in the appropriate module under `tools/` (or create a new module)
-2. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
-3. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
-4. Use `@handle_api_errors()` for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
-5. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
-6. Format output with utilities from `utils/formatters.py`
-7. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
+1. Check for overlap first. Don't ship two tools for the same data: if a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
+2. Add tool function in the appropriate module under `tools/` (or create a new module)
+3. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
+4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
+5. Use `@handle_api_errors()` for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
+6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
+7. Format output with utilities from `utils/formatters.py`
+8. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
    - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/tool_field_dependencies.py`. The parametrized test in `tests/test_api_schemas.py` will pick it up automatically.
    - **Non-TWSE-OpenAPI tools** (TAIFEX, OTC/TPEx, MIS, legacy `exchangeReport`, MOPS, TDCC, NDC, CBC): add a `test_hardcoded_fields_exist` method to the relevant `tests/e2e/test_*.py` file.
    - **No hardcoded fields** (tool uses `format_properties_with_values_multiline` to dump all fields generically): no API field test needed — the tool adapts automatically to schema changes.

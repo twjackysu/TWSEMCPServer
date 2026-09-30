@@ -12,7 +12,8 @@ from datetime import date
 import pytest
 
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip
-from tools.mops.dividend_history import KEY_COLUMNS
+from tools.mops.dividend import KEY_COLUMNS
+from tools.mops.monthly_revenue import CURRENT_MONTH_LABEL
 from tools.mops.investor_conference import ROW_WIDTH, parse_conference_rows
 from utils.mops import (
     MOPS_API_BASE,
@@ -45,7 +46,7 @@ def _statement_body(year: str = FIXED_ROC_YEAR) -> dict:
 
 
 class TestFinancialStatementsAPI:
-    """t164sb03/04/05：tools/mops/financial_statements_history.py 依 titles 攤平後的欄名
+    """t164sb03/04/05：tools/mops/financial_statements.py 依 titles 攤平後的欄名
     逐欄輸出 reportList，所以 titles 葉節點數必須等於每列的儲存格數。"""
 
     @pytest.mark.parametrize("api_name", ["t164sb03", "t164sb04", "t164sb05"])
@@ -59,6 +60,13 @@ class TestFinancialStatementsAPI:
         width = len(flatten_titles(titles))
         bad = [r for r in rows if not isinstance(r, list) or len(r) != width]
         assert not bad, f"{api_name} 列寬與 titles 欄數（{width}）不符，例: {bad[0]!r:.200}"
+
+    def test_latest_mode_needs_empty_year_and_season(self):
+        """tool 不帶年季時送 dataType=1 + 空 year/season，MOPS 回最新一季."""
+        resp = _mops("t164sb04", {"companyId": FIXED_STOCK, "dataType": "1", "year": "", "season": "",
+                                  "subsidiaryCompanyId": ""})
+        assert str(resp["code"]) == "200", f"最新一季查詢方式已變更: {resp.get('message')}"
+        assert resp["result"].get("reportList"), "最新一季 result.reportList 為空"
 
     def test_unpublished_quarter_returns_code_406(self):
         """mops_post 把 406 當成「查無資料」（回 None），其他非 200 碼才視為錯誤."""
@@ -85,6 +93,17 @@ class TestMonthlyRevenueAPI:
         data = resp["result"].get("data")
         assert isinstance(data, list) and data, "result.data 不是非空 list"
         assert all(isinstance(r, list) and len(r) >= 2 for r in data), f"result.data 不再是 [項目, 值] 配對: {data!r:.300}"
+        assert str(data[0][0]).strip() == CURRENT_MONTH_LABEL, (
+            f"首列不再是「{CURRENT_MONTH_LABEL}」，月增率計算會失效: {data[0]}"
+        )
+
+    def test_latest_mode_returns_yymm(self):
+        """tool 不帶月份時送 dataType=1 + 空 year/month，並以 result.yymm 推算前一個月."""
+        resp = _mops("t05st10_ifrs", {"companyId": FIXED_STOCK, "dataType": "1", "year": "", "month": "",
+                                      "subsidiaryCompanyId": ""})
+        assert str(resp["code"]) == "200", f"最新月份查詢方式已變更: {resp.get('message')}"
+        yymm = str(resp["result"].get("yymm", ""))
+        assert len(yymm) == 5 and yymm.isdigit(), f"result.yymm 格式已變更（預期民國 YYYMM）: {yymm!r}"
 
 
 class TestDividendHistoryAPI:

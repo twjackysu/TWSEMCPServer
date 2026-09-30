@@ -4,12 +4,14 @@ MOPS 的欄位結構由 tests/e2e/test_mops_api.py 驗證；這裡只測我們�
 回應碼判讀、表頭攤平、HTML 表格解析、月份/年度參數處理、依欄名查找欄位。
 """
 
+from datetime import date
+
 import pytest
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
-from tools.mops import dividend_history, financial_statements_history, investor_conference, monthly_revenue_history
-from tools.mops.monthly_revenue_history import parse_month_range
+from tools.mops import dividend, financial_statements, investor_conference, monthly_revenue
+from tools.mops.monthly_revenue import parse_month_range
 from utils.mops import MopsQueryError, flatten_titles, leaf_titles, mops_post, parse_html_table, to_roc_year
 
 pytestmark = pytest.mark.offline
@@ -81,7 +83,7 @@ def test_statement_rows_render_against_their_own_headers():
         "titles": NESTED_TITLES,
         "reportList": [["營業費用", "", ""], ["　　推銷費用", "4,273,247", "0.46"]],
     }
-    text = financial_statements_history.format_statement(result, "2330", "綜合損益表")
+    text = financial_statements.format_statement(result, "2330", "綜合損益表")
     assert "欄位: 114年第2季 金額 | 114年第2季 %" in text
     assert "〔營業費用〕" in text  # 全空列是段落標題
     assert "推銷費用: 4,273,247 | 0.46" in text
@@ -94,16 +96,31 @@ def test_statement_tool_sends_roc_year_and_rejects_bad_season():
         seen.update(body)
         return _ok({"titles": NESTED_TITLES, "reportList": [["營業收入合計", "1", "100.00"]]})
 
-    tools = register_module_tools(financial_statements_history, OfflineClient({"/mops/api/t164sb05": route}))
-    assert "營業收入合計" in tools["get_company_cash_flow_history"]("2330", "2025", 4)
+    tools = register_module_tools(financial_statements, OfflineClient({"/mops/api/t164sb05": route}))
+    fn = tools["get_company_cash_flow_statement"]
+    assert "營業收入合計" in fn("2330", "2025", 4)
     assert (seen["year"], seen["season"], seen["dataType"]) == ("114", "4", "2")
-    assert "season 必須是 1～4" in tools["get_company_cash_flow_history"]("2330", "2025", 5)
+    assert "請同時指定 year 與 season" in fn("2330", "2025", 5)
+    assert "請同時指定 year 與 season" in fn("2330", "2025")
+
+
+def test_statement_tool_defaults_to_latest_quarter():
+    """不帶年季 → dataType=1 並帶空的 year/season（少了這兩欄 MOPS 會回參數異常）."""
+    seen = {}
+
+    def route(_params, body):
+        seen.update(body)
+        return _ok({"titles": NESTED_TITLES, "reportList": [["營業收入合計", "1", "100.00"]]})
+
+    tools = register_module_tools(financial_statements, OfflineClient({"/mops/api/t164sb04": route}))
+    assert "營業收入合計" in tools["get_company_income_statement"]("2330")
+    assert seen == {"companyId": "2330", "dataType": "1", "year": "", "season": "", "subsidiaryCompanyId": ""}
 
 
 def test_statement_tool_reports_unpublished_quarter():
     client = OfflineClient({"/mops/api/t164sb04": {"code": 406, "message": "查無相符資料", "result": None}})
-    tools = register_module_tools(financial_statements_history, client)
-    assert "查無 2330 在 116 年第 1 季" in tools["get_company_income_statement_history"]("2330", "2027", 1)
+    tools = register_module_tools(financial_statements, client)
+    assert "查無 2330 在116 年第 1 季" in tools["get_company_income_statement"]("2330", "2027", 1)
 
 
 # ---------- monthly revenue ----------
@@ -125,17 +142,37 @@ def test_month_range_rejections(start, end, message):
     assert months is None and message in error
 
 
-def test_revenue_tool_marks_unpublished_months():
-    def route(_params, body):
-        if body["month"] == "9":
-            return {"code": 406, "message": "查無相符資料", "result": None}
-        return _ok({"companyAbbreviation": "台積電", "data": [["本月", "100"], ["增減百分比", "5.0"]]})
+REVENUE_BY_MONTH = {"7": "80", "8": "100"}
 
-    tools = register_module_tools(monthly_revenue_history, OfflineClient({"/mops/api/t05st10_ifrs": route}))
-    text = tools["get_company_monthly_revenue_history"]("2330", "202608", "202609")
-    assert "2026-08 | 本月:100 | 增減百分比:5.0" in text
+
+def _revenue_route(seen=None):
+    def route(_params, body):
+        if seen is not None:
+            seen.append(dict(body))
+        month = body["month"] or "8"  # dataType=1（最新）時 month 為空，回 8 月
+        if month not in REVENUE_BY_MONTH:
+            return {"code": 406, "message": "查無相符資料", "result": None}
+        return _ok({"companyAbbreviation": "台積電", "yymm": f"1150{month}",
+                    "data": [["本月", REVENUE_BY_MONTH[month]], ["增減百分比", "5.0"]]})
+    return route
+
+
+def test_revenue_range_adds_mom_and_marks_unpublished_months():
+    tools = register_module_tools(monthly_revenue, OfflineClient({"/mops/api/t05st10_ifrs": _revenue_route()}))
+    text = tools["get_company_monthly_revenue"]("2330", "202608", "202609")
+    assert "2026-08 | 本月:100 | 月增率:25.00 | 增減百分比:5.0" in text  # 多抓的 7 月只用來算月增率
+    assert "2026-07" not in text
     assert "2026-09: 尚未公告或查無資料" in text
     assert text.startswith("【台積電(2330)")
+
+
+def test_revenue_defaults_to_latest_month_with_prior_month():
+    seen = []
+    tools = register_module_tools(monthly_revenue, OfflineClient({"/mops/api/t05st10_ifrs": _revenue_route(seen)}))
+    text = tools["get_company_monthly_revenue"]("2330")
+    assert seen[0] == {"companyId": "2330", "dataType": "1", "year": "", "month": "", "subsidiaryCompanyId": ""}
+    assert (seen[1]["year"], seen[1]["month"]) == ("115", "7")
+    assert "2026-07 | 本月:80" in text and "2026-08 | 本月:100 | 月增率:25.00" in text
 
 
 # ---------- dividend history ----------
@@ -145,16 +182,16 @@ def _dividend_section(titles, row):
 
 
 def test_dividend_columns_are_found_by_name_not_position():
-    titles = list(reversed(dividend_history.KEY_COLUMNS))
+    titles = list(reversed(dividend.KEY_COLUMNS))
     row = [f"v:{t}" for t in titles]
-    lines = dividend_history.format_dividend_rows(_dividend_section(titles, row), "普通股")
-    for col in dividend_history.KEY_COLUMNS:
+    lines = dividend.format_dividend_rows(_dividend_section(titles, row), "普通股")
+    for col in dividend.KEY_COLUMNS:
         assert f"{col}:v:{col}" in lines[1]
 
 
 def test_dividend_missing_column_shows_na_and_html_is_stripped():
     titles = ["決議（擬議）進度"]
-    lines = dividend_history.format_dividend_rows(_dividend_section(titles, ["<b>董事會決議</b>"]), "普通股")
+    lines = dividend.format_dividend_rows(_dividend_section(titles, ["<b>董事會決議</b>"]), "普通股")
     assert "決議（擬議）進度:董事會決議" in lines[1]
     assert "股東會日期:N/A" in lines[1]
 
@@ -164,16 +201,19 @@ def test_dividend_tool_validates_arguments_and_maps_year_type():
 
     def route(_params, body):
         seen.update(body)
-        titles = dividend_history.KEY_COLUMNS
+        titles = dividend.KEY_COLUMNS
         return _ok({"companyAbbreviation": "台積電",
                     "commonStock": _dividend_section(titles, ["x"] * len(titles)),
                     "specialStock": {"titles": [], "data": []}})
 
-    tools = register_module_tools(dividend_history, OfflineClient({"/mops/api/t05st09_2": route}))
-    fn = tools["get_company_dividend_history"]
+    tools = register_module_tools(dividend, OfflineClient({"/mops/api/t05st09_2": route}))
+    fn = tools["get_company_dividend"]
     assert "依董事會決議年度" in fn("2330", "2023", "2025", year_type="board")
     assert (seen["firstYear"], seen["lastYear"], seen["queryType"]) == ("112", "114", "1")
     assert "year_type 只能是" in fn("2330", "2023", year_type="x")
+    fn("2330")
+    this_year = date.today().year - 1911
+    assert (seen["firstYear"], seen["lastYear"]) == (str(this_year - 1), str(this_year))
     assert "不可晚於" in fn("2330", "2025", "2023")
     assert "最多 10 年" in fn("2330", "2010", "2025")
 

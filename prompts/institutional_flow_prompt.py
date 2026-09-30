@@ -22,7 +22,7 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 - `get_foreign_investment_by_industry()`：各產業外資持股比例
 
 **上櫃三大法人：**
-- `get_otc_institutional(stock_no="", limit=50, offset=0)`：上櫃三大法人買賣超，stock_no 留空查全部
+- `get_otc_institutional(date="", stock_no="", name="", limit=50, offset=0)`：上櫃三大法人買賣超，date 留空＝最新交易日，stock_no 留空查全部
 - `get_otc_institutional_summary()`：上櫃三大法人買賣超總表
 
 **期貨法人連動（輔助判斷現貨期貨是否同向）：**

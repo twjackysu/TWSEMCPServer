@@ -1,9 +1,9 @@
-"""TPEx (上櫃) history tools from www.tpex.org.tw's website JSON endpoints.
+"""TPEx (上櫃) tools from www.tpex.org.tw's website JSON endpoints.
 
-The tpex.org.tw/openapi endpoints behind get_otc_daily / get_otc_institutional /
-get_otc_margin_balance only return the latest trading day. The website's own endpoints
-(``/www/zh-tw/...?response=json``) accept any past date, giving OTC stocks the same
-history coverage TWSE stocks get from tools/history/.
+The tpex.org.tw/openapi equivalents only return the latest trading day and fewer columns.
+The website's own endpoints (``/www/zh-tw/...?response=json``) return the latest day when
+``date`` is omitted and accept any past date otherwise, giving OTC stocks the same history
+coverage TWSE stocks get from tools/history/.
 """
 
 from datetime import datetime
@@ -15,6 +15,19 @@ TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
 TRADING_STOCK_URL = f"{TPEX_WWW}/afterTrading/tradingStock"
 INSTI_DAILY_URL = f"{TPEX_WWW}/insti/dailyTrade"
 MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
+
+
+def date_params(date: str) -> Optional[dict]:
+    """``{"date": "YYYY/MM/DD"}`` for a YYYYMMDD date, ``{}`` for "" (latest day), None if invalid."""
+    if not date.strip():
+        return {}
+    tpex_date = to_tpex_date(date)
+    return {"date": tpex_date} if tpex_date else None
+
+
+def resp_date(resp, fallback: str) -> str:
+    """The trading date TPEx actually answered for (YYYYMMDD), for the output header."""
+    return str(resp.get("date") or fallback or "最新交易日") if isinstance(resp, dict) else fallback
 
 
 def to_tpex_date(date: str) -> Optional[str]:
@@ -41,7 +54,7 @@ def filter_rows(rows: list, stock_no: str, name: str) -> list:
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
-    """Register TPEx history tools."""
+    """Register TPEx website tools."""
     _client = client or TWSEAPIClient.get_instance()
 
     @mcp.tool
@@ -81,14 +94,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_institutional_history(date: str, stock_no: str = "", name: str = "",
-                                      limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
-        """查詢上櫃股票「指定日期」的三大法人買賣超明細（可回溯任意過去交易日）。
-        與 get_otc_institutional（OpenAPI，僅最新一日）不同。上市股票請改用
-        get_twse_institutional_investors_by_stock。
+    def get_otc_institutional(date: str = "", stock_no: str = "", name: str = "",
+                              limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+        """查詢上櫃股票三大法人買賣超明細：預設最新交易日，也可回溯任意過去交易日。
+        上市股票請改用 get_twse_institutional_investors_by_stock；上櫃市場彙總請用
+        get_otc_institutional_summary。
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（需為交易日）
+            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -98,16 +111,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             每支股票的外資（不含外資自營商）、外資自營商、投信、自營商（自行買賣／避險）
             買賣超股數與三大法人合計
         """
-        tpex_date = to_tpex_date(date)
-        if not tpex_date:
+        params = date_params(date)
+        if params is None:
             return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\""
         resp = _client.fetch_json(
-            INSTI_DAILY_URL,
-            params={"type": "Daily", "sect": "EW", "date": tpex_date, "response": "json"},
+            INSTI_DAILY_URL, params={"type": "Daily", "sect": "EW", **params, "response": "json"}
         )
         rows = first_table(resp).get("data") or []
         if not rows:
-            return f"查無 {date} 的上櫃三大法人資料，請確認該日期為交易日（非假日或週末）"
+            return f"查無 {date or '最新交易日'} 的上櫃三大法人資料，請確認該日期為交易日（非假日或週末）"
+        day = resp_date(resp, date)
         rows = filter_rows(rows, stock_no, name)
 
         def fmt(r):
@@ -119,17 +132,17 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"投信:{r[13]} | 自營商:{r[22]}（自行 {r[16]}，避險 {r[19]}）| 三大法人合計:{r[23]}\n"
             )
 
-        return format_list_response(rows, f" {date} 上櫃三大法人買賣超（單位：股）", fmt, limit, offset)
+        return format_list_response(rows, f" {day} 上櫃三大法人買賣超（單位：股）", fmt, limit, offset)
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_margin_balance_history(date: str, stock_no: str = "", name: str = "",
-                                       limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
-        """查詢上櫃股票「指定日期」的融資融券餘額（可回溯任意過去交易日）。
-        與 get_otc_margin_balance（OpenAPI，僅最新一日）不同。上市股票請改用 get_margin_balance。
+    def get_otc_margin_balance(date: str = "", stock_no: str = "", name: str = "",
+                               limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+        """查詢上櫃股票融資融券餘額：預設最新交易日，也可回溯任意過去交易日。
+        上市股票請改用 get_margin_balance。
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（需為交易日）
+            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -139,14 +152,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             每支股票的融資（前日餘額/買進/賣出/現償/餘額/使用率/限額）、
             融券（前日餘額/賣出/買進/券償/餘額/使用率）、資券相抵；另附全市場合計
         """
-        tpex_date = to_tpex_date(date)
-        if not tpex_date:
+        params = date_params(date)
+        if params is None:
             return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\""
-        resp = _client.fetch_json(MARGIN_BALANCE_URL, params={"date": tpex_date, "response": "json"})
+        resp = _client.fetch_json(MARGIN_BALANCE_URL, params={**params, "response": "json"})
         table = first_table(resp)
         rows = table.get("data") or []
         if not rows:
-            return f"查無 {date} 的上櫃融資融券資料，請確認該日期為交易日（非假日或週末）"
+            return f"查無 {date or '最新交易日'} 的上櫃融資融券資料，請確認該日期為交易日（非假日或週末）"
+        day = resp_date(resp, date)
         rows = filter_rows(rows, stock_no, name)
 
         def fmt(r):
@@ -159,7 +173,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 + "\n"
             )
 
-        body = format_list_response(rows, f" {date} 上櫃融資融券餘額（單位：張）", fmt, limit, offset)
+        body = format_list_response(rows, f" {day} 上櫃融資融券餘額（單位：張）", fmt, limit, offset)
         # summary 列（合計張數、融資金額）不在 data 裡，只在未篩選個股時附上
         summary = table.get("summary") or []
         if summary and not stock_no and not name:

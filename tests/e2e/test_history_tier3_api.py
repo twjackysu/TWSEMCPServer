@@ -28,7 +28,7 @@ class TestExrightResultsHistoryAPI:
 
 
 class TestDayTradingHistoryAPI:
-    """get_day_trading_history 使用 tables[0]（全市場彙總）row[0]~row[5] 與
+    """get_daily_day_trading_targets 使用 tables[0]（全市場彙總）row[0]~row[5] 與
     tables[1]（個股）row[0]~row[5]。"""
 
     def test_two_tables_with_expected_fields(self):
@@ -49,7 +49,7 @@ class TestDayTradingHistoryAPI:
 
 
 class TestIndicesByDateAPI:
-    """get_twse_indices_by_date 走訪有 title 的 tables，使用 row[0]~row[4]，
+    """get_market_index_info 走訪有 title 的 tables，使用 row[0]~row[4]，
     row[2] 是含 +/- 的 HTML。"""
 
     def test_index_tables_shape(self):
@@ -65,3 +65,12 @@ class TestIndicesByDateAPI:
         assert "發行量加權股價指數" in names and "半導體類指數" in names, "類股指數不再包含於 type=IND"
         signs = {strip_tags(r[2]) for t in tables for r in t["data"]}
         assert signs <= {"+", "-", "", " "} and signs & {"+", "-"}, f"漲跌欄格式已變更: {signs}"
+
+
+def test_omitting_date_returns_latest_day():
+    """get_daily_day_trading_targets / get_market_index_info 不帶 date 時依賴上游回最新交易日."""
+    for url, params in [(TWTB4U_URL, {"selectType": "All"}), (MI_INDEX_URL, {"type": "IND"})]:
+        resp = fetch_or_skip(url, params={**params, "response": "json"})
+        assert resp.get("stat") == "OK" and len(str(resp.get("date", ""))) == 8, (
+            f"{url} 不帶 date 時不再回傳最新交易日: {resp!r:.200}"
+        )

@@ -17,18 +17,19 @@ def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "stan
 - `get_company_profile(code)`：公司基本資料與產業分類
 
 **成長性：**
-- `get_company_monthly_revenue(code)`：月營收彙總表
+- `get_company_monthly_revenue(code, start_month, end_month)`：月營收（預設最新月，可查最多 12 個月趨勢）
 - `get_company_eps_statistics(code)`：各產業 EPS 統計資訊
 
 **獲利能力：**
-- `get_company_income_statement(code)`：損益表
+- `get_company_income_statement(code, year, season)`：損益表（預設最新一季，可指定歷史季度比較）
 - `get_company_profitability_analysis(code)`：財務比率分析（毛利率、營益率、ROE 等）
 
 **財務結構：**
-- `get_company_balance_sheet(code)`：資產負債表
+- `get_company_balance_sheet(code, year, season)`：資產負債表
+- `get_company_cash_flow_statement(code, year, season)`：現金流量表（營業現金流、資本支出）
 
 **配息政策：**
-- `get_company_dividend(code)`：股利分派情形
+- `get_company_dividend(code, start_year, end_year)`：股利分派（預設近兩年，可回溯多年）
 
 **公司治理：**
 - `get_company_governance_info(code)`：公司治理評鑑相關資訊
