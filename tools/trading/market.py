@@ -106,26 +106,10 @@ SIMPLE_LIST_TOOLS = [
         lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('PeriodicCallAuctionTrading', 'N/A')}\n",
     ),
     (
-        "/exchangeReport/BWIBBU_d", "get_valuation_ratios_by_date",
-        "查詢上市個股日本益比、殖利率及股價淨值比（依日期查詢）。", "上市個股日本益比殖利率及股價淨值比資料",
-        "上市個股日本益比殖利率及股價淨值比", "Name",
-        lambda i: (
-            f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')})\n"
-            f"  本益比: {i.get('PEratio', 'N/A')} | 殖利率: {i.get('DividendYield', 'N/A')}% (股利年度: {i.get('DividendYear', 'N/A')})\n"
-            f"  股價淨值比: {i.get('PBratio', 'N/A')} | 財報季度: {i.get('FiscalYearQuarter', 'N/A')}\n\n"
-        ),
-    ),
-    (
         "/exchangeReport/TWT84U", "get_stock_price_changes",
         "查詢上市個股股價升降幅度。", "上市個股股價升降幅度資料",
         "上市個股股價升降幅度", "Name",
         lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 漲停 {i.get('TodayLimitUp', 'N/A')}, 跌停 {i.get('TodayLimitDown', 'N/A')}\n",
-    ),
-    (
-        "/exchangeReport/FMTQIK", "get_daily_market_trading_info",
-        "查詢集中市場每日市場成交資訊。", "集中市場每日市場成交資訊",
-        "集中市場每日市場成交資訊", None,
-        lambda i: f"- {i.get('Date', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 成交金額 {i.get('TradeValue', 'N/A')}, 成交筆數 {i.get('Transaction', 'N/A')}, 加權指數 {i.get('TAIEX', 'N/A')}, 漲跌 {i.get('Change', 'N/A')}\n",
     ),
 ]
 

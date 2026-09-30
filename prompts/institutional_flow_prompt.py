@@ -18,7 +18,7 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 - `get_twse_institutional_investors_by_stock(stock_no, date)`：指定個股在指定日期的三大法人買賣超明細（外資、投信、自營商各別及合計）
 
 **外資持股結構：**
-- `get_top_foreign_holdings()`：外資持股前 20 大公司
+- `get_foreign_holdings(sort_by="ratio", limit=20)`：外資持股比率前 20 大公司
 - `get_foreign_investment_by_industry()`：各產業外資持股比例
 
 **上櫃三大法人：**
@@ -34,10 +34,10 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 呼叫 `get_twse_institutional_investors_summary(date)`，依實際回傳資料找出買超/賣超前幾大個股，並觀察外資、投信、自營商是否同向。
 
 **2. 個股籌碼（target="stock"，需提供 stock_symbol）：**
-呼叫 `get_twse_institutional_investors_by_stock(stock_symbol, date)`，依實際回傳資料分析該股近期法人買賣超趨勢；可搭配 `get_top_foreign_holdings()` 確認是否列入外資集中持股。
+呼叫 `get_twse_institutional_investors_by_stock(stock_symbol, date)`，依實際回傳資料分析該股近期法人買賣超趨勢；可搭配 `get_foreign_holdings(sort_by="ratio", limit=20)` 確認是否列入外資集中持股。
 
 **3. 外資產業配置（target="foreign_focus"）：**
-呼叫 `get_top_foreign_holdings()` 與 `get_foreign_investment_by_industry()`，依實際回傳資料分析外資的產業偏好與集中度變化。
+呼叫 `get_foreign_holdings(sort_by="ratio", limit=20)` 與 `get_foreign_investment_by_industry()`，依實際回傳資料分析外資的產業偏好與集中度變化。
 
 **4. 上櫃市場（target="otc"）：**
 呼叫 `get_otc_institutional_summary()` 與 `get_otc_institutional(stock_no)`，依實際回傳資料分析上櫃三大法人動向。

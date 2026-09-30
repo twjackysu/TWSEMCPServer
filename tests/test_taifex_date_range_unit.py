@@ -6,7 +6,7 @@
 
 import pytest
 
-from tools.taifex.futures_daily_history import parse_date_range
+from utils.taifex import parse_date_range
 
 pytestmark = pytest.mark.offline
 

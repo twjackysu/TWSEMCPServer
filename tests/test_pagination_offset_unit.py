@@ -15,7 +15,6 @@ import tools.history.block_trades_detail as block_trades_detail
 import tools.history.foreign_holdings_history as foreign_holdings_history
 import tools.history.institutional as institutional
 import tools.history.short_sale_lending as short_sale_lending
-import tools.market.statistics as statistics
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
 import tools.otc.odd_lot as otc_odd_lot
@@ -50,13 +49,13 @@ DAILY_CLOSE_ROW = ["2330", "台積電"] + ["1"] * 14                      # 16 �
 SHORT_SALE_BALANCE_ROW = ["2330", "台積電"] + ["0"] * 13                # 融券 6 + 借券 6 + 備註
 SHORT_SALE_TRADES_ROW = ["2330   台積電", "0", "0", "0", "0"]
 BLOCK_TRADE_ROW = ["2330", "台積電", "鉅額中盤", "1000", "10", "10000"]  # 6 欄，tuple 解包
-FOREIGN_HOLDINGS_ROW = ["2330", "台積電", "TW0002330008", "100", "10", "90", "10.00", "90.00"]
+FOREIGN_HOLDINGS_ROW = ["2330", "台積電", "TW0002330008", "100", "10", "90", "10.00", "90.00", "100.00", "100.00", "", "115/04/10"]
 T86_ROW = ["2330", "台積電"] + ["0"] * 16 + ["1,000"]                   # row[18] 非 0 才算有法人進出
 
 CASES = [
     (
         all_stocks_daily_close,
-        "get_all_stocks_daily_close",
+        "get_stock_daily_trading",
         {"date": TRADING_DATE},
         {"stat": "OK", "tables": [{"title": f"{TRADING_DATE} 每日收盤行情", "data": [DAILY_CLOSE_ROW]}]},
     ),
@@ -80,7 +79,7 @@ CASES = [
     ),
     (
         foreign_holdings_history,
-        "get_foreign_holdings_history",
+        "get_foreign_holdings",
         {"date": TRADING_DATE},
         _legacy([FOREIGN_HOLDINGS_ROW]),
     ),
@@ -89,12 +88,6 @@ CASES = [
         "get_twse_institutional_investors_summary",
         {"date": TRADING_DATE},
         _legacy([T86_ROW]),
-    ),
-    (
-        statistics,
-        "get_margin_trading_info",
-        {},
-        [{"Item": "融資", "TodayBalance": "100"}],
     ),
     (
         basic_info,

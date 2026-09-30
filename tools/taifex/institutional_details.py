@@ -1,157 +1,164 @@
-"""TAIFEX institutional traders details by contract and by call/put."""
+"""TAIFEX 三大法人 by contract (futures / options) and options by call-put, latest day or any period.
 
+Source: www.taifex.com.tw download pages futContractsDateDown / optContractsDateDown /
+callsAndPutsDateDown. These replace the openapi ...DetailsOfFuturesContracts /
+...DetailsOfOptionsContracts / ...DetailsOfCallsAndPuts tools and the three former
+*_history tools. On 2026-09-29 every openapi row matched these endpoints value for value,
+and the futures page additionally carried 臺灣中型100期貨, which openapi omitted.
+"""
+
+from collections import OrderedDict
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
-from .futures_position import TAIFEX_HEADERS
+from utils import TWSEAPIClient, handle_api_errors, cap_rows
+from utils.taifex import (
+    TAIFEX_DOWNLOAD_BASE,
+    TAIFEX_HEADERS,
+    decode_and_parse_csv,
+    download_form,
+    fetch_period,
+    is_contract_code,
+)
 
-_FUT_DETAILS_URL = "https://openapi.taifex.com.tw/v1/MarketDataOfMajorInstitutionalTradersDetailsOfFuturesContractsBytheDate"
-_OPT_DETAILS_URL = "https://openapi.taifex.com.tw/v1/MarketDataOfMajorInstitutionalTradersDetailsOfOptionsContractsBytheDate"
-_CALLS_PUTS_URL = "https://openapi.taifex.com.tw/v1/MarketDataOfMajorInstitutionalTradersDetailsOfCallsAndPutsBytheDate"
+FUT_CONTRACTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/futContractsDateDown"
+OPT_CONTRACTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/optContractsDateDown"
+CALLS_AND_PUTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/callsAndPutsDateDown"
+# No server-enforced span cap observed (3-month pulls work); retention runs out ~3 years back.
+MAX_SPAN_DAYS = 92
+# Unfiltered futures are ~69 rows per day, so a 92-day span is ~6,000 rows.
+MAX_OUTPUT_ROWS = 300
 
 
-def _format_trader_block(item: dict, show_call_put: bool = False) -> str:
-    investor = item.get("Item", "?")
-    cp = f"[{item.get('CallPut', '?')}] " if show_call_put else ""
-    tv_long = item.get("TradingVolume(Long)", "-")
-    tv_short = item.get("TradingVolume(Short)", "-")
-    tv_net = item.get("TradingVolume(Net)", "-")
-    val_long = item.get("TradingValue(Long)(Thousands)", "-")
-    val_short = item.get("TradingValue(Short)(Thousands)", "-")
-    val_net = item.get("TradingValue(Net)(Thousands)", "-")
-    oi_long = item.get("OpenInterest(Long)", "-")
-    oi_short = item.get("OpenInterest(Short)", "-")
-    oi_net = item.get("OpenInterest(Net)", "-")
-    cv_long = item.get("ContractValueofOpenInterest(Long)(Thousands)", "-")
-    cv_short = item.get("ContractValueofOpenInterest(Short)(Thousands)", "-")
-    cv_net = item.get("ContractValueofOpenInterest(Net)(Thousands)", "-")
-    return (
-        f"  {cp}{investor}\n"
-        f"    交易量: 多 {tv_long} / 空 {tv_short} / 淨 {tv_net}\n"
-        f"    交易金額(千): 多 {val_long} / 空 {val_short} / 淨 {val_net}\n"
-        f"    未平倉口數: 多 {oi_long} / 空 {oi_short} / 淨 {oi_net}\n"
-        f"    未平倉契約價值(千): 多 {cv_long} / 空 {cv_short} / 淨 {cv_net}"
-    )
+def format_trader_rows(rows: list, value_unit: str, offset: int = 0, side_labels=("多", "空")) -> list:
+    """Render download-page rows grouped by date and contract.
+
+    Futures/options-by-contract rows are 日期,商品名稱,身份別, then 12 numbers; calls/puts rows
+    have 買賣權別 before 身份別, which ``offset=1`` accounts for.
+    """
+    long_, short_ = side_labels
+    groups: "OrderedDict[tuple, list]" = OrderedDict()
+    for r in rows:
+        key = (r[0], r[1]) + ((r[2],) if offset else ())
+        groups.setdefault(key, []).append(r)
+    lines = []
+    for key, items in groups.items():
+        lines.append(f"▶ {' '.join(key)}")
+        for r in items:
+            n = r[3 + offset:]
+            # n: 多方交易口數,多方交易契約金額,空方交易口數,空方交易契約金額,淨口數,淨金額,
+            #    多方未平倉口數,多方未平倉契約金額,空方未平倉口數,空方未平倉契約金額,淨未平倉口數,淨未平倉金額
+            lines.append(
+                f"  {r[2 + offset]}\n"
+                f"    交易量: {long_} {n[0]} / {short_} {n[2]} / 淨 {n[4]}\n"
+                f"    交易金額({value_unit}): {long_} {n[1]} / {short_} {n[3]} / 淨 {n[5]}\n"
+                f"    未平倉口數: {long_} {n[6]} / {short_} {n[8]} / 淨 {n[10]}\n"
+                f"    未平倉契約價值({value_unit}): {long_} {n[7]} / {short_} {n[9]} / 淨 {n[11]}"
+            )
+    return lines
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     _client = client or TWSEAPIClient.get_instance()
 
-    @mcp.tool
-    @handle_api_errors()
-    def get_institutional_traders_by_futures(contract_code: str = "") -> str:
-        """查詢三大法人依各期貨契約分類的交易資料，可觀察各期貨商品的法人買賣情況。
-        留空 contract_code 可列出所有可用契約名稱。
+    def _query(url: str, contract: str, start_date: str, end_date: str):
+        """Fetch rows for a contract code (server-side filter), a Chinese contract name
+        (client-side filter over all contracts) or every contract."""
+        contract = contract.strip()
+        code = contract.upper() if contract and is_contract_code(contract) else ""
 
-        Args:
-            contract_code: 期貨契約名稱（中文），例如「臺股期貨」。留空則顯示全部。
+        def fetch(start_dt, end_dt):
+            body = _client.fetch_bytes(
+                url,
+                method="POST",
+                headers=TAIFEX_HEADERS,
+                data=download_form(start_dt, end_dt, commodityId=code),
+            )
+            return decode_and_parse_csv(body)
 
-        Returns:
-            三大法人（自營商、投信、外資）在各期貨契約的交易量、金額（千元）及未平倉資訊
-        """
-        data = _client.fetch_json(_FUT_DETAILS_URL, headers=TAIFEX_HEADERS)
+        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
+        if error or parsed is None:
+            return None, label, error
+        rows = parsed[1]
+        if contract and not code:
+            matched = [r for r in rows if contract in r[1]]
+            if not matched:
+                names = "、".join(sorted({r[1] for r in rows}))
+                return None, label, f"查無契約「{contract}」。{label} 可用契約：{names}"
+            rows = matched
+        return rows, label, None
 
-        if not isinstance(data, list) or not data:
-            return "查無三大法人期貨契約交易資料"
-
-        date = data[0].get("Date", "?")
-
-        if contract_code:
-            filtered = [x for x in data if contract_code in x.get("ContractCode", "")]
-            if not filtered:
-                contracts = sorted(set(x.get("ContractCode", "") for x in data))
-                return f"查無契約「{contract_code}」。可用契約：\n" + "\n".join(contracts)
-            data = filtered
-
-        contracts_map: dict[str, list] = {}
-        for item in data:
-            code = item.get("ContractCode", "?")
-            contracts_map.setdefault(code, []).append(item)
-
-        lines = [f"【三大法人期貨契約交易明細】{date}\n"]
-        for code, items in contracts_map.items():
-            lines.append(f"▶ {code}")
-            for item in items:
-                lines.append(_format_trader_block(item))
+    def _render(title: str, rows, label: str, value_unit: str, offset: int = 0, side_labels=("多", "空")) -> str:
+        total = len(rows)
+        shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date 或指定 contract")
+        lines = [f"【{title}】{label}（共 {total} 筆{cap_note}）\n"]
+        lines += format_trader_rows(shown, value_unit, offset, side_labels)
         return "\n".join(lines)
 
     @mcp.tool
     @handle_api_errors()
-    def get_institutional_traders_by_options(contract_code: str = "") -> str:
-        """查詢三大法人依各選擇權契約分類的交易資料，可觀察各選擇權商品的法人買賣情況。
-        留空 contract_code 可列出所有可用契約名稱。
+    def get_institutional_traders_by_futures(contract: str = "", start_date: str = "", end_date: str = "") -> str:
+        """查詢三大法人各期貨契約的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
 
         Args:
-            contract_code: 選擇權契約名稱（中文），例如「臺指選擇權」。留空則顯示全部。
+            contract: 契約代碼（例如 TXF 臺股期貨、MXF 小型臺指、EXF 電子期貨）或中文名稱
+                （例如「臺股期貨」）；留空＝全部契約。注意此處代碼與 get_daily_futures_market_report 的 TX/MTX 不同
+            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
 
         Returns:
-            三大法人在各選擇權契約的交易量、金額（千元）及未平倉資訊
+            自營商、投信、外資及陸資在各期貨契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
         """
-        data = _client.fetch_json(_OPT_DETAILS_URL, headers=TAIFEX_HEADERS)
-
-        if not isinstance(data, list) or not data:
-            return "查無三大法人選擇權契約交易資料"
-
-        date = data[0].get("Date", "?")
-
-        if contract_code:
-            filtered = [x for x in data if contract_code in x.get("ContractCode", "")]
-            if not filtered:
-                contracts = sorted(set(x.get("ContractCode", "") for x in data))
-                return f"查無契約「{contract_code}」。可用契約：\n" + "\n".join(contracts)
-            data = filtered
-
-        contracts_map: dict[str, list] = {}
-        for item in data:
-            code = item.get("ContractCode", "?")
-            contracts_map.setdefault(code, []).append(item)
-
-        lines = [f"【三大法人選擇權契約交易明細】{date}\n"]
-        for code, items in contracts_map.items():
-            lines.append(f"▶ {code}")
-            for item in items:
-                lines.append(_format_trader_block(item))
-        return "\n".join(lines)
+        rows, label, error = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if error:
+            return error
+        if rows is None:
+            return f"查無 {contract or '全部契約'} 在 {label} 的三大法人期貨資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
+        return _render("三大法人期貨契約交易明細", rows, label, "千元")
 
     @mcp.tool
     @handle_api_errors()
-    def get_institutional_traders_calls_puts(
-        contract_code: str = "",
-        call_put: str = "",
-    ) -> str:
-        """查詢三大法人選擇權買賣權分計交易資料，分別顯示 CALL 與 PUT 的法人持倉情況。
-        此為觀察法人對後市看法的重要指標，外資偏多時 CALL 淨多單會大幅增加。
+    def get_institutional_traders_by_options(contract: str = "", start_date: str = "", end_date: str = "") -> str:
+        """查詢三大法人各選擇權契約（買權+賣權合計）的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
+        買權、賣權分開請用 get_institutional_traders_calls_puts。
 
         Args:
-            contract_code: 選擇權契約名稱（中文），例如「臺指選擇權」。留空則顯示全部。
-            call_put: 篩選 CALL 或 PUT，留空則顯示全部。
+            contract: 契約代碼（例如 TXO 臺指選擇權）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
+            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
 
         Returns:
-            三大法人在各選擇權 CALL/PUT 的交易量、金額（千元）及未平倉資訊
+            自營商、投信、外資及陸資在各選擇權契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
         """
-        data = _client.fetch_json(_CALLS_PUTS_URL, headers=TAIFEX_HEADERS)
+        rows, label, error = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if error:
+            return error
+        if rows is None:
+            return f"查無 {contract or '全部契約'} 在 {label} 的三大法人選擇權資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
+        return _render("三大法人選擇權契約交易明細", rows, label, "千元")
 
-        if not isinstance(data, list) or not data:
-            return "查無三大法人選擇權買賣權分計資料"
+    @mcp.tool
+    @handle_api_errors()
+    def get_institutional_traders_calls_puts(contract: str = "", call_put: str = "",
+                                             start_date: str = "", end_date: str = "") -> str:
+        """查詢三大法人選擇權買賣權分計（CALL 與 PUT 分開）：預設最新交易日，也可回溯任意區間（最長 92 天）。
+        觀察法人對後市看法的重要指標，外資偏多時 CALL 淨買方未平倉通常增加。
 
-        date = data[0].get("Date", "?")
+        Args:
+            contract: 契約代碼（例如 TXO）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
+            call_put: 篩選 CALL 或 PUT，留空則顯示全部
+            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
 
-        if contract_code:
-            data = [x for x in data if contract_code in x.get("ContractCode", "")]
-        if call_put.upper() in ("CALL", "PUT"):
-            data = [x for x in data if x.get("CallPut", "").upper() == call_put.upper()]
-
-        if not data:
-            return f"查無符合條件的資料（contract_code={contract_code}, call_put={call_put}）"
-
-        contracts_map: dict[str, list] = {}
-        for item in data:
-            code = item.get("ContractCode", "?")
-            contracts_map.setdefault(code, []).append(item)
-
-        lines = [f"【三大法人選擇權買賣權分計】{date}\n"]
-        for code, items in contracts_map.items():
-            lines.append(f"▶ {code}")
-            for item in items:
-                lines.append(_format_trader_block(item, show_call_put=True))
-        return "\n".join(lines)
+        Returns:
+            三大法人在各選擇權 CALL/PUT 的買方、賣方交易口數與金額（千元）、未平倉口數與契約價值（千元）
+        """
+        rows, label, error = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if error:
+            return error
+        if rows is None:
+            return f"查無 {contract or '全部契約'} 在 {label} 的三大法人買賣權分計資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
+        if call_put.strip().upper() in ("CALL", "PUT"):
+            rows = [r for r in rows if r[2].strip().upper() == call_put.strip().upper()]
+            if not rows:
+                return f"查無 {contract or '全部契約'} 在 {label} 的 {call_put.upper()} 資料"
+        return _render("三大法人選擇權買賣權分計", rows, label, "千元", offset=1, side_labels=("買方", "賣方"))

@@ -24,9 +24,9 @@ def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", da
   - `category="major", format="summary"`：快速掌握大盤概況
   - `category="sector", format="simple"`：找出熱門類股
   - `category="thematic", count=10`：熱門主題（AI、5G、ESG 等）
-- `get_stock_daily_trading(code)`：個股日成交量與價格變動
+- `get_stock_daily_trading(stock_no=code)`：個股日成交量與價格變動
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資趨勢
-- `get_top_foreign_holdings()`：外資流向指標
+- `get_foreign_holdings(sort_by="ratio", limit=20)`：外資流向指標
 
 **公司行動：**
 - `get_dividend_rights_schedule(code)`：即將除權息日期

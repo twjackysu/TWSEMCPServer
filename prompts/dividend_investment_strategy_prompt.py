@@ -16,7 +16,7 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 **除權息排程與規劃：**
 - `get_dividend_rights_schedule(code)`：除權息日期與股利金額
 - `get_company_dividend(code, start_year, end_year)`：歷史股利發放資料（可回溯多年評估穩定性）
-- `get_stock_valuation_ratios(code)`：本益比、殖利率、股價淨值比
+- `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
 
 **基本面分析：**
 - `get_company_profile(code)`：公司基本資料與產業分類
@@ -26,9 +26,9 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 - `get_company_cash_flow_statement(code)`：營業現金流與自由現金流是否足以支應配息
 
 **市場驗證：**
-- `get_top_foreign_holdings()`：外資偏好的股利股
+- `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好的股利股
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資標的
-- `get_stock_daily_trading(code)`：除權息前後的股價穩定度
+- `get_stock_daily_trading(stock_no=code)`：除權息前後的股價穩定度
 
 ### 投資策略類型：
 
@@ -37,7 +37,7 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 - 呼叫 `get_stock_valuation_ratios()`，依實際回傳資料篩選高殖利率個股
 - 以 `get_company_income_statement()` 與營收趨勢驗證配息永續性
 - 呼叫 `get_dividend_rights_schedule()` 確認即將發放的股利
-- 以 `get_top_foreign_holdings()` 評估外資關注度
+- 以 `get_foreign_holdings(sort_by="ratio", limit=20)` 評估外資關注度
 
 **2. 股利成長策略（strategy_type="growth"）：**
 鎖定股利持續成長的公司：

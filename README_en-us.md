@@ -63,9 +63,9 @@ Cross-checks disposal/warning/day-trading-restriction/margin-restriction lists
 > *"Is this stock flagged for disposal or under a warning before I buy?"*
 
 ### Futures / Institutional Historical Lookback
-openapi.taifex.com.tw only ever returns the latest trading day. This project additionally
-scrapes TAIFEX's own website download pages (`www.taifex.com.tw`) for real historical data —
-daily OHLC history for futures contracts, and 三大法人 futures position history
+openapi.taifex.com.tw only ever returns the latest trading day. This project reads TAIFEX's
+own website download pages (`www.taifex.com.tw`) instead: the latest trading day by default,
+or any past period — futures/options daily market reports, 三大法人 positions, large-trader OI
 > *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?"*
 
 ### Multi-Period Financials, Revenue & Dividends
@@ -133,12 +133,12 @@ uv sync && uv run fastmcp dev server.py
 
 | Source | Description | Tools |
 |--------|-------------|-------|
-| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financial ratios, trading, index history, etc. | 119 |
-| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades, ex-rights/dividend results, day-trading targets & statistics, all index closes incl. sector indices (latest or any past date) | 19 |
+| [TWSE OpenAPI](https://openapi.twse.com.tw) | Taiwan Stock Exchange official API — corporate governance, ESG, financial ratios, announcement lists, warrants, brokers, etc. | 109 |
+| [TWSE Web API](https://www.twse.com.tw) | TWSE web API endpoints (latest trading day by default, any past date on request) — daily OHLC, monthly avg price, valuation, margin balance, listed stocks institutional investors (amounts/shares), whole-market daily close, TAIEX index history, foreign holdings history, per-stock monthly/yearly summaries, block trade detail, short-sale/lending balance & trades, ex-rights/dividend results, day-trading targets & statistics, all index closes incl. sector indices (latest or any past date) | 19 |
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC) | 1 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close, institutional investors summary, P/E ratio, warning/disposal stocks, ex-rights/dividends, odd-lot, index | 8 |
-| [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — institutional series, large traders OI, daily market report, options analytics, margin, statistics | 16 |
-| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own historical data-download pages — futures daily OHLC history, 三大法人 futures position history, Put/Call Ratio history, 三大法人 options calls/puts history, large-trader futures OI history, options daily OHLC history, 三大法人 futures+options total history, futures/options split history, options-by-contract history (openapi.taifex.com.tw only returns the latest trading day, no historical query support) | 9 |
+| [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — options large-trader OI, options analytics (delta / OI change), margin, statistics | 7 |
+| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own data-download pages — futures / options daily market reports, 三大法人 (futures/options split, totals, by contract, calls/puts), futures large-trader OI, Put/Call Ratio (latest trading day by default, any past period on request; openapi.taifex.com.tw only returns the latest day) | 9 |
 | [MOPS](https://mops.twse.com.tw) | Market Observation Post System — income statement / balance sheet / cash-flow statement, monthly revenue, dividends (latest by default, any past period on request; listed, OTC, emerging and public companies), investor conferences | 6 |
 | [TPEx website](https://www.tpex.org.tw) | TPEx website JSON — OTC per-stock daily OHLC, 三大法人 and margin balances (latest trading day by default, or any past date) | 3 |
 | [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week, incl. big-holder / retail ratios) | 1 |

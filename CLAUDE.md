@@ -5,17 +5,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
-- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 119 tools: 公司治理、ESG、財務比率、交易、指數歷史、券商
-- **TWSE Web API** (`twse.com.tw`) — 19 tools: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
+- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 109 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
+- **TWSE Web API** (`twse.com.tw`) — 19 tools（不帶 date 即回最新交易日／本月；取代了同資料的 OpenAPI 僅最新版）: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 8 tools: 上櫃日收盤、三大法人彙總、本益比、注意股、處置股、除權息、零股、櫃買指數
-- **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 16 tools: 三大法人系列、大額交易人部位、每日行情、選擇權分析（Delta/OI增減）、保證金、年月統計
+- **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 7 tools: 選擇權大額交易人部位、選擇權分析（Delta/OI增減）、保證金、年月統計（這些沒有下載頁對應）
 - **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 3 tools: 上櫃個股日K、三大法人明細、融資融券（預設最新交易日，可查任意過去日期）
 - **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`) — 6 tools: 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、法說會
 - **TDCC 集保開放資料** (`opendata.tdcc.com.tw`) — 1 tool: 集保戶股權分散表（最新一週）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
-- **TAIFEX 網站下載** (`www.taifex.com.tw`) — 9 tools: 期貨每日OHLC歷史、三大法人期貨部位歷史、Put/Call Ratio歷史、三大法人選擇權買賣權分計歷史、大額交易人未沖銷部位歷史（無伺服器端契約篩選，本地端過濾）、選擇權每日OHLC歷史、三大法人期貨+選擇權總表歷史、三大法人期貨/選擇權分計歷史、三大法人各選擇權契約歷史（HTML表單下載頁面，非 openapi.taifex.com.tw；後者無任何歷史查詢功能，僅回傳最新一個交易日）
+- **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`) — 9 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具
 
 ## Development Commands
 
@@ -53,7 +53,7 @@ tools/
 ├── broker.py                 # Broker data tools (top-level module)
 ├── other.py                  # Misc tools: funds, bonds, holidays (top-level module)
 ├── company/                  # Company tools: basic_info, financials, esg, listing, news
-├── trading/                  # Trading tools: daily, periodic, valuation, dividend_schedule, etf, market, warrants
+├── trading/                  # Trading tools: dividend_schedule, etf, market, warrants
 ├── market/                   # Market tools: indices, statistics, foreign
 ├── history/                  # TWSE legacy: stock_day, stock_day_avg, margin_balance (exchangeReport); bwibbu_all (rwd/*);
                               #   institutional (T86);
@@ -69,18 +69,13 @@ tools/
 ├── otc/                      # TPEx OTC market: daily_close, institutional_summary, peratio,
                               #   odd_lot, exright, index, trading_halt (注意股/處置股) (openapi, latest day);
                               #   history (www.tpex.org.tw website JSON: stock OHLC, 三大法人, 融資融券; latest or any past date)
-└── taifex/                   # TAIFEX derivatives: futures_position, put_call_ratio, institutional_general,
-                              #   institutional_details, daily_market_report, large_traders_oi,
-                              #   options_analytics, margin, trading_statistics, futures_daily_history,
-                              #   institutional_futures_history, put_call_ratio_history,
-                              #   options_institutional_history, large_traders_futures_history,
-                              #   options_daily_history, institutional_total_history,
-                              #   institutional_fut_opt_split_history,
-                              #   options_institutional_by_contract_history (latter nine scrape
-                              #   www.taifex.com.tw's HTML-form download endpoints for multi-day
-                              #   history; openapi.taifex.com.tw has no historical query support —
-                              #   every openapi endpoint returns only the latest trading day,
-                              #   confirmed by testing all 135 of its endpoints)
+└── taifex/                   # TAIFEX derivatives. Download pages (latest day or any period):
+                              #   daily_market_report, futures_position, institutional_details,
+                              #   institutional_general, large_traders_oi (futures), put_call_ratio.
+                              #   openapi.taifex.com.tw (latest day only, no download-page counterpart):
+                              #   large_traders_oi (options), options_analytics, margin, trading_statistics.
+                              #   Shared helpers (headers, CSV decode, date range, latest-day lookup) live
+                              #   in utils/taifex.py
 prompts/                      # 9 prompt templates registered in server.py
 ```
 
@@ -143,7 +138,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 
 ## Adding New Tools
 
-1. Check for overlap first. Don't ship two tools for the same data: if a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
+1. Check for overlap first. Don't ship two tools for the same data. Decide overlap from the upstream data, never from tool names or descriptions: fetch both endpoints for the same day and compare row sets, columns and values. If a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
 2. Add tool function in the appropriate module under `tools/` (or create a new module)
 3. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
 4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
@@ -177,7 +172,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 - **TWSE exchangeReport** (`tools/history/`): Legacy JSON endpoints returning `{"stat": "OK", "data": [...]}`. Dates in ROC format — use `utils/date_helper.py` for conversion. `MI_MARGN` uses `tables` array instead of `data`.
 - **MIS** (`tools/realtime/`): Single-letter field names (`z`=price, `c`=code, `ex`=market type). Use `tse_` prefix for listed stocks, `otc_` for OTC; tool auto-retries with `otc_` if `tse_` returns no data.
 - **TPEx** (`tools/otc/`): Standard REST JSON. Swagger spec at `tpex.org.tw/openapi/swagger.json`. Field names use English (e.g. `SecuritiesCompanyCode`).
-- **TAIFEX** (`tools/taifex/`): Requires browser-like `User-Agent` header (the default `stock-mcp/1.0` gets HTML instead of JSON). Uses `client.fetch_json(url, headers=TAIFEX_HEADERS)` with `TAIFEX_HEADERS` defined in `futures_position.py` and imported by other taifex modules.
+- **TAIFEX** (`tools/taifex/`): Requires browser-like `User-Agent` header (the default `stock-mcp/1.0` gets HTML instead of JSON). `TAIFEX_HEADERS`, `decode_and_parse_csv` (cp950; an HTML page — including `<!DOCTYPE HTML` — means no data), `parse_date_range` and `fetch_period` (empty dates → walk back from today, Taiwan time, to the latest day with data; `is_complete` lets the market reports skip a day that only has the overnight 盤後 session so far) live in `utils/taifex.py`.
   - `openapi.taifex.com.tw` intermittently answers with an endpoint's **CSV** form (Chinese column headers) instead of JSON, even when the request sends `Accept: application/json`. The degradation is per-endpoint and lasts minutes, so `--reruns` does not clear it — measured 2026-08-28, `va01`/`PutCallRatio` served CSV for a stretch and JSON afterwards, while `MarketDataOfMajorInstitutionalTradersDividedByFuturesAndOptionsBytheDate` served CSV on 30/30 consecutive requests as its siblings served JSON. Tests treat this as transient and skip (`_is_taifex_csv_fallback` in `tests/helpers.py`); `test_openapi_still_serves_json_for_some_endpoint` fails if *every* probed endpoint goes CSV, which would mean a real site-wide format change. Tools currently surface these windows as `查詢失敗`.
 - **MOPS** (`tools/mops/`, `utils/mops.py`): No public docs. The SPA's form field names are in per-page JS chunks (`https://mops.twse.com.tw/mops/assets/<pageId>.js`, action `{apiName, type}`). `type:"base"` → `POST /mops/api/<apiName>` JSON, reply `{"code", "message", "result"}` (`code` 406 = 查無資料, 500 = bad parameters); `type:"twse"` → legacy `POST mopsov.twse.com.tw/mops/web/<apiName>` form (plus hidden `encodeURIComponent/step/firstin/off` fields), HTML reply. Tables come as nested `titles` + rows; render via `flatten_titles` / `leaf_titles` rather than hardcoding line items (they differ by industry). Legacy `ajax_t100sb02_1` (法說會) only accepts zero-padded months (`09`, not `9`).
 - **TPEx website** (`tools/otc/history.py`): `www.tpex.org.tw/www/zh-tw/...?response=json` with `date=YYYY/MM/DD`; rows are in `tables[0].data`. `insti/dailyTrade` repeats identical column names for 7 買進/賣出/買賣超 groups — the contract test checks the group order via their sums.

@@ -14,8 +14,8 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 ### 投資篩選可用工具：
 
 **估值與績效：**
-- `get_stock_valuation_ratios(code)`：本益比、殖利率、股價淨值比
-- `get_stock_daily_trading(code)`：價格表現與成交量
+- `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
+- `get_stock_daily_trading(stock_no=code)`：價格表現與成交量
 - `get_stock_monthly_trading(code)`：月度績效趨勢
 - `get_company_monthly_revenue(code)`：營收成長型態
 
@@ -30,9 +30,9 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
   - `category="sector", format="summary"`：找出表現領先的產業
   - `category="esg", count=10`：ESG 投資範圍
   - `category="dividend", format="simple"`：股利導向篩選
-- `get_top_foreign_holdings()`：外資偏好（品質訊號）
+- `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好（品質訊號）
 - `get_etf_regular_investment_ranking()`：散戶熱門投資選擇
-- `get_margin_trading_info()`：法人 vs 散戶關注度
+- `get_margin_balance()`：法人 vs 散戶關注度
 - `get_foreign_investment_by_industry()`：產業配置趨勢
 
 **風險評估：**
@@ -96,7 +96,7 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 ### 篩選流程：
 
 **步驟一：投資範圍界定**
-- 以 `get_top_foreign_holdings()` 與 `get_etf_regular_investment_ranking()` 建立品質投資範圍
+- 以 `get_foreign_holdings(sort_by="ratio", limit=20)` 與 `get_etf_regular_investment_ranking()` 建立品質投資範圍
 - 依市值與流動性條件篩選
 - 考量產業分散需求
 

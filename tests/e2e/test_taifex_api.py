@@ -1,39 +1,15 @@
-"""測試 openapi.taifex.com.tw 期交所 API。只驗證 tool 寫死的欄位。"""
+"""openapi.taifex.com.tw 的全站格式守門測試。
 
-from tests.helpers import fetch_or_skip, records_or_skip
+個別端點的欄位測試在 test_taifex_new_api.py / test_taifex_batch2_api.py；已改用下載頁的工具
+見 test_taifex_history_api.py。
+"""
+
 
 # TAIFEX requires browser-like User-Agent
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "Accept": "application/json",
 }
-
-
-def _fetch(endpoint: str) -> list:
-    return records_or_skip(
-        fetch_or_skip(f"https://openapi.taifex.com.tw/v1/{endpoint}", headers=HEADERS, timeout=15),
-        endpoint,
-    )
-
-
-class TestFuturesInstitutionalAPI:
-    """Tool get_futures_institutional 用 Date, Item 做顯示，
-    用 FuturesTradingVolume(Long/Short/Net), FuturesOI(Long/Short/Net) 做數據。
-    """
-
-    def test_api_returns_data_with_key_fields(self):
-        data = _fetch("MarketDataOfMajorInstitutionalTradersDividedByFuturesAndOptionsBytheDate")
-        assert "Date" in data[0]
-        assert "Item" in data[0]
-
-
-class TestPutCallRatioAPI:
-    """Tool get_put_call_ratio 用 Date, PutVolume, CallVolume, PutCallVolumeRatio% 做顯示。"""
-
-    def test_api_returns_data_with_key_fields(self):
-        data = _fetch("PutCallRatio")
-        assert "Date" in data[0]
-        assert "PutCallVolumeRatio%" in data[0]
 
 
 def test_openapi_still_serves_json_for_some_endpoint():
@@ -47,12 +23,13 @@ def test_openapi_still_serves_json_for_some_endpoint():
     import json as _json
     import requests as _requests
 
+    # 仍由 openapi 提供資料的端點（其餘 TAIFEX 工具已改用 www.taifex.com.tw 下載頁）
     probes = [
-        "PutCallRatio",
         "va01",
-        "DailyMarketReportFut",
-        "OpenInterestOfLargeTradersFutures",
-        "MarketDataOfMajorInstitutionalTradersGeneralBytheDate",
+        "DailyOptionsDelta",
+        "OpenInterestOfLargeTradersOptions",
+        "IndexFuturesAndOptionsMargining",
+        "AnnualTradingVolume",
     ]
     served_json, reached = [], 0
     for endpoint in probes:

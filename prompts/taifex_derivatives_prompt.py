@@ -14,26 +14,26 @@ def taifex_derivatives_prompt(scope: str = "comprehensive") -> PromptMessage:
 ### 可用工具與用途：
 
 **多空氛圍：**
-- `get_put_call_ratio()`：選擇權 Put/Call Ratio，反映市場整體多空情緒
+- `get_put_call_ratio(start_date="", end_date="")`：選擇權 Put/Call Ratio（預設近 30 天，可指定過去區間），反映市場整體多空情緒
 
 **主力籌碼（大額交易人）：**
-- `get_large_traders_futures_oi(contract="TX")`：期貨大額交易人未沖銷部位（contract 預設臺股期貨 TX，可查其他契約）
+- `get_large_traders_futures_oi(contract="TX", start_date="", end_date="")`：期貨大額交易人未沖銷部位（contract 預設臺股期貨 TX；日期留空＝最新交易日，可回溯一個月區間）
 - `get_large_traders_options_oi(contract="TXO", call_put="")`：選擇權大額交易人未沖銷部位，call_put 可篩選「買權」或「賣權」
 
 **三大法人期貨/選擇權部位：**
-- `get_futures_institutional()`：三大法人期貨交易與未平倉
-- `get_institutional_general()`：三大法人期貨+選擇權整體合計（交易量、金額、未平倉、契約價值）
-- `get_institutional_traders_by_futures(contract_code="")`：三大法人各期貨契約明細，contract_code 留空列出全部
-- `get_institutional_traders_by_options(contract_code="")`：三大法人各選擇權契約明細
-- `get_institutional_traders_calls_puts(contract_code="", call_put="")`：三大法人選擇權 CALL/PUT 分計，觀察外資對後市看法的關鍵指標
+- `get_futures_institutional(start_date="", end_date="")`：三大法人期貨與選擇權分計的交易與未平倉（日期留空＝最新交易日，可回溯區間觀察部位變化）
+- `get_institutional_general(start_date="", end_date="")`：三大法人期貨+選擇權整體合計（交易量、金額、未平倉、契約價值）
+- `get_institutional_traders_by_futures(contract="", start_date="", end_date="")`：三大法人各期貨契約明細，contract 可填代碼（TXF）或中文名稱（臺股期貨），留空列出全部
+- `get_institutional_traders_by_options(contract="", start_date="", end_date="")`：三大法人各選擇權契約明細
+- `get_institutional_traders_calls_puts(contract="", call_put="", start_date="", end_date="")`：三大法人選擇權 CALL/PUT 分計，觀察外資對後市看法的關鍵指標
 
 **選擇權結構：**
 - `get_options_delta(contract="TXO", contract_month="", call_put="")`：各履約價 Delta 值，資料量大時建議指定 contract_month（如「202605」）
 - `get_options_oi_change()`：選擇權未平倉增減，可推算潛在支撐壓力區
 
 **每日行情：**
-- `get_daily_futures_market_report(contract="TX")`：期貨每日行情
-- `get_daily_options_market_report(contract="TXO", call_put="", limit=30)`：選擇權每日行情（依成交量排序）
+- `get_daily_futures_market_report(contract="TX", start_date="", end_date="")`：期貨每日行情（日期留空＝最新交易日，可查過去一個月內區間）
+- `get_daily_options_market_report(contract="TXO", start_date="", end_date="", contract_month="", call_put="", limit=30)`：選擇權每日行情（依成交量排序；指定 contract_month 看完整履約價序列）
 
 **保證金：**
 - `get_index_futures_margin(contract="")`：指數期貨保證金

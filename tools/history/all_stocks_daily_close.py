@@ -1,4 +1,11 @@
-"""TWSE all-listed-stocks daily closing quotes (whole-market snapshot, any past date)."""
+"""Daily quotes of every listed stock (whole-market snapshot), latest or any past date.
+
+Replaces the OpenAPI /exchangeReport/STOCK_DAY_ALL tool: on 2026-09-29 it carried exactly
+the same 1382 stocks and values as this endpoint's 每日收盤行情 table, which also has the
+last bid/ask and P/E, and accepts past dates.
+"""
+
+import re
 
 from typing import Optional
 from fastmcp import FastMCP
@@ -12,6 +19,8 @@ MI_INDEX_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
 # safety net in case TWSE reorders the tables.
 STOCK_TABLE_TITLE_PREFIX = "每日收盤行情"
 
+_TAG_RE = re.compile(r"<[^>]+>")
+
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register TWSE all-stocks daily close tools."""
@@ -19,14 +28,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_all_stocks_daily_close(date: str, stock_no: str = "", name: str = "",
-                                    limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
-        """查詢指定日期全部上市股票的每日收盤行情（開高低收、成交量、本益比）。
-        與 get_stock_history（單一股票查一整月）互補：此工具是「單一日期查全市場」，
-        適合抓某天的市場快照或篩選特定條件的股票。
+    def get_stock_daily_trading(date: str = "", stock_no: str = "", name: str = "",
+                                limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+        """查詢上市股票單日成交資訊（開高低收、漲跌、成交量值與筆數、本益比）：預設最新交易日，
+        也可指定過去日期；可查單一個股，或整個市場的快照用於篩選。
+        單一股票一整個月的日K請用 get_stock_history。
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
+            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -35,13 +44,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Returns:
             每支股票的代號、名稱、成交股數、成交金額、開高低收、漲跌、本益比
         """
-        resp = _client.fetch_json(
-            MI_INDEX_URL,
-            params={"response": "json", "date": date, "type": "ALLBUT0999"},
-        )
+        params = {"response": "json", "type": "ALLBUT0999"}
+        if date:
+            params["date"] = date
+        resp = _client.fetch_json(MI_INDEX_URL, params=params)
+        date = resp.get("date") or date if isinstance(resp, dict) else date
 
         if not resp or resp.get("stat") != "OK":
-            return f"查無 {date} 的收盤行情資料，請確認該日期為交易日（非假日或週末）"
+            return f"查無 {date or '最新交易日'} 的收盤行情資料，請確認該日期為交易日（非假日或週末）"
 
         tables = resp.get("tables", [])
         stock_table = next(
@@ -77,10 +87,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         lines = [header]
         for row in page_data:
             # row: 證券代號,證券名稱,成交股數,成交筆數,成交金額,開盤價,最高價,最低價,收盤價,漲跌(+/-),漲跌價差,最後揭示買價,最後揭示買量,最後揭示賣價,最後揭示賣量,本益比
-            code, sname, volume, _tx, value, o, h, l, c, _dir, change, _bp, _bv, _ap, _av, pe = row
+            code, sname, volume, tx, value, o, h, l, c, direction, change, _bp, _bv, _ap, _av, pe = row
+            # 漲跌價差不帶正負號，正負號在 HTML 的「漲跌(+/-)」欄；平盤該欄為空白
+            sign = _TAG_RE.sub("", str(direction)).strip()
+            signed_change = f"{sign}{change}" if sign in ("+", "-") else change
             lines.append(
-                f"{code} {sname} | 開:{o} 高:{h} 低:{l} 收:{c} 漲跌:{change} | "
-                f"量:{volume} 金額:{value} | 本益比:{pe}"
+                f"{code} {sname} | 開:{o} 高:{h} 低:{l} 收:{c} 漲跌:{signed_change} | "
+                f"量:{volume} 金額:{value} 筆數:{tx} | 本益比:{pe}"
             )
 
         remaining = total - offset - limit

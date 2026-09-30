@@ -5,49 +5,13 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
-    MSG_OFFSET_OUT_OF_RANGE,
-    DEFAULT_DISPLAY_LIMIT,
     handle_api_errors,
-    format_multiple_records,
 )
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
 
     _client = client or TWSEAPIClient.get_instance()
-
-    @mcp.tool
-    @handle_api_errors()
-    def get_margin_trading_info(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
-        """查詢集中市場融資融券餘額。
-
-        Args:
-            limit: 回傳筆數上限（預設 50）
-            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-        """
-        data = _client.fetch_data("/exchangeReport/MI_MARGN")
-        if not data:
-            return MSG_NO_DATA.format(data_type="集中市場融資融券餘額")
-
-        total = len(data)
-        page_data = data[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type="集中市場融資融券餘額資料", count=total
-            )
-        end = min(offset + limit, total)
-
-        result = f"共有 {total} 筆集中市場融資融券餘額資料"
-        if total > limit or offset > 0:
-            result += f"（顯示第 {offset + 1}–{end} 筆）"
-        result += "：\n\n"
-        result += format_multiple_records(page_data)
-
-        remaining = total - offset - limit
-        if remaining > 0:
-            result += f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
-
-        return result
 
     @mcp.tool
     @handle_api_errors()
