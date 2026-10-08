@@ -185,3 +185,39 @@ def test_large_traders_labels_download_page_month_codes():
     text = fn(start_date="20260929")
     assert "所有月份總計 | 所有交易人" in text and "所有月份合計 | 特定法人" in text and "MTX" not in text
     assert "MTX(小型臺指)" in fn(contract="", start_date="20260929")
+
+
+LT_OPT_HEADER = ["日期", "商品(契約)", "商品名稱(契約名稱)", "買賣權", "到期月份(週別)", "交易人類別",
+                 "前五大交易人買方", "前五大交易人賣方", "前十大交易人買方", "前十大交易人賣方", "全市場未沖銷部位數"]
+
+
+def _lt_opt_route(forms):
+    def route(_params, form):
+        forms.append(dict(form))
+        if form["queryStartDate"] != "2026/09/29":
+            return HTML_NO_DATA
+        rows = [["2026/09/29", "TXO    ", "臺指", "買權", "999999  ", "0", "1", "2", "3", "4", "5"],
+                ["2026/09/29", "TXO    ", "臺指", "賣權", "202610  ", "1", "1", "2", "3", "4", "5"],
+                ["2026/09/29", "CA     ", "南亞", "買權", "666666  ", "0", "1", "2", "3", "4", "5"]]
+        return _csv(LT_OPT_HEADER, rows)
+    return route
+
+
+def test_large_traders_options_latest_day_filters_locally_and_labels_months():
+    forms = []
+    tools = register_module_tools(large_traders_oi, OfflineClient({"/cht/3/largeTraderOptDown": _lt_opt_route(forms)}))
+    fn = tools["get_large_traders_options_oi"]
+    text = fn()
+    assert "20260929（最新交易日）" in text and "共 2 筆" in text and "CA" not in text
+    assert "買權 | 所有月份總計 | 所有交易人" in text and "賣權 | 到期月 202610 | 特定法人" in text
+    assert forms[0]["queryStartDate"] == forms[0]["queryEndDate"] == "2026/09/30"  # 從今天往回找
+    assert "共 1 筆" in fn(call_put="賣權") and "查無契約 ZZZ" in fn(contract="ZZZ")
+
+
+def test_large_traders_options_lists_contracts_and_validates_range():
+    fn = register_module_tools(large_traders_oi, OfflineClient({"/cht/3/largeTraderOptDown": _lt_opt_route([])}))[
+        "get_large_traders_options_oi"]
+    assert "CA(南亞)、TXO(臺指)" in fn(contract="", start_date="20260929")
+    assert "不可超過 31 天" in fn(start_date="20260101", end_date="20260301")
+    # 舊的位置參數順序 (contract, call_put) 維持不變
+    assert "共 1 筆" in fn("TXO", "買權", "20260929")

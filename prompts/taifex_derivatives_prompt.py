@@ -18,7 +18,7 @@ def taifex_derivatives_prompt(scope: str = "comprehensive") -> PromptMessage:
 
 **主力籌碼（大額交易人）：**
 - `get_large_traders_futures_oi(contract="TX", start_date="", end_date="")`：期貨大額交易人未沖銷部位（contract 預設臺股期貨 TX；日期留空＝最新交易日，可回溯一個月區間）
-- `get_large_traders_options_oi(contract="TXO", call_put="")`：選擇權大額交易人未沖銷部位，call_put 可篩選「買權」或「賣權」
+- `get_large_traders_options_oi(contract="TXO", call_put="", start_date="", end_date="")`：選擇權大額交易人未沖銷部位，call_put 可篩選「買權」或「賣權」；日期留空＝最新交易日，可回溯一個月區間
 
 **三大法人期貨/選擇權部位：**
 - `get_futures_institutional(start_date="", end_date="")`：三大法人期貨與選擇權分計的交易與未平倉（日期留空＝最新交易日，可回溯區間觀察部位變化）
