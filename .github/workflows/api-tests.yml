@@ -100,7 +100,7 @@ jobs:
           1. 檢查證交所 API 文件是否有更新
           2. 查看測試日誌中的錯誤訊息
           3. 更新相關的工具函數和測試
-          4. 更新 API_TODO.md 文件
+          4. 更新 CLAUDE.md 的「External API Notes」（若是來源行為改變）
           `;
           
           // 檢查是否已有相同的 issue

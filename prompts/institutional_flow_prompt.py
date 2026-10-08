@@ -20,6 +20,9 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 **外資持股結構：**
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資持股比率前 20 大公司
 - `get_foreign_investment_by_industry()`：各產業外資持股比例
+- `get_otc_foreign_holdings(limit=20)`：上櫃外資持股比率前 20 大公司
+- `get_shareholding_distribution(code)`：集保戶股權分散（千張大戶 vs 散戶）
+- `get_company_insider_holding_changes(code)`：董監、經理人本月持股增減
 
 **上櫃三大法人：**
 - `get_otc_institutional(date="", stock_no="", name="", limit=50, offset=0)`：上櫃三大法人買賣超，date 留空＝最新交易日，stock_no 留空查全部
@@ -54,6 +57,7 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 **步驟三：交叉驗證**
 - 個股分析可搭配 `get_futures_institutional()`，觀察現貨與期貨法人部位是否同向
 - 外資分析可搭配 `get_foreign_investment_by_industry()` 確認是否符合產業配置趨勢
+- 個股分析可搭配 `get_shareholding_distribution(code)` 與 `get_company_insider_holding_changes(code)`，確認大戶與內部人動向是否與法人同向
 
 ### 輸出格式骨架（僅示意結構，不含真實數字）：
 

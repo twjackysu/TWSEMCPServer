@@ -14,19 +14,27 @@ def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", da
 ### 熱點偵測可用工具：
 
 **新聞與公告：**
-- `get_company_major_news(code)`：公司重大公告（可依公司篩選或取得全部）
+- `get_company_major_news(code="", date="", market="")`：重大訊息。指定 code 看該公司全年公告（含說明全文）；不指定則列出某日全市場公告主旨，market 可篩 sii 上市、otc 上櫃、rotc 興櫃、pub 公發
+- `get_investor_conferences(year, month)`：該月法人說明會行事曆
+- `get_treasury_stock_buybacks()`：近期庫藏股買回案件（公司護盤訊號）
 - `get_twse_news(start_date, end_date)`：證交所最新官方新聞（可依日期篩選）
 - `get_twse_events(top=10)`：證交所活動與事件
 
 **市場活動指標：**
 - `get_real_time_trading_stats()`：即時市場統計
 - `get_market_index_info(date, category, keyword)`：市場指數分析（可彈性篩選）
-  - `category="major", format="summary"`：快速掌握大盤概況
-  - `category="sector", format="simple"`：找出熱門類股
-  - `category="thematic", count=10`：熱門主題（AI、5G、ESG 等）
+  - `get_market_index_info(category="major")`：快速掌握大盤概況
+  - `get_market_index_info(category="sector")`：找出熱門類股
+  - `get_market_index_info(category="thematic")`：熱門主題（AI、5G、ESG 等）
+- `get_daily_day_trading_targets()`：全市場當沖占比與當沖量大的個股
 - `get_stock_daily_trading(stock_no=code)`：個股日成交量與價格變動
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資趨勢
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資流向指標
+
+**總體環境：**
+- `get_business_cycle_indicators()`：景氣對策信號（燈號與分數）
+- `get_taiwan_pmi()`：製造業 PMI 與非製造業 NMI
+- `get_exchange_rates(currency="NTD")`：新台幣匯率走勢
 
 **公司行動：**
 - `get_dividend_rights_schedule(code)`：即將除權息日期

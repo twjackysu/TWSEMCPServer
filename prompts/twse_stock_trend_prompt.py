@@ -12,8 +12,11 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
 
 - **短期分析（1–30 天）：**
   - **技術面**：`get_stock_daily_trading(stock_no=code)` — 個股日成交價量與統計資料
+  - **技術面**：`get_technical_indicators(code)` — MA5/10/20/60、KD、RSI、MACD、布林通道（預設使用還原權息價）
   - **技術面**：`get_real_time_trading_stats()` — 即時市場統計（每5秒更新）
   - **籌碼面**：`get_margin_balance()` — 融資融券資料
+  - **籌碼面**：`get_shareholding_distribution(code)` — 集保戶股權分散（千張大戶 vs 散戶持股比例）
+  - **籌碼面**：`get_company_insider_holding_changes(code)` — 董監、經理人本月持股增減與設質
   - **籌碼面**：`get_foreign_investment_by_industry()` — 各產業外資持股流向
   - **市場情緒**：`get_warrant_daily_trading(code)` — 權證交易活躍度（槓桿指標）
   - **消息面**：`get_company_major_news(code)` — 近期重大公告
@@ -21,9 +24,12 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
 - **中期分析（1–12 個月）：**
   - **技術面**：`get_stock_monthly_average(code)` — 月均價與月成交量
   - **技術面**：`get_stock_monthly_trading(code)` — 月成交統計
+  - **技術面**：`get_adjusted_price_history(code, start_month, end_month)` — 還原權息日K，跨除權息比較真實漲跌
+  - **估值面**：`get_industry_peers(code)` — 與同產業上市櫃公司比較本益比、淨值比、殖利率
   - **基本面**：`get_company_monthly_revenue(code)` — 月營收趨勢
   - **基本面**：`get_company_income_statement(code)` — 季度損益表
   - **基本面**：`get_company_balance_sheet(code)` — 資產負債表
+  - **基本面**：`get_company_cash_flow_statement(code)` — 現金流量表（營業現金流、資本支出）
   - **籌碼面**：`get_foreign_holdings(sort_by="ratio", limit=20)` — 外資集中持股個股
   - **事件面**：`get_dividend_rights_schedule(code)` — 即將除權息日期
 
@@ -33,6 +39,8 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
   - **基本面**：`get_company_dividend(code)` — 股利發放歷史與政策
   - **ESG**：`get_company_governance_info(code)` — 公司治理品質
   - **市場環境**：`get_taiex_index_history()` — 大盤歷史表現
+  - **總體環境**：`get_business_cycle_indicators()` — 景氣對策信號（燈號與分數）
+  - **總體環境**：`get_exchange_rates(currency="NTD")` — 新台幣匯率走勢
 
 ### 範例輸入：
 請分析 {stock_symbol} 的{period}走勢。
@@ -41,14 +49,15 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
 
 **短期分析：**
 1. 呼叫 `get_stock_daily_trading(stock_no={stock_symbol})` 與 `get_real_time_trading_stats()`，依實際回傳的股價、成交量數據描述短期價量狀況。
-2. 呼叫 `get_margin_balance()` 與 `get_foreign_investment_by_industry()`，依實際回傳數據描述融資融券與外資流向。
-3. 呼叫 `get_warrant_daily_trading({stock_symbol})`，依實際數據描述權證活躍度所反映的市場情緒。
-4. 呼叫 `get_company_major_news({stock_symbol})`，摘要近期實際公告內容。
+2. 呼叫 `get_technical_indicators({stock_symbol})`，依實際回傳的均線、KD、RSI、MACD、布林通道數值描述短期技術位置。
+3. 呼叫 `get_margin_balance()` 與 `get_foreign_investment_by_industry()`，依實際回傳數據描述融資融券與外資流向；再以 `get_shareholding_distribution({stock_symbol})` 與 `get_company_insider_holding_changes({stock_symbol})` 觀察大戶與內部人動向。
+4. 呼叫 `get_warrant_daily_trading({stock_symbol})`，依實際數據描述權證活躍度所反映的市場情緒。
+5. 呼叫 `get_company_major_news({stock_symbol})`，摘要近期實際公告內容。
 
 **中期分析：**
-1. 呼叫 `get_stock_monthly_average({stock_symbol})` 與 `get_stock_monthly_trading({stock_symbol})`，依實際數據描述中期價量趨勢。
-2. 呼叫 `get_company_monthly_revenue({stock_symbol})`、`get_company_income_statement({stock_symbol})`、`get_company_balance_sheet({stock_symbol})`，依實際數據評估營收成長與財務體質。
-3. 呼叫 `get_foreign_holdings(sort_by="ratio", limit=20)`，確認該股是否列於外資集中持股名單。
+1. 呼叫 `get_stock_monthly_average({stock_symbol})`、`get_stock_monthly_trading({stock_symbol})` 與 `get_adjusted_price_history({stock_symbol})`，依實際數據描述中期價量趨勢（跨除權息時以還原價為準）。
+2. 呼叫 `get_company_monthly_revenue({stock_symbol})`、`get_company_income_statement({stock_symbol})`、`get_company_balance_sheet({stock_symbol})`、`get_company_cash_flow_statement({stock_symbol})`，依實際數據評估營收成長、財務體質與獲利的現金含金量。
+3. 呼叫 `get_foreign_holdings(sort_by="ratio", limit=20)`，確認該股是否列於外資集中持股名單；以 `get_industry_peers({stock_symbol})` 對照同業估值。
 4. 呼叫 `get_dividend_rights_schedule({stock_symbol})`，說明即將到來的除權息事件。
 
 **長期分析：**
@@ -56,7 +65,7 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
 2. 呼叫 `get_stock_valuation_ratios(stock_no={stock_symbol})`，依實際本益比、殖利率、股價淨值比評估估值水位。
 3. 呼叫 `get_company_dividend({stock_symbol})`，依實際股利歷史評估配息政策穩定性。
 4. 呼叫 `get_company_governance_info({stock_symbol})`，評估公司治理品質。
-5. 呼叫 `get_taiex_index_history()`，說明大盤環境對個股的影響。
+5. 呼叫 `get_taiex_index_history()`，說明大盤環境對個股的影響；再以 `get_business_cycle_indicators()` 與 `get_exchange_rates(currency="NTD")` 補充景氣與匯率背景。
 
 ### 結論：
 綜合以上「工具實際回傳的資料」給出 {stock_symbol} 在{period}角度的判斷（偏多／偏空／中性皆可，也可能因資料不足而無法下明確結論），並列出支持該判斷的具體數據來源。禁止在未實際呼叫工具、未取得真實數據的情況下直接給出結論。

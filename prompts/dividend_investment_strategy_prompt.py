@@ -16,7 +16,9 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 **除權息排程與規劃：**
 - `get_dividend_rights_schedule(code)`：除權息日期與股利金額
 - `get_company_dividend(code, start_year, end_year)`：歷史股利發放資料（可回溯多年評估穩定性）
+- `get_exright_results_history(start_date, end_date, stock_no=code)`：上市已除權息的實際參考價（上櫃用 `get_otc_exright(start_date, end_date, stock_no=code)`），可檢視填權息結果
 - `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
+- `get_stock_screener(yield_min=5, pe_max=20, sort_by="yield")`：全市場（上市+上櫃）依殖利率、本益比篩選高殖利率候選
 
 **基本面分析：**
 - `get_company_profile(code)`：公司基本資料與產業分類
@@ -29,12 +31,13 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好的股利股
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資標的
 - `get_stock_daily_trading(stock_no=code)`：除權息前後的股價穩定度
+- `get_adjusted_price_history(code, start_month, end_month)`：還原權息日K，計算含息的真實報酬
 
 ### 投資策略類型：
 
 **1. 高殖利率策略（strategy_type="high_yield"）：**
 鎖定殖利率具吸引力的個股：
-- 呼叫 `get_stock_valuation_ratios()`，依實際回傳資料篩選高殖利率個股
+- 呼叫 `get_stock_screener(yield_min=..., pe_max=...)`，依實際回傳資料取得高殖利率候選名單，再以 `get_stock_valuation_ratios(stock_no=code)` 逐檔確認
 - 以 `get_company_income_statement()` 與營收趨勢驗證配息永續性
 - 呼叫 `get_dividend_rights_schedule()` 確認即將發放的股利
 - 以 `get_foreign_holdings(sort_by="ratio", limit=20)` 評估外資關注度
@@ -52,6 +55,7 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 - 分析 `get_stock_daily_trading()` 的歷史價格型態
 - 以 `get_stock_valuation_ratios()` 評估合理價位
 - 納入即將公告的股利資訊
+- 以 `get_exright_results_history` 或 `get_otc_exright` 與 `get_adjusted_price_history` 檢視過去除權息後是否填權息
 
 **4. 產業股利策略（strategy_type="sector"）：**
 鎖定配息穩定的產業：
