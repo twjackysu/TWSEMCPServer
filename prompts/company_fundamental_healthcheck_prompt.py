@@ -33,10 +33,18 @@ def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "stan
 
 **公司治理：**
 - `get_company_governance_info(code)`：公司治理評鑑相關資訊
+- `get_company_board_shareholdings(code)`：董監持股與設質比例
+
+**同業與籌碼：**
+- `get_industry_peers(code)`：與同產業上市櫃公司比較本益比、淨值比、殖利率
+- `get_shareholding_distribution(code)`：集保戶股權分散（籌碼集中度）
 
 **進階（depth="deep" 時使用）：**
 - `get_company_quarterly_earnings_forecast_achievement(code)`：季度財測達成率
 - `get_company_quarterly_audit_variance(code)`：季度查核前後差異數
+- `get_company_lending_and_guarantees(code)`：背書保證與資金貸與曝險
+- `get_company_insider_holding_changes(code)`：內部人本月持股增減
+- `get_investor_conferences(year, code=code)`：該公司法說會日期與簡報
 
 ### 體檢深度：
 
@@ -44,10 +52,10 @@ def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "stan
 呼叫 `get_company_profile`、`get_company_monthly_revenue`、`get_company_eps_statistics`、`get_company_dividend`，依實際回傳資料快速掌握公司概況、營收動能與配息。
 
 **標準體檢（depth="standard"）：**
-在快速體檢基礎上，加呼叫 `get_company_income_statement`、`get_company_balance_sheet`、`get_company_profitability_analysis`、`get_company_governance_info`，完整涵蓋五大面向。
+在快速體檢基礎上，加呼叫 `get_company_income_statement`、`get_company_balance_sheet`、`get_company_cash_flow_statement`、`get_company_profitability_analysis`、`get_company_governance_info`、`get_company_board_shareholdings`、`get_industry_peers`，完整涵蓋五大面向並與同業對照。
 
 **深度體檢（depth="deep"）：**
-在標準體檢基礎上，加呼叫 `get_company_quarterly_earnings_forecast_achievement` 與 `get_company_quarterly_audit_variance`，檢視財測達成狀況與查核調整幅度是否有異常。
+在標準體檢基礎上，加呼叫 `get_company_quarterly_earnings_forecast_achievement`、`get_company_quarterly_audit_variance`、`get_company_lending_and_guarantees`、`get_company_insider_holding_changes`、`get_shareholding_distribution`，檢視財測達成狀況、查核調整幅度、對外資金曝險與內部人、大戶動向是否有異常。
 
 ### 分析流程：
 
@@ -60,6 +68,7 @@ def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "stan
 
 **步驟三：交叉比對**
 - 營收趨勢（`get_company_monthly_revenue`）是否與損益表獲利趨勢一致
+- 營業現金流（`get_company_cash_flow_statement`）是否與稅後淨利同步；淨利成長但營業現金流轉弱應提出警示
 - 配息（`get_company_dividend`）是否與獲利能力、財務結構匹配（例如高配息但財務結構轉弱應提出警示）
 
 ### 輸出格式骨架（僅示意結構，不含真實數字）：

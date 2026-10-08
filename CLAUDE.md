@@ -42,9 +42,13 @@ server.py                     # Thin entrypoint: FastMCP init, prompt registrati
 utils/
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── mops.py                   # MOPS helpers: mops_post (JSON API), mops_legacy_post (HTML), titles/HTML-table parsing
+├── taifex.py                 # TAIFEX helpers: headers, cp950 CSV decode, date ranges, latest-trading-day lookup (fetch_period)
+├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
+├── indicators.py             # Pure functions: SMA/EMA/RSI/KD/MACD/Bollinger
+├── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date) and industry membership
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
-├── date_helper.py            # roc_to_ad() / ad_to_roc() for TWSE legacy ROC dates
+├── date_helper.py            # roc_to_ad() / ad_to_roc() for TWSE legacy ROC dates; taipei_today()
 ├── decorators.py             # @handle_api_errors
 ├── formatters.py             # Data → string formatting functions
 ├── tool_factory.py           # create_company_tool() for dynamically named tools
@@ -66,7 +70,7 @@ tools/
                               #   major_news, insiders, treasury_guarantees
 ├── tdcc/                     # TDCC open data: shareholding_distribution
 ├── macro/                    # ndc_indicators (景氣燈號, PMI), exchange_rates (央行)
-├── analytics/                # price_tools: adjusted prices + technical indicators (utils/price_series.py, utils/indicators.py)
+├── analytics/                # price_tools (adjusted prices, technical indicators), screening (stock screener, industry peers)
 ├── realtime/                 # MIS real-time quotes: stock_info
 ├── otc/                      # TPEx OTC market: daily_close, institutional_summary,
                               #   odd_lot, index, trading_halt (注意股/處置股) (openapi, latest day); exright (website bulletin/exDailyQ);

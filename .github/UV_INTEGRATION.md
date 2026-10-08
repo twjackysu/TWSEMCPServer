@@ -125,7 +125,7 @@ uv sync
 - ✅ `tests/test_api_client.py` - API Client 測試
 
 ### 文件
-- ✅ `TESTING.md` - 測試指南
+- ✅ `CLAUDE.md` - 測試與開發指南（Testing 章節）
 - ✅ `.github/ACTIONS_GUIDE.md` - GitHub Actions 使用指南
 - ✅ `run_tests.py` - 快速測試腳本
 
@@ -172,7 +172,7 @@ uv sync --extra dev
 - [ ] `pyproject.toml` 包含所有必要依賴
 - [ ] 本地執行 `uv run pytest` 成功
 - [ ] `.github/workflows/api-tests.yml` 所有命令都使用 `uv run`
-- [ ] 文件已更新（TESTING.md、ACTIONS_GUIDE.md）
+- [ ] 文件已更新（CLAUDE.md、ACTIONS_GUIDE.md）
 
 ## 下一步
 

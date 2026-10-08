@@ -27,6 +27,11 @@ def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> 
 - `get_otc_warning_stocks(stock_no="")`：上櫃注意股票
 - `get_otc_disposal_stocks(stock_no="")`：上櫃處置股票
 
+**公司面風險（個股，補充檢查）：**
+- `get_company_board_shareholdings(code)`：董監持股與設質比例（設質過高為風險訊號）
+- `get_company_lending_and_guarantees(code)`：背書保證與資金貸與曝險
+- `get_company_insider_holding_changes(code)`：內部人本月持股增減（是否大量賣出或設質）
+
 ### 掃描範圍：
 
 **上市（market="twse"）：**

@@ -14,6 +14,8 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 ### 投資篩選可用工具：
 
 **估值與績效：**
+- `get_stock_screener(market="all", industry="", pe_max=0, pb_max=0, yield_min=0, sort_by="yield")`：直接依本益比、淨值比、殖利率篩選上市+上櫃全市場候選（條件填 0 為不設限；`same_industry_as=code` 可限定與某股同產業）
+- `get_industry_peers(code)`：單一標的與同業的估值比較、產業中位數與排名
 - `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
 - `get_stock_daily_trading(stock_no=code)`：價格表現與成交量
 - `get_stock_monthly_trading(code)`：月度績效趨勢
@@ -23,22 +25,27 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 - `get_company_profile(code)`：公司基本資料與所屬產業
 - `get_company_income_statement(code)`：獲利能力與成長指標
 - `get_company_balance_sheet(code)`：財務體質穩健度
+- `get_company_cash_flow_statement(code)`：營業現金流與資本支出（獲利的現金含金量）
 - `get_company_dividend(code)`：股利歷史與穩定度
 
 **市場驗證：**
 - `get_market_index_info(date, category, keyword)`：類股表現與市場環境
-  - `category="sector", format="summary"`：找出表現領先的產業
-  - `category="esg", count=10`：ESG 投資範圍
-  - `category="dividend", format="simple"`：股利導向篩選
+  - `get_market_index_info(category="sector")`：找出表現領先的產業
+  - `get_market_index_info(category="esg")`：ESG 投資範圍
+  - `get_market_index_info(category="dividend")`：股利導向篩選
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好（品質訊號）
 - `get_etf_regular_investment_ranking()`：散戶熱門投資選擇
 - `get_margin_balance()`：法人 vs 散戶關注度
 - `get_foreign_investment_by_industry()`：產業配置趨勢
+- `get_shareholding_distribution(code)`：千張大戶與散戶持股比例（籌碼集中度）
+- `get_business_cycle_indicators()`：景氣對策信號（判斷景氣位置與類股輪動背景）
 
 **風險評估：**
 - `get_company_major_news(code)`：近期公司動態
 - `get_dividend_rights_schedule(code)`：即將發生的公司行動
 - `get_warrant_daily_trading(code)`：投機活動水位
+- `get_company_board_shareholdings(code)`：董監持股與設質比例（設質過高為風險訊號）
+- `get_company_lending_and_guarantees(code)`：背書保證與資金貸與曝險
 
 ### 篩選條件類型：
 
@@ -101,7 +108,7 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 - 考量產業分散需求
 
 **步驟二：量化篩選**
-- 套用估值、成長、股利條件
+- 以 `get_stock_screener` 套用估值與股利條件取得候選名單（可用 `industry` 限定產業），再逐檔檢視成長條件
 - 篩選財務體質指標
 - 分析成交型態與量能趨勢
 
@@ -112,6 +119,7 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 
 **步驟四：風險評估**
 - 檢視融資水位以評估投機風險
+- 檢視董監設質比例與背書保證／資金貸與曝險
 - 檢視權證活躍度作為情緒指標
 - 評估產業與市場集中度風險
 

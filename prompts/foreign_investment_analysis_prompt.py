@@ -20,8 +20,11 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 
 **進階分析：**
 - `get_market_index_info(date, category, keyword)`：市場環境與類股表現
-  - `category="sector", format="summary"`：產業表現總覽
-  - `category="major", count=5, format="simple"`：大盤整體情緒
+  - `get_market_index_info(category="sector")`：產業表現總覽
+  - `get_market_index_info(category="major")`：大盤整體情緒
+- `get_otc_foreign_holdings(limit=20)`：上櫃外資持股比率前 20 大公司
+- `get_shareholding_distribution(code)`：集保戶股權分散（千張大戶持股變化的參考）
+- `get_exchange_rates(currency="NTD")`：新台幣匯率走勢（外資匯入匯出的背景）
 - `get_company_dividend(code)`：外資偏好個股的股利資訊
 - `get_stock_valuation_ratios(stock_no=code)`：本益比、殖利率、股價淨值比
 - `get_company_monthly_revenue(code)`：營收表現資料
@@ -41,6 +44,7 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 - 可投資空間 vs 目前持股水位
 - 投資上限與限制
 - 外資偏好個股的公司概況
+- 上櫃市場可搭配 `get_otc_foreign_holdings(limit=20)` 觀察
 
 **3. 個股分析（analysis_type="stock"，需提供 stock_symbol）：**
 綜合呼叫多個工具分析 stock_symbol：

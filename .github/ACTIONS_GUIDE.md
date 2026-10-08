@@ -90,7 +90,7 @@ schedule:
    1. 檢查證交所 API 文件是否有更新
    2. 查看測試日誌中的錯誤訊息
    3. 更新相關的工具函數和測試
-   4. 更新 API_TODO.md 文件
+   4. 更新 CLAUDE.md 的「External API Notes」（若是來源行為改變）
    ```
 
 ## 在 README 中加入 Badge
@@ -166,7 +166,7 @@ Cron 表達式格式：`分 時 日 月 週`
 1. **定期檢查測試結果**：至少每週檢查一次自動測試的結果
 2. **及時處理失敗的 issue**：API 變化時盡快更新程式碼
 3. **保持測試覆蓋率**：新增功能時同時新增測試
-4. **更新文件**：修改 API 時更新 `TESTING.md` 和 `API_TODO.md`
+4. **更新文件**：修改 API 時更新 `CLAUDE.md`（資料來源、External API Notes）與 README
 
 ## 參考資源
 
