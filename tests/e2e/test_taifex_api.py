@@ -27,7 +27,6 @@ def test_openapi_still_serves_json_for_some_endpoint():
     probes = [
         "va01",
         "DailyOptionsDelta",
-        "OpenInterestOfLargeTradersOptions",
         "IndexFuturesAndOptionsMargining",
         "AnnualTradingVolume",
     ]

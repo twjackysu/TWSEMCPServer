@@ -17,30 +17,6 @@ def _fetch(endpoint: str) -> list:
 
 
 @pytest.fixture(scope="class")
-def large_traders_oi_options():
-    return _fetch("OpenInterestOfLargeTradersOptions")
-
-
-class TestLargeTradersOIOptionsAPI:
-    """Tool get_large_traders_options_oi 寫死的欄位：
-    Date, Contract, ContractName, CallPut, SettlementMonth, TypeOfTraders,
-    Top5Buy, Top5Sell, Top10Buy, Top10Sell, OIOfMarket
-    """
-
-    def test_hardcoded_fields_exist(self, large_traders_oi_options):
-        record = large_traders_oi_options[0]
-        for field in [
-            "Date", "Contract", "ContractName", "CallPut",
-            "SettlementMonth", "TypeOfTraders",
-            "Top5Buy", "Top5Sell", "Top10Buy", "Top10Sell", "OIOfMarket",
-        ]:
-            assert field in record, f"缺少欄位: {field}"
-
-    def test_txo_contract_exists(self, large_traders_oi_options):
-        assert any(x.get("Contract") == "TXO" for x in large_traders_oi_options)
-
-
-@pytest.fixture(scope="class")
 def daily_options_delta():
     return _fetch("DailyOptionsDelta")
 

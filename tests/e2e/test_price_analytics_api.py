@@ -25,7 +25,7 @@ def test_stock_day_title_carries_code_and_name():
     assert len(parts) >= 3 and parts[1] == "2330" and parts[2] == "台積電", f"title 格式已變更: {resp.get('title')}"
 
 
-def test_otc_exright_results_columns_and_range():
+def test_otc_exright_results_columns_and_multi_month_range():
     """get_otc_exright 與上櫃還原權息使用 row[0]~row[16]；區間查詢需支援跨年."""
     resp = fetch_or_skip(
         TPEX_EXRIGHT_URL, params={"startDate": "2025/01/01", "endDate": "2025/12/31", "response": "json"}
@@ -35,8 +35,8 @@ def test_otc_exright_results_columns_and_range():
         "除權息日期", "代號", "名稱", "除權息前收盤價", "除權息參考價", "權值", "息值", "權值+息值", "權/息",
         "漲停價", "跌停價", "開始交易基準價", "減除股利參考價", "現金股利", "每仟股無償配股", "現金增資股數", "現金增資認購價",
     ], f"欄位已變更: {table.get('fields')}"
-    rows = table.get("data") or []
-    assert len(rows) > 500, f"整年區間筆數異常（{len(rows)}），區間查詢可能被限制"
+    months = {r[0][:6] for r in table.get("data") or []}  # 民國 YYY/MM/DD → YYY/M
+    assert len(months) > 6, f"跨月區間查詢沒有涵蓋多個月份（{sorted(months)}），區間可能被限制"
 
 
 def test_otc_exright_without_dates_returns_today_onward():

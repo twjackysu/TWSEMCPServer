@@ -133,7 +133,7 @@ class TestLargeTradersFuturesHistoryAPI:
     """Tool get_large_traders_futures_oi 依 index 存取的欄位順序：
     0=日期 1=商品(契約)（篩選契約用） 2=商品名稱 3=到期月份(週別) 4=交易人類別
     5=前五大交易人買方 6=前五大交易人賣方 7=前十大交易人買方 8=前十大交易人賣方 9=全市場未沖銷部位數
-    此端點無伺服器端契約篩選，tool 於本地端以 row[1] 過濾。
+    此端點沒有契約篩選參數，tool 於本地端以 row[1] 過濾。
     """
 
     def test_hardcoded_column_order(self):
@@ -150,14 +150,30 @@ class TestLargeTradersFuturesHistoryAPI:
         ]
         assert header == expected, f"欄位順序異動: {header}"
 
-    def test_no_server_side_contract_filter(self):
-        """確認此端點忽略任何契約篩選參數，回傳全部商品（tool 依賴此行為才會在本地端過濾）。"""
-        rows = _post_csv(
-            "https://www.taifex.com.tw/cht/3/largeTraderFutDown",
-            {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/01", "contractId": "TX"},
-        )
-        codes = set(r[1].strip() for r in rows[1:] if len(r) > 1)
-        assert len(codes) > 1, "端點行為可能已變更為支援伺服器端契約篩選，tool 邏輯需重新檢視"
+
+class TestLargeTradersOptionsAPI:
+    """Tool get_large_traders_options_oi 依 index 存取的欄位順序：
+    0=日期 1=商品(契約) 2=商品名稱(契約名稱) 3=買賣權 4=到期月份(週別) 5=交易人類別
+    6=前五大交易人買方 7=前五大交易人賣方 8=前十大交易人買方 9=前十大交易人賣方 10=全市場未沖銷部位數
+    此端點與期貨版一樣沒有契約篩選，tool 於本地端以 row[1] 過濾。
+    """
+
+    URL = "https://www.taifex.com.tw/cht/3/largeTraderOptDown"
+
+    def test_hardcoded_column_order(self):
+        rows = _post_csv(self.URL, {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/02"})
+        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
+        assert rows[0] == [
+            "日期", "商品(契約)", "商品名稱(契約名稱)", "買賣權", "到期月份(週別)", "交易人類別",
+            "前五大交易人買方", "前五大交易人賣方", "前十大交易人買方", "前十大交易人賣方", "全市場未沖銷部位數",
+        ], f"欄位順序異動: {rows[0]}"
+        assert {r[3] for r in rows[1:] if len(r) > 3} <= {"買權", "賣權"}, "買賣權欄位的值已變更（tool 以此篩選）"
+
+    def test_month_range_and_default_contract(self):
+        """tool 以一個月為上限送出區間查詢，預設契約為 TXO."""
+        rows = _post_csv(self.URL, {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/30"})
+        assert len(rows) > 1 and len({r[0] for r in rows[1:] if r}) > 1, "一個月區間沒有回傳多個交易日"
+        assert "TXO" in {r[1].strip() for r in rows[1:] if len(r) > 1}, "找不到預設契約 TXO"
 
 
 class TestOptionsDailyHistoryAPI:
