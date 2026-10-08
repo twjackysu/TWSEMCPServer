@@ -34,7 +34,8 @@ class OfflineClient(TWSEAPIClient):
         super().__init__(request_interval=0, cache_ttl=0)
         self.routes = routes
 
-    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None, json_body=None):
+    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None, json_body=None,
+                 session=None):
         for suffix, route in self.routes.items():
             if url.endswith(suffix):
                 # 動態路由的第二個參數是 request body：表單（data）或 JSON（json_body）

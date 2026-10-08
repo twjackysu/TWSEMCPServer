@@ -10,9 +10,13 @@ import io
 import zipfile
 
 import pytest
+import requests
 
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip
-from tools.tdcc.shareholding_distribution import TDCC_DISTRIBUTION_URL, LEVELS, parse_distribution_csv
+from tools.tdcc.shareholding_distribution import (
+    TDCC_DISTRIBUTION_URL, TDCC_QUERY_URL, TDCC_PAGE_HEADERS, LEVELS, _TOKEN_RE,
+    parse_distribution_csv, parse_query_page, parse_result_rows,
+)
 from tools.macro.ndc_indicators import NDC_BUSINESS_CYCLE_ZIP_URL, NDC_PMI_CSV_URL, CYCLE_TABLES, read_zip_csv
 from tools.macro.exchange_rates import CBC_FX_URL, CBC_FX_FILE
 
@@ -32,6 +36,49 @@ class TestTdccShareholdingDistribution:
         )
         total = next(r for r in tsmc if r[2].strip() == "17")
         assert float(total[5]) == pytest.approx(100.0), f"第 17 級不再是合計（100%）: {total}"
+
+
+class TestTdccQueryPage:
+    """weeks > 1 走集保查詢頁：GET 取 token／日期清單（含 JSESSIONID），每週 POST 一次，token 逐次更新。"""
+
+    @staticmethod
+    def _post(session, token, first_date, date, code):
+        return fetch_bytes_or_skip(
+            TDCC_QUERY_URL, method="POST", headers=TDCC_PAGE_HEADERS, timeout=60, session=session,
+            data={"SYNCHRONIZER_TOKEN": token, "SYNCHRONIZER_URI": "/portal/zh/smWeb/qryStock",
+                  "method": "submit", "firDate": first_date, "scaDate": date,
+                  "sqlMethod": "StockNo", "stockNo": code, "stockName": ""},
+        ).decode("utf-8", errors="replace")
+
+    def test_page_form_token_and_week_list(self):
+        session = requests.Session()
+        html = fetch_bytes_or_skip(TDCC_QUERY_URL, headers=TDCC_PAGE_HEADERS, timeout=60, session=session).decode("utf-8")
+        token, first_date, dates = parse_query_page(html)  # 缺 token／firDate／日期清單會直接 raise
+        assert len(dates) >= 13 and dates == sorted(dates, reverse=True), f"scaDate 清單結構已變更: {dates[:5]}"
+        assert first_date == dates[0]
+
+    def test_result_rows_and_token_chaining(self):
+        session = requests.Session()
+        html = fetch_bytes_or_skip(TDCC_QUERY_URL, headers=TDCC_PAGE_HEADERS, timeout=60, session=session).decode("utf-8")
+        token, first_date, dates = parse_query_page(html)
+        body = self._post(session, token, first_date, dates[0], "2330")
+        levels = parse_result_rows(body)
+        assert sorted(levels, key=lambda k: (k == "total", int(k) if k != "total" else 0)) == [str(i) for i in range(1, 16)] + ["total"], (
+            f"結果表的級距列已變更: {sorted(levels)}"
+        )
+        assert sum(r[2] for k, r in levels.items() if k != "total") == pytest.approx(100.0, abs=0.1)
+        assert levels["total"][2] == pytest.approx(100.0)
+        # 回應帶新 token，下一週的 POST 用它
+        nxt = _TOKEN_RE.search(body)
+        assert nxt, "回應不再帶下一個 SYNCHRONIZER_TOKEN"
+        assert "total" in parse_result_rows(self._post(session, nxt.group(1), first_date, dates[1], "2330"))
+
+    def test_unknown_code_message(self):
+        session = requests.Session()
+        html = fetch_bytes_or_skip(TDCC_QUERY_URL, headers=TDCC_PAGE_HEADERS, timeout=60, session=session).decode("utf-8")
+        token, first_date, dates = parse_query_page(html)
+        body = self._post(session, token, first_date, dates[0], "9999")
+        assert "查無此資料" in body and "total" not in parse_result_rows(body)
 
 
 class TestNdcBusinessCycle:

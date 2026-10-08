@@ -78,7 +78,7 @@ endorsements/guarantees and fund lending
 > *"Compare TSMC's gross margin and free cash flow over the last four quarters" / "Has Hon Hai's dividend been stable for five years?"*
 
 ### Shareholder Concentration & OTC History
-TDCC shareholding distribution (big-holder vs. retail ratios); OTC per-stock daily OHLC,
+TDCC shareholding distribution (big-holder vs. retail ratios, with a weekly trend over the last 13 weeks); OTC per-stock daily OHLC,
 三大法人 and margin balances for any past date; TWSE day-trading stats, ex-rights results and
 sector index history
 > *"What share of GlobalWafers do 1,000-lot holders own?" / "How did the semiconductor index do last month?"*
@@ -143,7 +143,7 @@ uv sync && uv run fastmcp dev server.py
 | [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own data-download pages — futures / options daily market reports, 三大法人 (futures/options split, totals, by contract, calls/puts), futures large-trader OI, Put/Call Ratio (latest trading day by default, any past period on request; openapi.taifex.com.tw only returns the latest day) | 9 |
 | [MOPS](https://mops.twse.com.tw) | Market Observation Post System — income statement / balance sheet / cash-flow statement, monthly revenue, dividends (latest by default, any past period on request; listed, OTC, emerging and public companies), material information with full text, directors' holdings and pledges, insiders' monthly holding changes, treasury-stock buybacks, endorsements/guarantees and fund lending, investor conferences | 11 |
 | [TPEx website](https://www.tpex.org.tw) | TPEx website JSON — OTC per-stock daily OHLC, 三大法人, margin balances, P/E / yield / P/B, foreign-holding ranking, ex-rights/dividend results (latest trading day by default, or any past date) | 6 |
-| [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week, incl. big-holder / retail ratios) | 1 |
+| [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week in full, or a week-by-week trend over the last 13 weeks via the TDCC query page) | 1 |
 | [National Development Council](https://data.gov.tw/dataset/6099) | Business-cycle signal & indicators (since 1982), Taiwan PMI/NMI | 2 |
 | [Central Bank](https://cpx.cbc.gov.tw) | Daily TWD and major trading-partner currencies vs. USD (since 1993) | 1 |
 | Derived analytics (computed from the above) | Ex-rights-adjusted daily prices, technical indicators (MA, KD, RSI, MACD, Bollinger), valuation screener, industry peer comparison (listed + OTC) | 4 |

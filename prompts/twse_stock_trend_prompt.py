@@ -15,7 +15,7 @@ def twse_stock_trend_prompt(stock_symbol: str, period: str) -> PromptMessage:
   - **技術面**：`get_technical_indicators(code)` — MA5/10/20/60、KD、RSI、MACD、布林通道（預設使用還原權息價）
   - **技術面**：`get_real_time_trading_stats()` — 即時市場統計（每5秒更新）
   - **籌碼面**：`get_margin_balance()` — 融資融券資料
-  - **籌碼面**：`get_shareholding_distribution(code)` — 集保戶股權分散（千張大戶 vs 散戶持股比例）
+  - **籌碼面**：`get_shareholding_distribution(code, weeks=4)` — 集保戶股權分散逐週趨勢（千張大戶 vs 散戶持股比例與週變化）
   - **籌碼面**：`get_company_insider_holding_changes(code)` — 董監、經理人本月持股增減與設質
   - **籌碼面**：`get_foreign_investment_by_industry()` — 各產業外資持股流向
   - **市場情緒**：`get_warrant_daily_trading(code)` — 權證交易活躍度（槓桿指標）

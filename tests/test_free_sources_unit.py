@@ -206,6 +206,114 @@ def test_tdcc_header_change_raises():
         tdcc.parse_distribution_csv("日期,代號\n1,2".encode("utf-8"))
 
 
+def _query_page(token, dates=("20260924", "20260918", "20260911")):
+    options = "".join(f'<option value="{d}" >{d}</option>' for d in dates)
+    return (
+        f'<input type="hidden" name="SYNCHRONIZER_TOKEN" value="{token}" id="SYNCHRONIZER_TOKEN" />'
+        f'<input type="hidden" name="firDate" value="{dates[0]}" id="firDate" />'
+        f'<select name="scaDate" id="scaDate">{options}</select>'
+    )
+
+
+def _result_page(token, big_pct, big_people, with_token=True):
+    # 級距 15（千張大戶）以外各級距人數 10、占比 1.00；序 16 差異數調整應被忽略
+    rows = [(str(i), f"L{i}", "10", "1,000", "1.00") for i in range(1, 15)]
+    rows.append(("15", "1,000,001以上", f"{big_people:,}", "9,999", f"{big_pct:.2f}"))
+    rows.append(("16", "差異數調整", "0", "-5", "0.00"))
+    rows.append(("17", "合　計", "1,000", "99,999", "100.00"))
+    body = "".join(
+        "<tr>" + "".join(f'<td align="right">{c}</td>' for c in r) + "</tr>" for r in rows
+    )
+    tok = f'<input type="hidden" name="SYNCHRONIZER_TOKEN" value="{token}" />' if with_token else ""
+    return f"<html>{tok}<table><tr><th>序</th><th>級距</th><th>人數</th><th>股數</th><th>占比</th></tr>{body}</table></html>"
+
+
+class _FakeTdccSite:
+    """Stateful stand-in for the query page: every POST must carry the token the previous reply issued."""
+
+    def __init__(self, weeks, no_token_after=None, empty_dates=()):
+        self.weeks = weeks  # date -> (big_pct, big_people)
+        self.no_token_after = no_token_after
+        self.empty_dates = set(empty_dates)
+        self.issued = None
+        self.n = 0
+        self.posts = []
+        self.gets = 0
+
+    def _new_token(self):
+        self.n += 1
+        self.issued = f"tok{self.n}"
+        return self.issued
+
+    def __call__(self, params, body):
+        if not body:  # GET
+            self.gets += 1
+            return _query_page(self._new_token(), tuple(self.weeks)).encode("utf-8")
+        assert body["SYNCHRONIZER_TOKEN"] == self.issued, "token 必須使用上一個回應發的新 token"
+        self.posts.append((body["scaDate"], body["stockNo"]))
+        if body["stockNo"] != "2330" or body["scaDate"] in self.empty_dates:
+            return f'<span>查無此資料</span><input name="SYNCHRONIZER_TOKEN" value="{self._new_token()}" />'.encode("utf-8")
+        big_pct, big_people = self.weeks[body["scaDate"]]
+        send = self.no_token_after is None or len(self.posts) <= self.no_token_after
+        # 不帶新 token 時，回應中不含 token（讓工具重新載入頁面）
+        return _result_page(self._new_token() if send else self.issued, big_pct, big_people, with_token=send).encode("utf-8")
+
+
+_TDCC_WEEKS = {"20260924": (71.0, 45), "20260918": (70.0, 41), "20260911": (69.5, 40)}
+
+
+def _tdcc_fn(site):
+    return register_module_tools(tdcc, OfflineClient({"qryStock": site}))["get_shareholding_distribution"]
+
+
+def test_tdcc_weekly_trend_chains_tokens_and_shows_week_over_week_change():
+    site = _FakeTdccSite(_TDCC_WEEKS)
+    text = _tdcc_fn(site)("2330", weeks=3)
+    lines = text.splitlines()
+    assert "共 3 週" in lines[0]
+    assert lines[2].startswith("2026-09-24 | 總人數 1,000 | 千張大戶 71.00%（45 人）")
+    assert "較前週: 千張大戶 +1.00pp（+4 人）" in lines[2]
+    assert "400張以上 74.00%（75 人）" in lines[2]  # 級距 12–15：3 級各 1.00%／10 人 + 級距 15 的 71.00%／45 人
+    assert "10張以下 3.00%（30 人）" in lines[2]
+    assert "較前週" not in lines[4]  # 最舊一週沒有可比較的前一週
+    assert [d for d, _ in site.posts] == ["20260924", "20260918", "20260911"]
+
+
+def test_tdcc_weekly_trend_skips_weeks_without_data_and_reloads_page_when_token_missing():
+    site = _FakeTdccSite(_TDCC_WEEKS, empty_dates=("20260918",))
+    text = _tdcc_fn(site)("2330", weeks=3)
+    assert "共 2 週" in text.splitlines()[0] and "2026-09-18" not in text
+
+    site = _FakeTdccSite(_TDCC_WEEKS, no_token_after=1)  # 第 1 次 POST 之後的回應都不帶 token
+    text = _tdcc_fn(site)("2330", weeks=3)
+    assert "共 3 週" in text.splitlines()[0]
+    assert site.gets > 1, "回應沒帶 token 時應重新載入查詢頁取得新 token"
+
+
+def test_tdcc_weekly_trend_unknown_code_and_cached_weeks():
+    fn_site = _FakeTdccSite(_TDCC_WEEKS)
+    fn = _tdcc_fn(fn_site)
+    assert "查無證券代號 9999" in fn("9999", weeks=3)
+    fn("2330", weeks=3)
+    posts_after_first = len(fn_site.posts)
+    fn("2330", weeks=3)
+    assert len(fn_site.posts) == posts_after_first, "已查過的週不應重送 POST"
+
+
+def test_tdcc_weeks_validation():
+    fn = _tdcc_fn(_FakeTdccSite(_TDCC_WEEKS))
+    assert "weeks 必須介於 1～13" in fn("2330", weeks=0)
+    assert "weeks 必須介於 1～13" in fn("2330", weeks=14)
+
+
+def test_tdcc_result_rows_ignore_reconciliation_row_and_page_change_raises():
+    levels = tdcc.parse_result_rows(_result_page("t", 70.0, 41))
+    assert sorted(levels, key=lambda k: (k == "total", int(k) if k != "total" else 0))[-2:] == ["15", "total"]
+    assert "16" not in levels and levels["total"] == (1000, 99999, 100.0)
+    with pytest.raises(ValueError, match="頁面可能改版"):
+        tdcc.parse_query_page("<html>changed</html>")
+
+
 # ---------- NDC ----------
 
 def _ndc_zip():
