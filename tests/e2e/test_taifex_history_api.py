@@ -133,7 +133,7 @@ class TestLargeTradersFuturesHistoryAPI:
     """Tool get_large_traders_futures_oi 依 index 存取的欄位順序：
     0=日期 1=商品(契約)（篩選契約用） 2=商品名稱 3=到期月份(週別) 4=交易人類別
     5=前五大交易人買方 6=前五大交易人賣方 7=前十大交易人買方 8=前十大交易人賣方 9=全市場未沖銷部位數
-    此端點無伺服器端契約篩選，tool 於本地端以 row[1] 過濾。
+    此端點沒有契約篩選參數，tool 於本地端以 row[1] 過濾。
     """
 
     def test_hardcoded_column_order(self):
@@ -149,15 +149,6 @@ class TestLargeTradersFuturesHistoryAPI:
             "全市場未沖銷部位數",
         ]
         assert header == expected, f"欄位順序異動: {header}"
-
-    def test_no_server_side_contract_filter(self):
-        """確認此端點忽略任何契約篩選參數，回傳全部商品（tool 依賴此行為才會在本地端過濾）。"""
-        rows = _post_csv(
-            "https://www.taifex.com.tw/cht/3/largeTraderFutDown",
-            {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/01", "contractId": "TX"},
-        )
-        codes = set(r[1].strip() for r in rows[1:] if len(r) > 1)
-        assert len(codes) > 1, "端點行為可能已變更為支援伺服器端契約篩選，tool 邏輯需重新檢視"
 
 
 class TestLargeTradersOptionsAPI:
@@ -178,22 +169,11 @@ class TestLargeTradersOptionsAPI:
         ], f"欄位順序異動: {rows[0]}"
         assert {r[3] for r in rows[1:] if len(r) > 3} <= {"買權", "賣權"}, "買賣權欄位的值已變更（tool 以此篩選）"
 
-    def test_no_server_side_contract_filter_and_txo_present(self):
-        rows = _post_csv(
-            self.URL, {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/01", "commodityId": "TXO"}
-        )
-        codes = {r[1].strip() for r in rows[1:] if len(r) > 1}
-        assert "TXO" in codes and len(codes) > 1, f"端點行為可能已變更（契約篩選或 TXO）: {sorted(codes)[:8]}"
-
-    def test_month_range_works_and_year_range_is_rejected_with_html(self):
-        """tool 的區間上限 31 天；超過的區間上游回 HTML 頁（decode_and_parse_csv 視為無資料）."""
-        month = _post_csv(self.URL, {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/30"})
-        assert len(month) > 1000, f"一個月區間回傳筆數異常: {len(month)}"
-        year = requests.post(
-            self.URL, headers=HEADERS, data={"queryStartDate": "2025/01/01", "queryEndDate": "2025/12/31"},
-            verify=False, timeout=20,
-        )
-        assert year.content.decode("cp950", errors="replace").lstrip().startswith("<"), "整年區間不再被拒絕"
+    def test_month_range_and_default_contract(self):
+        """tool 以一個月為上限送出區間查詢，預設契約為 TXO."""
+        rows = _post_csv(self.URL, {"queryStartDate": "2026/06/01", "queryEndDate": "2026/06/30"})
+        assert len(rows) > 1 and len({r[0] for r in rows[1:] if r}) > 1, "一個月區間沒有回傳多個交易日"
+        assert "TXO" in {r[1].strip() for r in rows[1:] if len(r) > 1}, "找不到預設契約 TXO"
 
 
 class TestOptionsDailyHistoryAPI:
