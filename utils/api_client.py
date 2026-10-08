@@ -60,12 +60,18 @@ class TWSEAPIClient:
         method: str = "GET",
         data: Optional[Dict[str, Any]] = None,
         json_body: Optional[Dict[str, Any]] = None,
+        session: Optional[requests.Session] = None,
     ) -> requests.Response:
-        """Throttle, send GET/POST, stamp last-request time, and return the response."""
+        """Throttle, send GET/POST, stamp last-request time, and return the response.
+
+        Pass ``session`` for flows that need cookies carried between requests (the TDCC
+        query page ties a one-time form token to a JSESSIONID cookie).
+        """
         self._throttle()
         logger.info(f"Fetching {method} {url} params={params}")
         try:
-            resp = requests.request(
+            send = session.request if session is not None else requests.request
+            resp = send(
                 method,
                 url,
                 params=params,
@@ -223,14 +229,19 @@ class TWSEAPIClient:
         timeout: float = APIConfig.DEFAULT_TIMEOUT,
         method: str = "GET",
         cache_ttl: float = 0,
+        session: Optional[requests.Session] = None,
     ) -> bytes:
         """Fetch raw response bytes from an arbitrary full URL, supporting POST form submissions.
 
         Used for HTML-form download endpoints that return non-JSON bodies (e.g. Big5-encoded
         CSV from www.taifex.com.tw's data-download pages), which callers decode themselves.
         ``cache_ttl`` > 0 serves an identical request from memory for that many seconds.
+        A ``session`` makes the call stateful (cookies persist), so it is never cached.
         """
         try:
+            if session is not None:
+                return self._request(url, params=params, data=data, headers=headers, timeout=timeout,
+                                     method=method, session=session).content
             if cache_ttl > 0:
                 return self._cached_content(cache_ttl, url, params, headers, timeout, method, data=data)
             return self._request(url, params=params, data=data, headers=headers, timeout=timeout, method=method).content

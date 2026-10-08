@@ -12,7 +12,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 7 tools: 選擇權大額交易人部位、選擇權分析（Delta/OI增減）、保證金、年月統計（這些沒有下載頁對應）
 - **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 6 tools: 上櫃個股日K、三大法人明細、融資融券、本益比/殖利率/淨值比、外資持股排行、除權除息計算結果（預設最新交易日，可查任意過去日期）
 - **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`): 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、重大訊息（t05st01/t05st02 + 全文 *_detail）、董監持股與設質（stapap1）、內部人持股異動（query6_1）、庫藏股（t35sc09）、背書保證與資金貸與（t05st11）、法說會 — 11 tools
-- **TDCC 集保開放資料** (`opendata.tdcc.com.tw`) — 1 tool: 集保戶股權分散表（最新一週）
+- **TDCC 集保** (`opendata.tdcc.com.tw`、`www.tdcc.com.tw/portal/zh/smWeb/qryStock`) — 1 tool: 集保戶股權分散表（`weeks=1` 最新一週完整級距，走開放資料 CSV；`weeks` 2–13 為逐週大戶／散戶趨勢，走查詢頁）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
 - **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
@@ -68,7 +68,7 @@ tools/
                               #   openapi.twse.com.tw equivalents which only return a rolling ~12-day window)
 ├── mops/                     # MOPS: financial_statements, monthly_revenue, dividend, investor_conference,
                               #   major_news, insiders, treasury_guarantees
-├── tdcc/                     # TDCC open data: shareholding_distribution
+├── tdcc/                     # TDCC: shareholding_distribution (open data CSV + query page)
 ├── macro/                    # ndc_indicators (景氣燈號, PMI), exchange_rates (央行)
 ├── analytics/                # price_tools (adjusted prices, technical indicators), screening (stock screener, industry peers)
 ├── realtime/                 # MIS real-time quotes: stock_info
@@ -185,3 +185,4 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 - **TPEx website** (`tools/otc/history.py`): `www.tpex.org.tw/www/zh-tw/...?response=json` with `date=YYYY/MM/DD`; rows are in `tables[0].data`. `insti/dailyTrade` repeats identical column names for 7 買進/賣出/買賣超 groups — the contract test checks the group order via their sums.
 - **NDC** (`tools/macro/ndc_indicators.py`): `index.ndc.gov.tw` is behind a Cloudflare bot block — don't try to get around it. Use the fixed `ws.ndc.gov.tw/Download.ashx` links from data.gov.tw datasets 6099 (zip of CSVs) and 6100 (PMI CSV); if NDC re-points them the contract tests fail.
 - **CBC** (`tools/macro/exchange_rates.py`): `cpx.cbc.gov.tw/API/DataAPI/Get?FileName=BP01D01`; the file is refreshed about monthly, so the latest weeks may be absent.
+- **TDCC query page** (`tools/tdcc/shareholding_distribution.py`): `www.tdcc.com.tw/portal/zh/smWeb/qryStock` has no CAPTCHA, but it is a stateful form: GET the page (sets `JSESSIONID`; hidden `SYNCHRONIZER_TOKEN`, `firDate`, and a `scaDate` list of ~51 weeks newest first), then POST `SYNCHRONIZER_TOKEN`, `SYNCHRONIZER_URI=/portal/zh/smWeb/qryStock`, `method=submit`, `firDate`, `scaDate`, `sqlMethod=StockNo`, `stockNo`, `stockName`. Tokens are single-use and every reply carries the next one, so the tool chains them inside one `requests.Session` (`fetch_bytes(..., session=)`, which also bypasses the response cache) and reloads the page if a reply has none. Unknown code → `查無此資料`. Compared with the open-data CSV (2026-10-02; 2330, 6488, 0050): levels 1–15 and the total are identical; only 差異數調整 differs (page keeps the sign and drops the row when zero), so the trend ignores it. Past weeks are immutable and kept in an in-process cache.

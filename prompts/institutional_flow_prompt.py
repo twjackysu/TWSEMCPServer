@@ -21,7 +21,7 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資持股比率前 20 大公司
 - `get_foreign_investment_by_industry()`：各產業外資持股比例
 - `get_otc_foreign_holdings(limit=20)`：上櫃外資持股比率前 20 大公司
-- `get_shareholding_distribution(code)`：集保戶股權分散（千張大戶 vs 散戶）
+- `get_shareholding_distribution(code, weeks=4)`：集保戶股權分散逐週趨勢（千張大戶 vs 散戶的增減）
 - `get_company_insider_holding_changes(code)`：董監、經理人本月持股增減
 
 **上櫃三大法人：**
