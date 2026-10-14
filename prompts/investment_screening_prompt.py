@@ -35,6 +35,7 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
   - `get_market_index_info(category="dividend")`：股利導向篩選
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好（品質訊號）
 - `get_etf_regular_investment_ranking()`：散戶熱門投資選擇
+- `get_etf_holdings(code)`：熱門 ETF 的前十大持股（看哪些個股被 ETF 大量持有）
 - `get_margin_balance()`：法人 vs 散戶關注度
 - `get_foreign_investment_by_industry()`：產業配置趨勢
 - `get_shareholding_distribution(code)`：千張大戶與散戶持股比例（籌碼集中度）

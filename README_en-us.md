@@ -84,8 +84,8 @@ sector index history
 > *"What share of GlobalWafers do 1,000-lot holders own?" / "How did the semiconductor index do last month?"*
 
 ### ETFs
-Every issuer, TWSE- and TPEx-listed (bond and active ETFs included): basic info (issuer, tracked index, distribution frequency, manager, TPEx fees), daily units outstanding change and estimated NAV / premium-discount rankings, and monthly scale / holders / creations-redemptions / regular-investment trends (since 2007)
-> *"What premium is 0050 trading at?" / "Which ETFs saw heavy redemptions today?" / "How have 00981A's holders changed this half-year?"*
+Every issuer, TWSE- and TPEx-listed (bond and active ETFs included): basic info (issuer, tracked index, distribution frequency, manager, TPEx fees), daily units outstanding change and estimated NAV / premium-discount rankings, and monthly scale / holders / creations-redemptions / regular-investment trends (since 2007), and holdings: monthly top 10 (since 2021-08) and quarterly holdings above 1% of NAV (since 2021-09)
+> *"What premium is 0050 trading at?" / "Which ETFs saw heavy redemptions today?" / "How have 00981A's holders changed this half-year?" / "What are 00878's top 10 holdings?"*
 
 ### Macro
 NDC business-cycle signal (景氣燈號) and leading/coincident/lagging indicators, Taiwan PMI/NMI,
@@ -147,7 +147,7 @@ uv sync && uv run fastmcp dev server.py
 | [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own data-download pages — futures / options daily market reports, 三大法人 (futures/options split, totals, by contract, calls/puts), futures and options large-trader OI, Put/Call Ratio (latest trading day by default, any past period on request; openapi.taifex.com.tw only returns the latest day) | 10 |
 | [MOPS](https://mops.twse.com.tw) | Market Observation Post System — income statement / balance sheet / cash-flow statement, monthly revenue, dividends (latest by default, any past period on request; listed, OTC, emerging and public companies), material information with full text, directors' holdings and pledges, insiders' monthly holding changes, treasury-stock buybacks, endorsements/guarantees and fund lending, investor conferences | 11 |
 | [TPEx website](https://www.tpex.org.tw) | TPEx website JSON — OTC per-stock daily OHLC, 三大法人, margin balances, P/E / yield / P/B, foreign-holding ranking, ex-rights/dividend results (latest trading day by default, or any past date) | 6 |
-| [SITCA ETF zone](https://www.sitca.org.tw/ROC/SITCA_ETF/index.html) | Every issuer's ETF basic info (merged with TWSE fund basics and TPEx ETF specs), monthly scale / NAV / holders / creations-redemptions / regular investment (since 2007) | 2 |
+| [SITCA ETF zone](https://www.sitca.org.tw/ROC/SITCA_ETF/index.html) | Every issuer's ETF basic info (merged with TWSE fund basics and TPEx ETF specs), monthly scale / NAV / holders / creations-redemptions / regular investment (since 2007), fund holdings (monthly top 10, quarterly >1% of NAV) | 3 |
 | [TDCC open data](https://opendata.tdcc.com.tw) | Shareholding distribution by holding size (latest week in full, or a week-by-week trend over the last 13 weeks via the TDCC query page) | 1 |
 | [National Development Council](https://data.gov.tw/dataset/6099) | Business-cycle signal & indicators (since 1982), Taiwan PMI/NMI | 2 |
 | [Central Bank](https://cpx.cbc.gov.tw) | Daily TWD and major trading-partner currencies vs. USD (since 1993) | 1 |
