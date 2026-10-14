@@ -7,8 +7,8 @@ import pytest
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
-from tools.etf import daily_nav, info, monthly_stats
-from utils.sitca import available_months, query_rows
+from tools.etf import daily_nav, holdings, info, monthly_stats
+from utils.sitca import available_months, fund_name_key, holdings_by_class, parse_holdings, query_rows
 
 pytestmark = pytest.mark.offline
 
@@ -229,3 +229,150 @@ def test_monthly_stats_ranking_and_column_guard():
     assert "sort_by 必須是" in fn(sort_by="nav")
     with pytest.raises(ValueError, match="欄位已變更"):
         monthly_stats.records([["序號", "證券代號"], ["1", "0050"]])
+
+
+# ---------- get_etf_holdings ----------
+
+HOLD_HEADER = ["基金名稱", "名次", "標的種類", "標的代號 或<br>Bloomberg<br>Isin Code", "標的名稱", "金額", "擔保機構**",
+               "次順位債券**", "受益權單位數***", "占基金淨資產價值<br>之比例(%)"]
+
+
+def _holdings_html(funds, header=HOLD_HEADER):
+    """IN2629 的結果表：沒有 id、表頭用 <td>…</th>、基金名稱以 rowspan 跨列，外面還包著排版表格。"""
+    head = "".join(f"<td class=DTHeader nowrap align=center>{h}</th>" for h in header)
+    body = ""
+    for name, rows in funds:
+        for i, r in enumerate(rows):
+            first = f"<td class='DTeven' rowspan='{len(rows)}'>{name}</td>" if i == 0 else ""
+            body += "<tr>" + first + "".join(f"<td class='DTeven'>{c}</td>" for c in r) + "</tr>"
+    return f"<table id='outer'><tr><td><table><tr>{head}</tr>{body}</table></td></tr></table>".encode("utf-8")
+
+
+def _hold_row(rank, code, name, amount, pct, kind="國內上市"):
+    return [rank, kind, code, name, amount, "", "", "0", pct]
+
+
+def test_parse_holdings_handles_rowspan_and_malformed_header():
+    header, funds = parse_holdings(_holdings_html([
+        ("甲ETF基金 (本基金之配息來源可能為收益平準金)", [_hold_row("1", "2330", "台積電", "100", "50.00"), _hold_row("2", "2454", "聯發科", "10", "5.00")]),
+        ("乙ETF基金", [_hold_row("1", "2317", "鴻海", "1", "9.00")]),
+    ]).decode("utf-8"))
+    assert header[3] == "標的代號 或 Bloomberg Isin Code" and header[-1] == "占基金淨資產價值 之比例(%)"
+    assert list(funds) == ["甲ETF基金 (本基金之配息來源可能為收益平準金)", "乙ETF基金"]
+    assert funds["甲ETF基金 (本基金之配息來源可能為收益平準金)"][1][3] == "聯發科"
+    assert parse_holdings("<html>改版</html>") == ([], {})
+
+
+def test_fund_name_key_drops_disclaimer_and_share_class_only():
+    assert fund_name_key("中國信託日經高股息50 ETF基金 (本子基金之配息來源可能為收益平準金)") == "中國信託日經高股息50ETF基金"
+    assert fund_name_key("國泰…20年期(以上)美國公債指數基金-新台幣(配息)") == "國泰…20年期(以上)美國公債指數基金"
+    assert fund_name_key("國泰…20年期(以上)美國公債指數基金-美元") == "國泰…20年期(以上)美國公債指數基金"
+    assert fund_name_key("中國信託新興亞洲(不含中國)美元精選綜合債券ETF基金") == "中國信託新興亞洲(不含中國)美元精選綜合債券ETF基金"
+    assert fund_name_key("元大台灣50單日正向2倍基金") != fund_name_key("元大台灣50單日反向1倍基金")
+
+
+class _FakeHoldingsPage:
+    """IN2629/IN2630: GET → 期間 postback（換新 VIEWSTATE）→ 依類別查詢，查詢必須帶 postback 回來的 VIEWSTATE."""
+
+    def __init__(self, periods, funds_by_period):
+        self.periods, self.funds_by_period, self.queries = periods, funds_by_period, []
+
+    def _page(self, viewstate):
+        options = "".join(f'<option value="{p}">{p}</option>' for p in self.periods)
+        return (f'<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="{viewstate}" />'
+                f'<select name="ctl00$ContentPlaceHolder1$ddlQ_YM" id="x">{options}</select>').encode("utf-8")
+
+    def __call__(self, params, body):
+        prefix = "ctl00$ContentPlaceHolder1$"
+        if not body:
+            return self._page("vs-get")
+        if body.get("__EVENTTARGET") == prefix + "ddlQ_YM":
+            assert body["__VIEWSTATE"] == "vs-get" and body[prefix + "rdo1"] == "rbClass"
+            return self._page(f"vs-{body[prefix + 'ddlQ_YM']}")
+        ym, cls = body[prefix + "ddlQ_YM"], body[prefix + "ddlQ_Class"]
+        assert body["__VIEWSTATE"] == f"vs-{ym}", "查詢必須沿用期間 postback 回傳的 VIEWSTATE"
+        assert prefix + "ddlQ_Comid" not in body, "停用中的欄位不應送出"
+        self.queries.append((ym, cls))
+        return _holdings_html(self.funds_by_period.get((ym, cls), []))
+
+
+def _holdings_routes(monthly, quarterly=None):
+    def statement(params, body):
+        if params["txtemcode"] == "0050,":
+            row = _stat_row("0050", "111", "不分級別", "1", "1")
+            return _grid(STATEMENT_HEADER, [row])
+        if params["txtfund"] == "111," and params["txtYM"] == "202607":
+            row = _stat_row("-", "111", "不分級別", "1", "1")
+            row[1], row[5] = "AH11", "舊名台灣50基金"  # 該月的名稱與現在不同
+            return _grid(STATEMENT_HEADER, [row])
+        return _grid(STATEMENT_HEADER, [])
+
+    routes = {"etf_statement.aspx": _month_page(["202608", "202607"]), "etf_statement2.aspx": statement,
+              "IN2629.aspx": monthly}
+    if quarterly:
+        routes["IN2630.aspx"] = quarterly
+    return routes
+
+
+def test_holdings_by_class_posts_period_then_query():
+    page = _FakeHoldingsPage(["202607", "202608"], {("202607", "AH11"): [("X基金", [_hold_row("1", "2330", "台積電", "1", "1")])]})
+    header, funds = holdings_by_class(OfflineClient({"IN2629.aspx": page}), "IN2629.aspx", "202607", "AH11")
+    assert list(funds) == ["X基金"] and page.queries == [("202607", "AH11")]
+
+
+def test_etf_holdings_latest_and_past_period_names():
+    monthly = _FakeHoldingsPage(["202607", "202608"], {
+        ("202608", "AH11"): [
+            ("別檔基金", [_hold_row("1", "2317", "鴻海", "1", "1")]),
+            ("基金111 (本基金之配息來源可能為收益平準金)", [
+                _hold_row("1", "2330", "台積電", "1,367,244,000,000", "57.35"),
+                _hold_row("2", "US912810UK24", "US TREASURY", "52,000,000", "0.40", kind="政府公債"),
+            ]),
+        ],
+        ("202607", "AH11"): [("舊名台灣50基金", [_hold_row("1", "2330", "台積電", "100,000,000", "50.00")])],
+    })
+    fn = register_module_tools(holdings, OfflineClient(_holdings_routes(monthly)))["get_etf_holdings"]
+    text = fn("0050")
+    assert text.splitlines()[0] == "【0050 簡稱0050 持股明細】基金111"
+    assert "資料期間 2026-08｜每月前十大持股｜共 2 檔，合計占淨值 57.75%" in text
+    assert "1. 台積電（2330） | 國內上市 | 占淨值 57.35% | 金額 13,672.44 億元" in text
+    assert "2. US TREASURY（US912810UK24） | 政府公債 | 占淨值 0.40% | 金額 5,200 萬元" in text
+    assert "鴻海" not in text
+    past = fn("0050", period="202607")  # 過去期間改用該月 ETF 專區的名稱
+    assert "【0050 簡稱0050 持股明細】舊名台灣50基金" in past and "資料期間 2026-07" in past
+
+
+def test_etf_holdings_quarterly_ranks_by_weight_and_messages():
+    quarterly_header = [h for h in HOLD_HEADER if h != "名次"]
+    q_row = lambda code, name, pct: ["國內上市", code, name, "1", "", "", "0", pct]
+
+    class Quarterly(_FakeHoldingsPage):
+        def __call__(self, params, body):
+            if body and "BtnQuery" in str(body):
+                super().__call__(params, body)
+                return _holdings_html([("基金111", [q_row("2454", "聯發科", "5.00"), q_row("2330", "台積電", "57.00")])],
+                                      header=quarterly_header)
+            return super().__call__(params, body)
+
+    monthly = _FakeHoldingsPage(["202608"], {})
+    fn = register_module_tools(holdings, OfflineClient(_holdings_routes(monthly, Quarterly(["202606"], {}))))["get_etf_holdings"]
+    lines = fn("0050", quarterly=True).splitlines()
+    assert "每季占淨值 1% 以上持股｜共 2 檔" in lines[1]
+    assert lines[3].startswith("1. 台積電") and lines[4].startswith("2. 聯發科")
+
+    assert "基金投資明細中沒有 0050" in fn("0050")  # 該月明細裡沒有這檔（如反向型）
+    assert "period 必須是季末月 YYYYMM，可查 202606～202606" in fn("0050", period="202605", quarterly=True)
+    assert "查無 ETF 代號 9999" in fn("9999")
+    assert "請提供 ETF 代號" in fn(" ")
+
+
+def test_etf_holdings_column_guard():
+    page = _FakeHoldingsPage(["202608"], {})
+
+    def renamed_columns(params, body):
+        if body and "BtnQuery" in str(body):
+            return _holdings_html([("基金111", [["1", "2330"]])], header=["基金名稱", "名次", "代號"])
+        return page(params, body)
+
+    fn = register_module_tools(holdings, OfflineClient(_holdings_routes(renamed_columns)))["get_etf_holdings"]
+    assert "欄位已變更" in fn("0050")

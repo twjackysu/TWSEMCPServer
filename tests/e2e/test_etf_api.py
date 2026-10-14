@@ -5,6 +5,8 @@
   for the older months without codes, by 基金統編.
 - TWSE MIS all_etf.txt: per-issuer groups of single-letter fields.
 - TPEx website ETF/list and ETF/detail (form POST, JSON).
+- SITCA 基金投資明細 IN2629 (monthly top 10) / IN2630 (quarterly >1%): period postback + query by
+  class, result columns read by name, and fund names that join with the ETF zone's names.
 t187ap47_L fields are covered by tests/test_api_schemas.py via tool_field_dependencies.py.
 """
 
@@ -14,15 +16,28 @@ import pytest
 
 from tests.helpers import fetch_bytes_or_skip, fetch_or_skip
 from tools.etf.daily_nav import MIS_ALL_ETF_URL
+from tools.etf.holdings import REQUIRED_COLUMNS as HOLDINGS_COLUMNS
 from tools.etf.info import TPEX_ETF_DETAIL_URL, TPEX_ETF_LIST_URL, TPEX_ETF_TYPES
 from tools.etf.monthly_stats import REQUIRED_COLUMNS, records
 from utils.api_client import TWSEAPIClient
-from utils.sitca import SITCA_HEADERS, available_months, query_rows
+from utils.sitca import (
+    HOLDINGS_MONTHLY_PAGE,
+    HOLDINGS_QUARTERLY_PAGE,
+    SITCA_HEADERS,
+    available_months,
+    fund_name_key,
+    holdings_by_class,
+    holdings_months,
+    query_rows,
+)
 
 # A month that has 證券代號 and one that predates them (codes "-", only 基金統編).
 FIXED_MONTH_WITH_CODES = "202501"
 FIXED_MONTH_WITHOUT_CODES = "202001"
 TW50_FUND_ID = "98764389"  # 元大台灣卓越50基金 (0050)
+# Older than the default (latest) period, so the period postback is exercised.
+FIXED_HOLDINGS_MONTH = "202501"
+FIXED_HOLDINGS_QUARTER = "202503"
 INFO_COLUMNS = ["證券代號", "證券簡稱", "經理公司", "基金名稱", "基金成立日期", "分類", "追蹤指數", "是否有發行 配息級別"]
 
 
@@ -92,3 +107,40 @@ class TestTpexEtfPages:
         spec = next((t for t in tables if t.get("title") == "商品規格"), None)
         # 工具把每張表的 fields 與 data[0] 逐欄配對輸出，不寫死欄名
         assert spec and len(spec["fields"]) == len(spec["data"][0]), f"ETF/detail 商品規格表結構已變更: {tables!r:.300}"
+
+
+class TestSitcaHoldings:
+    """get_etf_holdings 先在 ETF 專區用代號找到基金名稱與類型代號，再到基金投資明細依類別查詢並比對名稱。"""
+
+    @staticmethod
+    def _zone_names(client, ym, fund_class):
+        rows = records(query_rows(client, "etf_statement2.aspx", ym))
+        return {fund_name_key(r["基金名稱"]) for r in rows if r["類型代號"] == fund_class}
+
+    def test_period_lists(self, client):
+        monthly = holdings_months(client, HOLDINGS_MONTHLY_PAGE)  # raises when the select is gone
+        quarterly = holdings_months(client, HOLDINGS_QUARTERLY_PAGE)
+        assert FIXED_HOLDINGS_MONTH in monthly and FIXED_HOLDINGS_QUARTER in quarterly
+
+    def test_monthly_columns_and_period_postback(self, client):
+        header, funds = holdings_by_class(client, HOLDINGS_MONTHLY_PAGE, FIXED_HOLDINGS_MONTH, "AH11")
+        missing = [c for c in HOLDINGS_COLUMNS if c not in header]
+        assert not missing, f"IN2629 欄位已變更，缺少 {missing}: {header}"
+        # 沒做期間 postback 時伺服器會回第一家投信的全部基金，而不是該類別的 ETF
+        tw50 = [rows for name, rows in funds.items() if fund_name_key(name) == "元大台灣卓越50基金"]
+        assert tw50, f"IN2629 {FIXED_HOLDINGS_MONTH} AH11 找不到元大台灣卓越50基金，期間或類別條件可能失效: {list(funds)[:5]}"
+        assert all(len(r) == len(header) - 1 for r in tw50[0]), "持股列寬與表頭不符（rowspan 結構可能已變更）"
+
+    def test_quarterly_columns(self, client):
+        header, funds = holdings_by_class(client, HOLDINGS_QUARTERLY_PAGE, FIXED_HOLDINGS_QUARTER, "AH11")
+        missing = [c for c in HOLDINGS_COLUMNS if c not in header]
+        assert not missing, f"IN2630 欄位已變更，缺少 {missing}: {header}"
+        assert any(fund_name_key(n) == "元大台灣卓越50基金" for n in funds)
+
+    @pytest.mark.parametrize("fund_class", ["AH11", "AH22"])
+    def test_fund_names_join_with_etf_zone(self, client, fund_class):
+        """基金投資明細沒有證券代號，工具靠名稱對回 ETF 專區；兩邊命名規則一變就對不上。"""
+        _header, funds = holdings_by_class(client, HOLDINGS_MONTHLY_PAGE, FIXED_HOLDINGS_MONTH, fund_class)
+        zone = self._zone_names(client, FIXED_HOLDINGS_MONTH, fund_class)
+        unmatched = [n for n in funds if fund_name_key(n) not in zone]
+        assert funds and not unmatched, f"基金投資明細的基金名稱對不回 ETF 專區: {unmatched[:5]}"
