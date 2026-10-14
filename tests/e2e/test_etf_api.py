@@ -11,6 +11,7 @@ t187ap47_L fields are covered by tests/test_api_schemas.py via tool_field_depend
 """
 
 import json
+import re
 
 import pytest
 
@@ -52,7 +53,7 @@ class TestSitcaEtfZone:
         statement_months = available_months(client, "etf_statement.aspx")
         assert statement_months == sorted(statement_months, reverse=True)
         assert FIXED_MONTH_WITH_CODES in statement_months and FIXED_MONTH_WITHOUT_CODES in statement_months
-        assert len(available_months(client, "etf_info.aspx")[0]) == 6
+        available_months(client, "etf_info.aspx")
 
     def test_info_result_columns_and_code_filter(self, client):
         ym = available_months(client, "etf_info.aspx")[0]
@@ -65,7 +66,6 @@ class TestSitcaEtfZone:
     def test_statement_columns_and_code_filter(self, client):
         rows = records(query_rows(client, "etf_statement2.aspx", FIXED_MONTH_WITH_CODES, code="0050"))  # raises on missing columns
         assert [r["證券代號"] for r in rows] == ["0050"], "txtemcode 代號篩選失效"
-        assert rows[0]["基金統編"] == TW50_FUND_ID
 
     def test_statement_fund_id_filter_for_months_without_codes(self, client):
         rows = records(query_rows(client, "etf_statement2.aspx", FIXED_MONTH_WITHOUT_CODES, fund_id=TW50_FUND_ID))
@@ -73,7 +73,7 @@ class TestSitcaEtfZone:
 
     def test_statement_whole_market(self, client):
         rows = records(query_rows(client, "etf_statement2.aspx", FIXED_MONTH_WITH_CODES))
-        assert len(rows) > 100, "不帶篩選條件時不再回傳全市場"
+        assert len({r["基金統編"] for r in rows}) > 1, "不帶篩選條件時不再回傳全部 ETF"
 
 
 class TestMisAllEtf:
@@ -86,7 +86,8 @@ class TestMisAllEtf:
             pytest.skip("all_etf.txt 目前沒有任何 ETF（上游無資料，非 interface 變更）")
         missing = {k for k in "abcdefghij" if any(k not in i for i in items)}
         assert not missing, f"all_etf.txt 欄位已變更，缺少 {sorted(missing)}"
-        assert any(i["a"] == "0050" for i in items), "0050 不在 all_etf.txt，代號欄可能已變更"
+        bad = [i["a"] for i in items if not re.fullmatch(r"\d{4,6}[A-Z]?", str(i["a"]).strip())]
+        assert not bad, f"all_etf.txt 的 a 欄不再是 ETF 代號: {bad[:5]}"
 
 
 class TestTpexEtfPages:

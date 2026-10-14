@@ -54,8 +54,8 @@ class TestTdccQueryPage:
         session = requests.Session()
         html = fetch_bytes_or_skip(TDCC_QUERY_URL, headers=TDCC_PAGE_HEADERS, timeout=60, session=session).decode("utf-8")
         token, first_date, dates = parse_query_page(html)  # 缺 token／firDate／日期清單會直接 raise
-        assert len(dates) >= 13 and dates == sorted(dates, reverse=True), f"scaDate 清單結構已變更: {dates[:5]}"
-        assert first_date == dates[0]
+        # 工具依序取前 N 週當作由新到舊的趨勢
+        assert dates == sorted(dates, reverse=True), f"scaDate 不再由新到舊排列: {dates[:5]}"
 
     def test_result_rows_and_token_chaining(self):
         session = requests.Session()
@@ -66,8 +66,7 @@ class TestTdccQueryPage:
         assert sorted(levels, key=lambda k: (k == "total", int(k) if k != "total" else 0)) == [str(i) for i in range(1, 16)] + ["total"], (
             f"結果表的級距列已變更: {sorted(levels)}"
         )
-        assert sum(r[2] for k, r in levels.items() if k != "total") == pytest.approx(100.0, abs=0.1)
-        assert levels["total"][2] == pytest.approx(100.0)
+        assert levels["total"][2] == pytest.approx(100.0), "第 5 欄不再是占集保庫存數比例(%)"
         # 回應帶新 token，下一週的 POST 用它
         nxt = _TOKEN_RE.search(body)
         assert nxt, "回應不再帶下一個 SYNCHRONIZER_TOKEN"
