@@ -29,6 +29,8 @@ def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", da
 - `get_daily_day_trading_targets()`：全市場當沖占比與當沖量大的個股
 - `get_stock_daily_trading(stock_no=code)`：個股日成交量與價格變動
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資趨勢
+- `get_etf_daily_nav(sort_by="creation")`：今日淨申購最多的 ETF（資金流向）；`sort_by="premium"` 檢查是否溢價過熱
+- `get_etf_monthly_stats(sort_by="net_flow")`：上月淨申購金額排行
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資流向指標
 
 **總體環境：**

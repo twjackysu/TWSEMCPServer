@@ -5,14 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock market data analysis. Built with FastMCP (Python) and `requests`. Data sources:
-- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 106 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
+- **TWSE OpenAPI** (`openapi.twse.com.tw`) — 105 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
 - **TWSE Web API** (`twse.com.tw`) — 19 tools（不帶 date 即回最新交易日／本月；取代了同資料的 OpenAPI 僅最新版）: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
-- **MIS 即時報價** (`mis.twse.com.tw`) — 1 tool: 盤中多股即時報價
+- **MIS** (`mis.twse.com.tw`) — 2 tools: 盤中多股即時報價；ETF 已發行單位數／預估淨值／折溢價（`stock/data/all_etf.txt`，`get_etf_daily_nav`）
 - **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 6 tools: 上櫃日收盤（最新一日；`get_otc_daily` 帶 date 時改用網站 afterTrading/otc，該來源不含定價交易、無均價）、三大法人彙總、注意股、處置股、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 6 tools: 選擇權分析（Delta/OI增減）、保證金、年月統計（這些沒有下載頁對應）
 - **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 6 tools: 上櫃個股日K、三大法人明細、融資融券、本益比/殖利率/淨值比、外資持股排行、除權除息計算結果（預設最新交易日，可查任意過去日期）
 - **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`): 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、重大訊息（t05st01/t05st02 + 全文 *_detail）、董監持股與設質（stapap1）、內部人持股異動（query6_1）、庫藏股（t35sc09）、背書保證與資金貸與（t05st11）、法說會 — 11 tools
 - **TDCC 集保** (`opendata.tdcc.com.tw`、`www.tdcc.com.tw/portal/zh/smWeb/qryStock`) — 1 tool: 集保戶股權分散表（`weeks=1` 最新一週完整級距，走開放資料 CSV；`weeks` 2–13 為逐週大戶／散戶趨勢，走查詢頁）
+- **投信投顧公會 ETF 專區** (`www.sitca.org.tw/ROC/SITCA_ETF/`，`utils/sitca.py`) — 2 tools: `get_etf_info`（所有投信、上市與上櫃 ETF 基本資料；單檔另合併證交所 t187ap47_L 與櫃買 ETF/detail，清單補上 SITCA 沒有的期信／外幣級別代號；取代了 `get_fund_basic_info`）、`get_etf_monthly_stats`（每月規模／淨值／受益人數／申購買回／定期定額，2007 起）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
 - **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
@@ -28,7 +29,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 | Run server (prod) | `uv run fastmcp run server.py` |
 | Run all tests | `uv run pytest` |
 | Run specific test file | `uv run pytest tests/e2e/test_history_api.py -v` |
-| Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `e2e`) |
+| Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `etf`, `e2e`) |
 | Quick test (fail fast) | `python run_tests.py quick` |
 | Tests with coverage | `python run_tests.py cov` (opens HTML report) |
 | Run server directly | `python server.py` (HTTP on port 8000) |
@@ -41,6 +42,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 server.py                     # Thin entrypoint: FastMCP init, prompt registration, tool registration
 utils/
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
+├── sitca.py                  # SITCA ETF zone: month lists, result-grid query by code / 基金統編
 ├── mops.py                   # MOPS helpers: mops_post (JSON API), mops_legacy_post (HTML), titles/HTML-table parsing
 ├── taifex.py                 # TAIFEX helpers: headers, cp950 CSV decode, date ranges, latest-trading-day lookup (fetch_period)
 ├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
@@ -69,6 +71,7 @@ tools/
 ├── mops/                     # MOPS: financial_statements, monthly_revenue, dividend, investor_conference,
                               #   major_news, insiders, treasury_guarantees
 ├── tdcc/                     # TDCC: shareholding_distribution (open data CSV + query page)
+├── etf/                      # info (SITCA + t187ap47_L + TPEx ETF/detail), daily_nav (MIS all_etf.txt), monthly_stats (SITCA)
 ├── macro/                    # ndc_indicators (景氣燈號, PMI), exchange_rates (央行)
 ├── analytics/                # price_tools (adjusted prices, technical indicators), screening (stock screener, industry peers)
 ├── realtime/                 # MIS real-time quotes: stock_info
@@ -135,7 +138,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 **Test files**:
 - `tests/test_api_schemas.py` — parametrized tests that verify fields tools **hardcode with `.get()`** still exist in live API responses. Endpoints are defined in `tests/tool_field_dependencies.py`. Only catches breakage that would silently return "N/A" in a tool.
 - `tests/tool_field_dependencies.py` — the source of truth: maps each TWSE OpenAPI endpoint to the list of field names its tool hardcodes. Edit this file when adding or changing hardcoded field access in a tool.
-- `tests/e2e/test_*.py` — per-category E2E tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
+- `tests/e2e/test_*.py` — per-category E2E tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro, etf). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC, SITCA), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
 - `tests/test_output_limits_unit.py`, `tests/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
 - `tests/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
 
@@ -185,4 +188,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 - **TPEx website** (`tools/otc/history.py`): `www.tpex.org.tw/www/zh-tw/...?response=json` with `date=YYYY/MM/DD`; rows are in `tables[0].data`. `insti/dailyTrade` repeats identical column names for 7 買進/賣出/買賣超 groups — the contract test checks the group order via their sums.
 - **NDC** (`tools/macro/ndc_indicators.py`): `index.ndc.gov.tw` is behind a Cloudflare bot block — don't try to get around it. Use the fixed `ws.ndc.gov.tw/Download.ashx` links from data.gov.tw datasets 6099 (zip of CSVs) and 6100 (PMI CSV); if NDC re-points them the contract tests fail.
 - **CBC** (`tools/macro/exchange_rates.py`): `cpx.cbc.gov.tw/API/DataAPI/Get?FileName=BP01D01`; the file is refreshed about monthly, so the latest weeks may be absent.
+- **SITCA ETF zone** (`utils/sitca.py`): each query page (`etf_info.aspx`, `etf_statement.aspx`) is an ASP.NET form, but its 查詢 button only sets an iframe to a GET result page — read those directly: `etf_info2.aspx` / `etf_statement2.aspx?txtYM=YYYYMM&txtcomid=&txtfund=&txtemcode=<code>,&txtkeyword=&txtR1=1&txtR2=1` (empty `txtemcode` = every ETF). `txtYM` must be in the page's `ddlYM` select. The result grid is nested in a layout table, so parse it by id (`ctl00_ContentPlaceHolder1_GridView1`). Months before ~2024 have `-` in every 證券代號, so a code finds nothing there: resolve the code to its 基金統編 in the newest month and query older months with `txtfund=<統編>,`. Futures-trust ETFs (U and some L/R) and foreign-currency codes (K) are not SITCA funds. Each request takes 2–4 s server-side.
+- **MIS ETF feed** (`tools/etf/daily_nav.py`): `mis.twse.com.tw/stock/data/all_etf.txt` — `a1[]` per issuer, each `msgArray[]` with TWSE's 介接格式 fields a–k (code, name, units, unit change, price, est. NAV, premium %, prior NAV or `未結出`, date, time, type). Issuers send numbers or strings inconsistently.
 - **TDCC query page** (`tools/tdcc/shareholding_distribution.py`): `www.tdcc.com.tw/portal/zh/smWeb/qryStock` has no CAPTCHA, but it is a stateful form: GET the page (sets `JSESSIONID`; hidden `SYNCHRONIZER_TOKEN`, `firDate`, and a `scaDate` list of ~51 weeks newest first), then POST `SYNCHRONIZER_TOKEN`, `SYNCHRONIZER_URI=/portal/zh/smWeb/qryStock`, `method=submit`, `firDate`, `scaDate`, `sqlMethod=StockNo`, `stockNo`, `stockName`. Tokens are single-use and every reply carries the next one, so the tool chains them inside one `requests.Session` (`fetch_bytes(..., session=)`, which also bypasses the response cache) and reloads the page if a reply has none. Unknown code → `查無此資料`. Compared with the open-data CSV (2026-10-02; 2330, 6488, 0050): levels 1–15 and the total are identical; only 差異數調整 differs (page keeps the sign and drops the row when zero), so the trend ignores it. Past weeks are immutable and kept in an in-process cache.
