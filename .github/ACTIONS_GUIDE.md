@@ -82,7 +82,7 @@ python run_tests.py quick
 # 執行所有測試
 python run_tests.py all
 
-# 依類別執行 live 測試（history、realtime、otc、taifex、institutional、mops、macro、e2e）
+# 依類別執行 live 測試（history、realtime、otc、taifex、institutional、mops、macro、etf、e2e）
 python run_tests.py taifex
 
 # 產生 HTML 覆蓋率報告

@@ -39,10 +39,11 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
     # --- statistics.py ---
     "/exchangeReport/MI_5MINS": ["AccAskOrders", "AccAskVolume", "AccBidOrders", "AccBidVolume", "AccTradeValue", "AccTradeVolume", "AccTransaction", "Time"],
 
+    # --- etf/info.py ---
+    # get_etf_info 清單補上 SITCA 沒有的期信／外幣級別 ETF 時讀這些欄位；單檔查詢則逐欄全列。
+    "/opendata/t187ap47_L": ["基金代號", "基金簡稱", "基金類型", "基金中文名稱", "標的指數/追蹤指數名稱", "成立日期"],
+
     # --- other.py ---
-    # get_fund_basic_info 讀基金名稱時有 基金中文名稱 → 基金名稱 → 基金簡稱 的備援鏈，
-    # 目前只有 基金名稱 存在；任一個在就不會顯示 N/A，故名稱欄位不列為必要欄位。
-    "/opendata/t187ap47_L": ["基金代號", "基金類型"],
     "/exchangeReport/BFI61U": ["Code", "Name", "StartingDate"],
     "/holidaySchedule/holidaySchedule": ["Date", "Description", "Name", "Weekday"],
 

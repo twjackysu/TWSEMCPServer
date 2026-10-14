@@ -30,6 +30,8 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 **市場驗證：**
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資偏好的股利股
 - `get_etf_regular_investment_ranking()`：熱門定期定額投資標的
+- `get_etf_info(keyword="高股息")`：高股息 ETF 清單（追蹤指數、配息頻率）
+- `get_etf_monthly_stats(code, months=12)`：高股息 ETF 的規模與受益人數趨勢
 - `get_stock_daily_trading(stock_no=code)`：除權息前後的股價穩定度
 - `get_adjusted_price_history(code, start_month, end_month)`：還原權息日K，計算含息的真實報酬
 
