@@ -1,5 +1,7 @@
 """測試第二批新增 TAIFEX API 工具端點。只驗證 tool 寫死的欄位存在。"""
 
+import pytest
+
 from tests.helpers import fetch_or_skip, records_or_skip
 
 HEADERS = {
@@ -99,8 +101,9 @@ class TestMonthlyTradingStatisticsAPI:
     Brokers-InstutionalInvestors-SecuritiesDealers(Buy/Sell)
     """
 
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("MonthlyTradingStatisticsFutures")
+    @pytest.mark.parametrize("endpoint", ["MonthlyTradingStatisticsFutures", "MonthlyTradingStatisticsOptions"])
+    def test_hardcoded_fields_exist(self, endpoint):
+        data = _fetch(endpoint)
         record = data[0]
         for field in [
             "YYYYMM", "ContactName", "TotalVolume", "MonthEndOpenInterest",

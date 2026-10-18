@@ -7,8 +7,13 @@ tools/taifex/ 的期貨、選擇權行情、三大法人、大額交易人、PCR
 
 import csv
 import io
+import zipfile
 
 import requests
+
+from tests.helpers import fetch_bytes_or_skip, fetch_or_skip, records_or_skip
+from tools.taifex.intraday import TICK_PAGE_URL, TICK_ZIP_BASE, available_days, parse_ticks, session_of
+from utils.taifex import SSF_LISTS_URL, TAIFEX_HEADERS
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -319,3 +324,30 @@ class TestDownloadPageBehaviourToolsRelyOn:
         )
         body = resp.content.decode("cp950", errors="replace").lstrip()
         assert body.startswith("<"), f"非交易日不再回 HTML 頁，最新交易日判斷需要調整: {body[:120]!r}"
+
+
+class TestFuturesTickDownloadAPI:
+    """get_futures_intraday：下載頁列出最近 30 個交易日的 DailydownloadCSV zip，zip 內是一個 cp950 CSV，
+    欄位順序 0=成交日期 1=商品代號 2=到期月份(週別) 3=成交時間(HHMMSS) 4=成交價格 5=成交數量(B+S)."""
+
+    def test_page_lists_zips_and_csv_columns(self):
+        page = fetch_bytes_or_skip(TICK_PAGE_URL, headers=HEADERS, timeout=60).decode("utf-8", errors="replace")
+        days = available_days(page)
+        assert days, "下載頁找不到 DailydownloadCSV/Daily_YYYY_MM_DD.zip 連結"
+        day = days[0]
+        body = fetch_bytes_or_skip(f"{TICK_ZIP_BASE}/Daily_{day[:4]}_{day[4:6]}_{day[6:]}.zip", headers=HEADERS, timeout=120)
+        with zipfile.ZipFile(io.BytesIO(body)) as zf:
+            assert len(zf.namelist()) == 1, f"zip 內不再只有一個檔案: {zf.namelist()}"
+            text = zf.read(zf.namelist()[0]).decode("cp950", errors="replace")
+        ticks = parse_ticks(text, "TX")  # 表頭不符會直接 raise
+        assert ticks, "成交時間／價格／數量欄位無法解析（欄位順序或格式可能已變更）"
+        assert all(0 <= t[2] <= 235959 for t in ticks) and {session_of(t[2]) for t in ticks} <= {"day", "night"}
+
+
+class TestStockFuturesListAPI:
+    """get_daily_futures_market_report／get_futures_intraday 用 openapi SSFLists 把股票代號換成股票期貨契約."""
+
+    def test_hardcoded_fields_exist(self):
+        rows = records_or_skip(fetch_or_skip(SSF_LISTS_URL, headers=TAIFEX_HEADERS, timeout=60), "SSFLists")
+        missing = [f for f in ("Contract", "StockCode", "StockName") if f not in rows[0]]
+        assert not missing, f"SSFLists 欄位已變更，缺少 {missing}"

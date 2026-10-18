@@ -92,29 +92,3 @@ class TestAnnualTradingVolumeAPI:
             "Volume", "NumberOfTradingDays", "AvgDailyTradingVolume",
         ]:
             assert field in record, f"缺少欄位: {field}"
-
-
-class TestMonthlyTradingStatisticsAPI:
-    """Tool get_monthly_trading_statistics 寫死的欄位：
-    YYYYMM, ContactName, TotalVolume, MonthEndOpenInterest,
-    Brokers-Individual(Buy/Sell), ProprietaryTraders(Buy/Sell),
-    Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Buy/Sell),
-    Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Buy/Sell),
-    Brokers-InstutionalInvestors-SecuritiesDealers(Buy/Sell)
-    """
-
-    def test_hardcoded_fields_exist(self):
-        data = _fetch("MonthlyTradingStatisticsFutures")
-        record = data[0]
-        for field in [
-            "YYYYMM", "ContactName", "TotalVolume", "MonthEndOpenInterest",
-            "Brokers-Individual(Buy)", "Brokers-Individual(Sell)",
-            "ProprietaryTraders(Buy)", "ProprietaryTraders(Sell)",
-            "Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Buy)",
-            "Brokers-InstutionalInvestors-SecuritiesInvestmentTrust(Sell)",
-            "Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Buy)",
-            "Brokers-InstutionalInvestors-Foreign&MainlandAreaInstitutionalInvestors(Sell)",
-            "Brokers-InstutionalInvestors-SecuritiesDealers(Buy)",
-            "Brokers-InstutionalInvestors-SecuritiesDealers(Sell)",
-        ]:
-            assert field in record, f"缺少欄位: {field}"

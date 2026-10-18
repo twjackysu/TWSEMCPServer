@@ -150,3 +150,23 @@ def download_form(start_dt: datetime, end_dt: datetime, **extra: str) -> dict:
 def is_contract_code(value: str) -> bool:
     """True for a contract code such as TX / TXF / TXO, False for a Chinese name like 臺股期貨."""
     return value.isascii() and value.replace("_", "").isalnum()
+
+
+# openapi SSFLists: every stock / ETF with stock futures. A stock can have two contracts
+# (standard and 小型, e.g. 2330 → CDF and QFF). Changes only when TAIFEX adds underlyings.
+SSF_LISTS_URL = "https://openapi.taifex.com.tw/v1/SSFLists"
+SSF_LISTS_CACHE_TTL = 6 * 3600
+
+
+def is_stock_code(value: str) -> bool:
+    """True for a stock / ETF code (2330, 0050, 00878), which never starts with a letter."""
+    return value[:1].isdigit()
+
+
+def stock_futures_contracts(client, stock_code: str) -> List[Tuple[str, str]]:
+    """(contract, stock name) of every stock-futures contract on ``stock_code``."""
+    rows = client.fetch_json(SSF_LISTS_URL, headers=TAIFEX_HEADERS, cache_ttl=SSF_LISTS_CACHE_TTL)
+    if not isinstance(rows, list):
+        raise ValueError(f"SSFLists 回傳格式已變更: {str(rows)[:120]}")
+    return [(r["Contract"].strip(), r.get("StockName", "").strip())
+            for r in rows if str(r.get("StockCode", "")).strip() == stock_code]
