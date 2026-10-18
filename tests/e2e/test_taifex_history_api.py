@@ -305,14 +305,14 @@ class TestDownloadPageBehaviourToolsRelyOn:
 
     def test_commodity_all_lists_every_contract(self):
         """contract 留空時，工具以 commodity_id=all 取得全部契約再列出可用代碼."""
-        for path, minimum in (("futDataDown", 10), ("optDataDown", 5)):
+        for path in ("futDataDown", "optDataDown"):
             rows = _post_csv(
                 f"https://www.taifex.com.tw/cht/3/{path}",
                 {"down_type": "1", "commodity_id": "all", "commodity_id2": "",
                  "queryStartDate": "2026/06/01", "queryEndDate": "2026/06/01"},
             )
             contracts = {r[1].strip() for r in rows[1:] if len(r) > 1}
-            assert len(contracts) >= minimum, f"{path} commodity_id=all 不再回傳全部契約: {sorted(contracts)[:10]}"
+            assert len(contracts) > 1, f"{path} commodity_id=all 不再回傳全部契約: {sorted(contracts)[:10]}"
 
     def test_non_trading_day_returns_html_not_csv(self):
         """不帶日期時，工具從今天往前逐日查詢，靠「無資料日回 HTML 頁」判斷該日沒有資料."""

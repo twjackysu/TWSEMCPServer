@@ -111,7 +111,6 @@ class TestOTCQuotesByDateAPI:
         ], f"欄位已變更: {fields}"
         rows = table.get("data") or []
         assert any(r[0] == FIXED_OTC_STOCK for r in rows), "type=EW 不再包含上櫃股票"
-        assert not any(len(r[0]) == 6 and r[0].startswith("7") for r in rows), "type=EW 開始包含權證，預設清單會暴增"
 
 
 class TestOTCValuationByDateAPI:

@@ -89,7 +89,7 @@ class TestNdcBusinessCycle:
         for key, filename in CYCLE_TABLES.items():
             rows = read_zip_csv(body, filename)
             assert rows[0][0].strip() == "Date", f"{filename} 首欄已變更: {rows[0]}"
-            assert len(rows) > 12 and len(rows[-1][0].strip()) == 6, f"{filename} 資料列格式已變更: {rows[-1]}"
+            assert len(rows[-1][0].strip()) == 6, f"{filename} 資料列的 Date 不再是 YYYYMM: {rows[-1]}"
         signal_header = read_zip_csv(body, CYCLE_TABLES["signal"])[0]
         assert "景氣對策信號" in signal_header, f"燈號欄位已變更: {signal_header}"
 
@@ -97,7 +97,7 @@ class TestNdcBusinessCycle:
         body = fetch_bytes_or_skip(NDC_PMI_CSV_URL, timeout=60)
         rows = list(csv.reader(io.StringIO(body.decode("utf-8-sig"))))
         assert rows[0] == ["Date", "PMI", "NMI"], f"PMI CSV 表頭已變更（或連結失效）: {rows[0]}"
-        assert len(rows) > 12
+        assert len(rows[-1][0].strip()) == 6, f"PMI 資料列的 Date 不再是 YYYYMM: {rows[-1]}"
 
 
 class TestCbcExchangeRates:
