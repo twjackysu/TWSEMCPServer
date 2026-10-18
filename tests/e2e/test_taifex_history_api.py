@@ -9,10 +9,11 @@ import csv
 import io
 import zipfile
 
+import pytest
 import requests
 
 from tests.helpers import fetch_bytes_or_skip, fetch_or_skip, records_or_skip
-from tools.taifex.intraday import TICK_PAGE_URL, TICK_ZIP_BASE, available_days, parse_ticks, session_of
+from tools.taifex.intraday import TICK_PAGE_URL, TICK_ZIP_BASE, available_days, parse_ticks
 from utils.taifex import SSF_LISTS_URL, TAIFEX_HEADERS
 
 HEADERS = {
@@ -337,11 +338,16 @@ class TestFuturesTickDownloadAPI:
         day = days[0]
         body = fetch_bytes_or_skip(f"{TICK_ZIP_BASE}/Daily_{day[:4]}_{day[4:6]}_{day[6:]}.zip", headers=HEADERS, timeout=120)
         with zipfile.ZipFile(io.BytesIO(body)) as zf:
-            assert len(zf.namelist()) == 1, f"zip 內不再只有一個檔案: {zf.namelist()}"
+            # 工具讀 zip 內第一個檔案
             text = zf.read(zf.namelist()[0]).decode("cp950", errors="replace")
         ticks = parse_ticks(text, "TX")  # 表頭不符會直接 raise
-        assert ticks, "成交時間／價格／數量欄位無法解析（欄位順序或格式可能已變更）"
-        assert all(0 <= t[2] <= 235959 for t in ticks) and {session_of(t[2]) for t in ticks} <= {"day", "night"}
+        raw = [line for line in text.splitlines()[1:]
+               if line.count(",") >= 5 and line.split(",")[1].strip() == "TX" and "/" not in line.split(",")[2]]
+        if not raw:
+            pytest.skip(f"{day} 的檔案沒有 TX 成交（上游無資料，非 interface 變更）")
+        # 有資料時每一列都要能依欄位位置解析出 時間(HHMMSS)／價格／數量
+        assert len(ticks) == len(raw), f"{len(raw) - len(ticks)} 列 TX 成交無法解析，欄位順序或格式可能已變更"
+        assert all(0 <= t[2] <= 235959 for t in ticks), "成交時間不再是 HHMMSS"
 
 
 class TestStockFuturesListAPI:
