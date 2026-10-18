@@ -19,6 +19,8 @@ from utils.taifex import (
     decode_and_parse_csv,
     download_form,
     fetch_period,
+    is_stock_code,
+    stock_futures_contracts,
 )
 
 FUT_DATA_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/futDataDown"
@@ -81,9 +83,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢期貨每日交易行情（開高低收、漲跌、成交量、結算價、未平倉量、最後最佳買賣價）：
         預設最新交易日，也可指定任意過去區間（最長一個月，資料可回溯至 2020 年以前）。
         常用契約代碼：TX（臺股期貨）、MTX（小型臺指）、TE（電子期貨）、TF（金融期貨）。
+        也可直接填股票／ETF 代號（例如 "2330"、"0050"），會列出該標的所有股票期貨契約
+        （標準型與小型，例如台積電 CDF、QFF）。
 
         Args:
-            contract: 期貨契約代碼，預設 TX。留空則列出所有可用契約代碼
+            contract: 期貨契約代碼，預設 TX；或股票／ETF 代號。留空則列出所有可用契約代碼
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
 
@@ -94,21 +98,35 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not contract:
             return _list_contracts(FUT_DATA_DOWN_URL, "期貨", start_date, end_date)
 
-        parsed, label, error = fetch_period(_download(FUT_DATA_DOWN_URL, contract), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
-        if error:
-            return error
-        if parsed is None:
+        title, contracts = contract, [contract]
+        if is_stock_code(contract):
+            matches = stock_futures_contracts(_client, contract)
+            if not matches:
+                return f"{contract} 沒有股票期貨（股票期貨標的清單中查無此代號）"
+            contracts = [c for c, _name in matches]
+            title = f"{contract} {matches[0][1]} 股票期貨（{'、'.join(contracts)}）"
+
+        all_rows, label = [], ""
+        for code in contracts:
+            parsed, label, error = fetch_period(_download(FUT_DATA_DOWN_URL, code), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
+            if error:
+                return error
+            if parsed is not None:
+                all_rows.extend(parsed[1])
+        if not all_rows:
             return f"查無契約 {contract} 在 {label} 的行情資料，請確認契約代碼（留空 contract 可列出可用代碼）"
 
         # r: 交易日期,契約,到期月份(週別),開盤價,最高價,最低價,收盤價,漲跌價,漲跌%,成交量,結算價,
         #    未沖銷契約數,最後最佳買價,最後最佳賣價,歷史最高價,歷史最低價,是否因訊息面暫停交易,交易時段,...
         # 價差組合（到期月份含 "/"）多半整天無成交，只保留有成交的
-        rows = [r for r in parsed[1] if "/" not in r[2] or not _is_zero(r[9])]
+        rows = [r for r in all_rows if "/" not in r[2] or not _is_zero(r[9])]
         total = len(rows)
         shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date")
-        lines = [f"【期貨每日交易行情】{contract} | {label}（共 {total} 筆{cap_note}）\n"]
+        lines = [f"【期貨每日交易行情】{title} | {label}（共 {total} 筆{cap_note}）\n"]
         for r in shown:
             date, month, session = r[0], r[2].strip(), r[17]
+            if len(contracts) > 1:
+                month = f"{r[1].strip()} {month}"
             o, h, l, c, change, pct = r[3], r[4], r[5], r[6], r[7], r[8]
             vol, settle, oi, bid, ask = r[9], r[10], r[11], r[12], r[13]
             lines.append(

@@ -65,8 +65,9 @@ Cross-checks disposal/warning/day-trading-restriction/margin-restriction lists
 ### Futures / Institutional Historical Lookback
 openapi.taifex.com.tw only ever returns the latest trading day. This project reads TAIFEX's
 own website download pages (`www.taifex.com.tw`) instead: the latest trading day by default,
-or any past period — futures/options daily market reports, 三大法人 positions, large-trader OI
-> *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?"*
+or any past period — futures/options daily market reports, 三大法人 positions, large-trader OI;
+a stock code finds its stock futures; intraday futures bars for the last 30 trading days (built from every trade, night session included)
+> *"Pull me a month of daily OHLC for TX futures" / "How has the foreign futures position changed over the last quarter?" / "How did TX trade intraday last Friday?"*
 
 ### Multi-Period Financials, Revenue & Dividends
 Financial statements, monthly revenue and dividends come from MOPS (公開資訊觀測站) for listed,
@@ -144,7 +145,7 @@ uv sync && uv run fastmcp dev server.py
 | [MIS Real-time Quotes](https://mis.twse.com.tw) | Intraday real-time multi-stock quotes (listed + OTC); ETF units outstanding and estimated NAV / premium-discount disclosure | 2 |
 | [TPEx OpenAPI](https://www.tpex.org.tw/openapi) | TPEx OTC market — daily close (latest day; past dates come from the website), institutional investors summary, warning/disposal stocks, odd-lot, index | 6 |
 | [TAIFEX OpenAPI](https://openapi.taifex.com.tw) | TAIFEX derivatives — options analytics (delta / OI change), margin, statistics | 6 |
-| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own data-download pages — futures / options daily market reports, 三大法人 (futures/options split, totals, by contract, calls/puts), futures and options large-trader OI, Put/Call Ratio (latest trading day by default, any past period on request; openapi.taifex.com.tw only returns the latest day) | 10 |
+| [TAIFEX website downloads](https://www.taifex.com.tw) | TAIFEX's own data-download pages — futures / options daily market reports, 三大法人 (futures/options split, totals, by contract, calls/puts), futures and options large-trader OI, Put/Call Ratio (latest trading day by default, any past period on request; openapi.taifex.com.tw only returns the latest day), intraday futures minute bars (every trade, last 30 trading days) | 11 |
 | [MOPS](https://mops.twse.com.tw) | Market Observation Post System — income statement / balance sheet / cash-flow statement, monthly revenue, dividends (latest by default, any past period on request; listed, OTC, emerging and public companies), material information with full text, directors' holdings and pledges, insiders' monthly holding changes, treasury-stock buybacks, endorsements/guarantees and fund lending, investor conferences | 11 |
 | [TPEx website](https://www.tpex.org.tw) | TPEx website JSON — OTC per-stock daily OHLC, 三大法人, margin balances, P/E / yield / P/B, foreign-holding ranking, ex-rights/dividend results (latest trading day by default, or any past date) | 6 |
 | [SITCA ETF zone](https://www.sitca.org.tw/ROC/SITCA_ETF/index.html) | Every issuer's ETF basic info (merged with TWSE fund basics and TPEx ETF specs), monthly scale / NAV / holders / creations-redemptions / regular investment (since 2007), fund holdings (monthly top 10, quarterly >1% of NAV) | 3 |
