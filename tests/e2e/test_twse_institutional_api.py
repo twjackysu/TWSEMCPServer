@@ -40,3 +40,26 @@ class TestT86API:
         tsmc = next((r for r in t86_data["data"] if len(r) == 19 and r[0] == FIXED_STOCK), None)
         assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 可能已不再是股票代號"
         int(tsmc[18].replace(",", ""))  # 拋出 ValueError 即代表欄位位移
+
+
+class TestT86SelectType:
+    """get_twse_institutional_investors_summary 的 category 直接對應 selectType：預設 ALLBUT0999（不含權證），
+    etf＝0099P，產業代碼原樣傳入；category="stock" 從 ALLBUT0999 去掉 00 開頭代號，依賴「ETF 皆為 00 開頭」."""
+
+    @staticmethod
+    def _codes(select_type: str) -> set:
+        resp = fetch_or_skip(T86_URL, params={"response": "json", "date": FIXED_DATE, "selectType": select_type})
+        assert resp.get("stat") == "OK", f"selectType={select_type} 不再被接受: {resp.get('stat')}"
+        return {row[0].strip() for row in resp.get("data") or []}
+
+    def test_select_types_filter(self):
+        everything, no_warrants = self._codes("ALL"), self._codes("ALLBUT0999")
+        assert no_warrants < everything, "ALLBUT0999 不再是 ALL 的子集（排除權證的篩選失效）"
+        semiconductor = self._codes("24")
+        assert semiconductor and semiconductor < no_warrants, "產業代碼 selectType 不再篩選"
+
+    def test_etf_codes_are_exactly_the_00_prefixed_rows(self):
+        etf, no_warrants = self._codes("0099P"), self._codes("ALLBUT0999")
+        assert etf and etf == {c for c in no_warrants if c.startswith("00")}, (
+            "ETF 與 00 開頭代號不再一一對應，category=stock 的排除規則需要調整"
+        )

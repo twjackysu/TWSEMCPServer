@@ -1,0 +1,49 @@
+"""Shared ranking / display helpers for the 三大法人 (institutional investor) tools.
+
+Used by the listed (TWSE T86 / BFI82U) and OTC (TPEx insti/dailyTrade / insti/summary) tools
+so that both markets take the same sort_by / side / category / period values.
+"""
+
+from datetime import datetime, timedelta
+from typing import Callable, Dict, List, Optional, Sequence, TypeVar
+
+Row = TypeVar("Row")
+
+SORT_LABELS = {"total": "三大法人合計", "foreign": "外資", "trust": "投信", "dealer": "自營商"}
+SIDES = {"abs": "買賣超絕對值", "buy": "買超", "sell": "賣超"}
+PERIODS = {"day": "日", "week": "週", "month": "月"}
+
+
+def to_int(value) -> int:
+    try:
+        return int(str(value).replace(",", "").strip())
+    except ValueError:
+        return 0
+
+
+def check_choice(name: str, value: str, choices: Dict[str, str]) -> Optional[str]:
+    """Error message when ``value`` is not one of ``choices``, else None."""
+    if value in choices:
+        return None
+    return f"{name} 必須是 {'、'.join(f'{k}（{v}）' for k, v in choices.items())} 其中之一"
+
+
+def rank(rows: Sequence[Row], value: Callable[[Row], int], side: str) -> List[Row]:
+    """Rows ordered by ``value``: largest net buy first, largest net sell first, or by |value|.
+
+    ``buy`` / ``sell`` keep only rows on that side, so a 買超 ranking never shows sellers.
+    """
+    if side == "buy":
+        return sorted((r for r in rows if value(r) > 0), key=value, reverse=True)
+    if side == "sell":
+        return sorted((r for r in rows if value(r) < 0), key=value)
+    return sorted((r for r in rows if value(r) != 0), key=lambda r: abs(value(r)), reverse=True)
+
+
+def yi(amount_text: str) -> str:
+    """"-68,513,664,272" (元) → "-685.14 億"."""
+    return f"{to_int(amount_text) / 1e8:,.2f} 億"
+
+
+def week_start(day: datetime) -> datetime:
+    return day - timedelta(days=day.weekday())
