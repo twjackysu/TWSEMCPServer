@@ -2,12 +2,12 @@
 
 ## 自動化測試工作流程
 
-`.github/workflows/api-tests.yml`（「TWSE API E2E Tests」）每天定時、也可手動執行完整的 live 測試，
+`.github/workflows/api-tests.yml`（「API Contract Tests」）每天定時、也可手動執行完整的 live 測試，
 用來偵測 TWSE／TPEx／TAIFEX／MOPS 等第三方 API 的介面是否有變化。它不會在 push 或 Pull Request 時觸發。
 
 測試分兩類（細節見 `CLAUDE.md` 的 Testing 章節）：
-- **Live contract tests**（`tests/e2e/`、`tests/test_api_schemas.py`）：打真實的第三方 API，只驗證介面契約。
-- **Offline unit tests**（其餘 `tests/test_*.py`）：用假資料測我們自己的邏輯，不打網路。
+- **Live contract tests**（`tests/contract/`）：打真實的第三方 API，只驗證介面契約。
+- **Offline unit tests**（`tests/unit/`）：用假資料測我們自己的邏輯，不打網路。
 
 ## 觸發方式
 
@@ -22,7 +22,7 @@ schedule:
 ### 2. 手動觸發
 
 1. 進入 GitHub 專案頁面的 "Actions" 標籤
-2. 選擇 "TWSE API E2E Tests" workflow
+2. 選擇 "API Contract Tests" workflow
 3. 點擊右側的 "Run workflow"
 4. 選擇測試範圍，再點 "Run workflow" 確認
 
@@ -30,11 +30,8 @@ schedule:
 
 | 選項 | 執行的測試 |
 |------|-----------|
-| all（預設） | `pytest tests/`（全部，含 `--cov` 終端機覆蓋率報告、失敗自動重跑 2 次） |
-| history | `tests/e2e/test_history_api.py` |
-| realtime | `tests/e2e/test_realtime_api.py` |
-| otc | `tests/e2e/test_otc_api.py` |
-| taifex | `tests/e2e/test_taifex_api.py`、`test_taifex_new_api.py`、`test_taifex_batch2_api.py` |
+| all（預設） | `pytest tests/`（contract test 與離線單元測試全部，含 `--cov` 終端機覆蓋率報告、失敗自動重跑 2 次） |
+| history、realtime、otc、taifex、institutional、mops、macro、etf | `python run_tests.py <選項>`，執行該類別的 contract test（各類別對應的檔案見 `run_tests.py`） |
 
 ## 測試結果處理
 
@@ -48,7 +45,7 @@ schedule:
 定時或手動執行失敗時，會：
 
 1. **自動建立 Issue**
-   - 標題：⚠️ TWSE API Schema Change Detected
+   - 標題：⚠️ Third-party API Contract Test Failed（成功後自動關閉時，也會關閉舊標題「TWSE API Schema Change Detected」的 issue）
    - 標籤：`api-change`、`bug`、`automated`
    - 內容：失敗原因的可能方向、測試日誌連結、建議的處理步驟
 2. **避免重複 Issue**：如果已有相同的開啟中 issue，改為新增評論
@@ -82,7 +79,7 @@ python run_tests.py quick
 # 執行所有測試
 python run_tests.py all
 
-# 依類別執行 live 測試（history、realtime、otc、taifex、institutional、mops、macro、etf、e2e）
+# 依類別執行 contract test（history、realtime、otc、taifex、institutional、mops、macro、etf；contract＝全部 contract test）
 python run_tests.py taifex
 
 # 產生 HTML 覆蓋率報告

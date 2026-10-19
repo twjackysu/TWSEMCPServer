@@ -5,12 +5,12 @@ present in live API responses.  Extra fields added by TWSE are ignored — only
 missing required fields cause a failure, because that means a tool will silently
 return "N/A" instead of real data.
 
-To add a new endpoint: edit tests/tool_field_dependencies.py.
+To add a new endpoint: edit tests/contract/tool_field_dependencies.py.
 """
 
 import pytest
 from utils import TWSEAPIClient
-from tests.tool_field_dependencies import TOOL_REQUIRED_FIELDS
+from tests.contract.tool_field_dependencies import TOOL_REQUIRED_FIELDS
 
 
 @pytest.mark.parametrize("endpoint", sorted(TOOL_REQUIRED_FIELDS.keys()))

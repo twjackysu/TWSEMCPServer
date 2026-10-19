@@ -1,6 +1,6 @@
 """三大法人工具的離線測試：排行方向、範圍篩選、週資料的交易日回退、櫃買彙總的參數對應。
 
-上游介面由 tests/e2e/test_twse_institutional_api.py、test_history_tier1_api.py、test_otc_history_api.py 驗證。
+上游介面由 tests/contract/test_twse_institutional_api.py、test_history_tier1_api.py、test_otc_history_api.py 驗證。
 """
 
 import pytest

@@ -1,6 +1,6 @@
 """ETF 工具的離線測試（不打網路）：篩選、合併來源、排序、逐月查詢的參數與格式。
 
-上游介面由 tests/e2e/test_etf_api.py 驗證。
+上游介面由 tests/contract/test_etf_api.py 驗證。
 """
 
 import pytest

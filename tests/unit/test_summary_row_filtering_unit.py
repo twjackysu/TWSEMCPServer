@@ -9,7 +9,7 @@ TWSE 的 BFIAUU / TWT93U / TWTASU 都在 data 陣列末尾附一列全市場加�
 MIS 則是對前綴錯誤或不存在的代號回傳佔位物件 {"c": "", "z": "-", ...}，
 留著會讓筆數灌水，並讓「查無報價」的訊息永遠不可達。
 
-上游「仍然附彙總列」屬於 interface 契約，由 tests/e2e/test_history_tier2_api.py 驗證。
+上游「仍然附彙總列」屬於 interface 契約，由 tests/contract/test_history_tier2_api.py 驗證。
 """
 
 import pytest

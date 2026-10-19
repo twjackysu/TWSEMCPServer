@@ -150,7 +150,7 @@ def format_list_response(
         # offset 已經翻過最後一筆。原本仍照常組表頭，輸出會變成「共有 2 筆…（顯示第
         # 101–2 筆）」這種不可能的區間後面接零列資料，呼叫端無從分辨是自己翻過頭還是
         # 工具壞掉。tools/history/margin_balance.py 與 bwibbu_all.py 兩支手寫分頁的工具
-        # 早就會講清楚（tests/e2e/test_output_limits.py 有斷言），這裡補上同樣的行為。
+        # 早就會講清楚（tests/unit/test_output_limits_unit.py 有斷言），這裡補上同樣的行為。
         return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=data_type, count=total)
 
     page_data = data[offset:offset + limit]

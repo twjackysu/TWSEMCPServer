@@ -1,6 +1,6 @@
 """上櫃歷史、證交所除權息/當沖/指數、集保股權分散、國發會與央行工具的單元測試（不打網路）。
 
-上游欄位結構由 tests/e2e/test_otc_history_api.py、test_history_tier3_api.py、
+上游欄位結構由 tests/contract/test_otc_history_api.py、test_history_tier3_api.py、
 test_tdcc_macro_api.py 驗證；這裡只測篩選、欄位對應、彙總計算與參數處理。
 """
 

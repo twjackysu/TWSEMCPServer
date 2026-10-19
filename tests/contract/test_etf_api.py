@@ -7,7 +7,7 @@
 - TPEx website ETF/list and ETF/detail (form POST, JSON).
 - SITCA 基金投資明細 IN2629 (monthly top 10) / IN2630 (quarterly >1%): period postback + query by
   class, result columns read by name, and fund names that join with the ETF zone's names.
-t187ap47_L fields are covered by tests/test_api_schemas.py via tool_field_dependencies.py.
+t187ap47_L fields are covered by tests/contract/test_api_schemas.py via tool_field_dependencies.py.
 """
 
 import json

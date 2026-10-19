@@ -3,7 +3,7 @@
 index.ndc.gov.tw sits behind a Cloudflare bot block, so these read the files NDC itself
 publishes on data.gov.tw instead (dataset 6099 景氣指標及燈號, dataset 6100 PMI). The
 download links are fixed ws.ndc.gov.tw URLs taken from those dataset pages;
-tests/e2e/test_macro_api.py fails if NDC ever re-points them.
+tests/contract/test_tdcc_macro_api.py fails if NDC ever re-points them.
 """
 
 import csv

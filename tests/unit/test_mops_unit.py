@@ -1,6 +1,6 @@
 """utils/mops.py 與 tools/mops/ 的單元測試（不打網路）。
 
-MOPS 的欄位結構由 tests/e2e/test_mops_api.py 驗證；這裡只測我們自己的邏輯：
+MOPS 的欄位結構由 tests/contract/test_mops_api.py 驗證；這裡只測我們自己的邏輯：
 回應碼判讀、表頭攤平、HTML 表格解析、月份/年度參數處理、依欄名查找欄位。
 """
 

@@ -1,6 +1,6 @@
 """utils/taifex.py 與改用下載頁的 TAIFEX 工具之單元測試（不打網路）。
 
-下載頁的欄位順序與行為由 tests/e2e/test_taifex_history_api.py 驗證；這裡測我們自己的邏輯：
+下載頁的欄位順序與行為由 tests/contract/test_taifex_history_api.py 驗證；這裡測我們自己的邏輯：
 最新交易日往回找、HTML／空白列處理、cp950 解碼、契約代碼與中文名稱的篩選、價差列與成交量排序、
 大額交易人月份標籤。
 """

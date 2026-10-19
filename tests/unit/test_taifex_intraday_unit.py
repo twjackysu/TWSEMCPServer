@@ -1,6 +1,6 @@
 """期貨盤中走勢、股票代號轉股票期貨、選擇權月統計的離線測試（不打網路）。
 
-上游介面由 tests/e2e/test_taifex_history_api.py、test_taifex_batch2_api.py 驗證。
+上游介面由 tests/contract/test_taifex_history_api.py、test_taifex_batch2_api.py 驗證。
 """
 
 import io

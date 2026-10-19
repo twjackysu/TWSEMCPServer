@@ -15,7 +15,7 @@ from utils.mops import mops_post
 MAX_MONTHS = 12
 
 # data 的第一組 [項目, 值] 是當月營收；月增率由相鄰月份的這個值算出。
-# tests/e2e/test_mops_api.py 驗證此標籤仍存在。
+# tests/contract/test_mops_api.py 驗證此標籤仍存在。
 CURRENT_MONTH_LABEL = "本月"
 
 
