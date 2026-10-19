@@ -14,7 +14,7 @@ from utils.mops import mops_post, leaf_titles, to_roc_year
 MAX_YEARS = 10
 
 # Leaf column names the tool prints, looked up by name rather than position.
-# tests/e2e/test_mops_api.py asserts they are still present.
+# tests/contract/test_mops_api.py asserts they are still present.
 KEY_COLUMNS = [
     "決議（擬議）進度",
     "股利所屬年（季）度",

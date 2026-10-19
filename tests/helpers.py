@@ -1,4 +1,4 @@
-"""Shared test helpers for e2e API tests."""
+"""Shared test helpers for the live contract tests (tests/contract/) and offline unit tests."""
 
 import json
 import pytest
