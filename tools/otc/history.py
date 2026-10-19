@@ -6,14 +6,20 @@ The website's own endpoints (``/www/zh-tw/...?response=json``) return the latest
 coverage TWSE stocks get from tools/history/.
 """
 
+import re
 from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
+from utils.institutional import SIDES, SORT_LABELS, check_choice, rank, to_int
 
 TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
 TRADING_STOCK_URL = f"{TPEX_WWW}/afterTrading/tradingStock"
 INSTI_DAILY_URL = f"{TPEX_WWW}/insti/dailyTrade"
+# insti/dailyTrade sect: EW 不含權證、牛熊證；EE 上櫃 ETF；AL 所有證券；或兩碼產業代碼
+OTC_SECTS = {"": "EW", "stock": "EW", "etf": "EE", "all": "AL"}  # stock = EW minus 00-prefixed ETFs
+# Net-share columns: 外資及陸資合計, 投信, 自營商合計, 三大法人合計
+OTC_NET_COLUMNS = {"foreign": 10, "trust": 13, "dealer": 22, "total": 23}
 MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
 
 
@@ -94,34 +100,54 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_institutional(date: str = "", stock_no: str = "", name: str = "",
+    def get_otc_institutional(date: str = "", stock_no: str = "", name: str = "", category: str = "",
+                              sort_by: str = "total", side: str = "abs",
                               limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
-        """查詢上櫃股票三大法人買賣超明細：預設最新交易日，也可回溯任意過去交易日。
-        上市股票請改用 get_twse_institutional_investors_by_stock；上櫃市場彙總請用
+        """查詢上櫃個股三大法人買賣超（單位：股）：可查單一股票，或做排行（例如上櫃外資買超前 20 名）。
+        預設最新交易日，可查任意過去交易日；預設排除權證與牛熊證。
+        上市股票請改用 get_twse_institutional_investors_summary（排行）或
+        get_twse_institutional_investors_by_stock（單一個股）；上櫃市場整體的法人買賣金額請用
         get_otc_institutional_summary。
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
-            stock_no: 股票代號（選填）
+            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            stock_no: 股票代號（選填，指定時只回傳該股）
             name: 股票名稱關鍵字（選填）
+            category: 範圍（選填）：留空＝不含權證、牛熊證（含 ETF，債券 ETF 常佔外資買賣超前幾名）；
+                "stock"＝再排除 ETF；"etf"＝只看上櫃 ETF；"all"＝含權證；或產業代碼，例如 "24"（半導體業）
+            sort_by: 依誰的買賣超排序：total（三大法人合計，預設）、foreign（外資，含外資自營商）、
+                trust（投信）、dealer（自營商）
+            side: buy（只列買超，由大到小）、sell（只列賣超，由大到小）、abs（依絕對值混排，預設）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
 
         Returns:
-            每支股票的外資（不含外資自營商）、外資自營商、投信、自營商（自行買賣／避險）
+            每支股票的外資（不含外資自營商、外資自營商）、投信、自營商（自行買賣／避險）
             買賣超股數與三大法人合計
         """
+        error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
+        if error:
+            return error
+        sect = OTC_SECTS.get(category.strip().lower())
+        if sect is None:
+            sect = category.strip().upper() if re.fullmatch(r"[0-9A-Za-z]{2}", category.strip()) else None
+        if sect is None:
+            return "category 必須留空，或是 stock、etf、all、產業代碼（例如 24）"
         params = date_params(date)
         if params is None:
             return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\""
         resp = _client.fetch_json(
-            INSTI_DAILY_URL, params={"type": "Daily", "sect": "EW", **params, "response": "json"}
+            INSTI_DAILY_URL, params={"type": "Daily", "sect": sect, **params, "response": "json"}
         )
         rows = first_table(resp).get("data") or []
         if not rows:
-            return f"查無 {date or '最新交易日'} 的上櫃三大法人資料，請確認該日期為交易日（非假日或週末）"
+            return f"查無 {date or '最新交易日'} 的上櫃三大法人資料，請確認該日期為交易日（非假日或週末）及 category"
         day = resp_date(resp, date)
         rows = filter_rows(rows, stock_no, name)
+        if category.strip().lower() == "stock":
+            rows = [r for r in rows if not r[0].strip().startswith("00")]
+        if not stock_no:
+            rows = rank(rows, lambda r: to_int(r[OTC_NET_COLUMNS[sort_by]]), side)
 
         def fmt(r):
             # r: 代號,名稱, 外資及陸資(不含外資自營商) 買/賣/超 [2:5], 外資自營商 [5:8],
@@ -132,7 +158,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"投信:{r[13]} | 自營商:{r[22]}（自行 {r[16]}，避險 {r[19]}）| 三大法人合計:{r[23]}\n"
             )
 
-        return format_list_response(rows, f" {day} 上櫃三大法人買賣超（單位：股）", fmt, limit, offset)
+        order = "" if stock_no else f"，依{SORT_LABELS[sort_by]}{SIDES[side]}排序"
+        return format_list_response(rows, f" {day} 上櫃三大法人買賣超（單位：股{order}）", fmt, limit, offset)
 
     @mcp.tool
     @handle_api_errors()

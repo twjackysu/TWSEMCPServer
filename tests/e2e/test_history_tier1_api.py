@@ -28,6 +28,17 @@ class TestMarketInstitutionalAmountsAPI:
         assert len(row) >= 4, f"欄位數不足 4，row 結構可能已變更: {row}"
         assert "合計" in [r[0] for r in data], "找不到「合計」列，row[0] 單位名稱欄位可能已變更"
 
+    @pytest.mark.parametrize("params", [
+        # 週資料用該週第一個交易日查詢；2026-04-06（週一）休市，該週從 04-07 開始
+        {"type": "week", "weekDate": "20260407"},
+        {"type": "month", "monthDate": "20260915"},
+    ])
+    def test_week_and_month_periods(self, params):
+        result = fetch_or_skip("https://www.twse.com.tw/rwd/zh/fund/BFI82U", params={"response": "json", **params})
+        assert result.get("stat") == "OK", f"{params} 不再回傳資料: {result.get('stat')}"
+        data = result.get("data", [])
+        assert data and all(len(r) >= 4 for r in data), f"{params} row 結構已變更（tool 讀 row[0]~row[3]）: {data[:1]}"
+
 
 class TestAllStocksDailyCloseAPI:
     """全市場每日收盤行情 - MI_INDEX

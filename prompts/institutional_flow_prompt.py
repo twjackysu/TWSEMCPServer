@@ -13,9 +13,12 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 
 ### 可用工具與用途：
 
-**上市大盤/個股買賣超：**
-- `get_twse_institutional_investors_summary(date, limit=50, offset=0)`：指定日期全上市股票三大法人買賣超日報，date 格式 YYYYMMDD（西元，需為交易日）
-- `get_twse_institutional_investors_by_stock(stock_no, date)`：指定個股在指定日期的三大法人買賣超明細（外資、投信、自營商各別及合計）
+**上市大盤（市場總額）：**
+- `get_market_institutional_amounts_history(date="", period="day")`：上市市場三大法人整體買賣金額（億元）；`period="week"`／`"month"` 看整週或整月累計
+
+**上市個股買賣超：**
+- `get_twse_institutional_investors_summary(date="", category="stock", sort_by="foreign", side="buy", limit=20)`：個股排行（例：外資買超前 20 名）；sort_by 可為 total／foreign／trust／dealer，side 可為 buy／sell／abs
+- `get_twse_institutional_investors_by_stock(stock_no, date="")`：指定個股的三大法人買賣超明細（外資、投信、自營商各別及合計）
 
 **外資持股結構：**
 - `get_foreign_holdings(sort_by="ratio", limit=20)`：外資持股比率前 20 大公司
@@ -25,8 +28,8 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 - `get_company_insider_holding_changes(code)`：董監、經理人本月持股增減
 
 **上櫃三大法人：**
-- `get_otc_institutional(date="", stock_no="", name="", limit=50, offset=0)`：上櫃三大法人買賣超，date 留空＝最新交易日，stock_no 留空查全部
-- `get_otc_institutional_summary()`：上櫃三大法人買賣超總表
+- `get_otc_institutional(date="", stock_no="", category="stock", sort_by="foreign", side="buy", limit=20)`：上櫃個股三大法人買賣超排行；指定 stock_no 查單一個股
+- `get_otc_institutional_summary(date="", period="day")`：上櫃市場三大法人整體買賣金額（億元），可看週／月累計
 
 **期貨法人連動（輔助判斷現貨期貨是否同向）：**
 - `get_futures_institutional()`：三大法人期貨交易與未平倉部位
@@ -34,16 +37,16 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 ### 分析目標：
 
 **1. 大盤整體（target="market"）：**
-呼叫 `get_twse_institutional_investors_summary(date)`，依實際回傳資料找出買超/賣超前幾大個股，並觀察外資、投信、自營商是否同向。
+先呼叫 `get_market_institutional_amounts_history()` 取得外資、投信、自營商的整體買賣金額，再用 `get_twse_institutional_investors_summary(category="stock", sort_by="foreign", side="buy")` 與 `side="sell"` 找出外資買超／賣超前幾大個股，並觀察三大法人是否同向。
 
 **2. 個股籌碼（target="stock"，需提供 stock_symbol）：**
-呼叫 `get_twse_institutional_investors_by_stock(stock_symbol, date)`，依實際回傳資料分析該股近期法人買賣超趨勢；可搭配 `get_foreign_holdings(sort_by="ratio", limit=20)` 確認是否列入外資集中持股。
+呼叫 `get_twse_institutional_investors_by_stock(stock_symbol)`（可帶 date 回看前幾個交易日），依實際回傳資料分析該股近期法人買賣超趨勢；可搭配 `get_foreign_holdings(sort_by="ratio", limit=20)` 確認是否列入外資集中持股。
 
 **3. 外資產業配置（target="foreign_focus"）：**
 呼叫 `get_foreign_holdings(sort_by="ratio", limit=20)` 與 `get_foreign_investment_by_industry()`，依實際回傳資料分析外資的產業偏好與集中度變化。
 
 **4. 上櫃市場（target="otc"）：**
-呼叫 `get_otc_institutional_summary()` 與 `get_otc_institutional(stock_no)`，依實際回傳資料分析上櫃三大法人動向。
+呼叫 `get_otc_institutional_summary()` 與 `get_otc_institutional(category="stock", sort_by="foreign", side="buy")`，依實際回傳資料分析上櫃三大法人動向。
 
 ### 分析流程：
 
@@ -62,7 +65,7 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 ### 輸出格式骨架（僅示意結構，不含真實數字）：
 
 **📊 法人買賣超總覽：**
-- 外資：[依工具回傳]股 | 投信：[依工具回傳]股 | 自營商：[依工具回傳]股
+- 外資：[依工具回傳]億元 | 投信：[依工具回傳]億元 | 自營商：[依工具回傳]億元
 
 **🏆 買超/賣超焦點（依工具實際回傳資料填寫）：**
 1. **[公司名稱]（[代號]）**：買賣超股數、法人動向解讀

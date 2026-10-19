@@ -77,17 +77,3 @@ class TestOTCIndexAPI:
             f"tpex_index removed fields that get_otc_index uses.\n"
             f"Missing: {missing}\nActual fields: {sorted(first.keys())}"
         )
-
-
-class TestOTCInstitutionalSummaryAPI:
-    """Tool get_otc_institutional_summary 顯示三大法人彙總買賣超。"""
-
-    def test_hardcoded_fields_exist(self):
-        result = records_or_skip(fetch_or_skip(f"{TPEX_BASE}/tpex_3insti_summary"), "tpex_3insti_summary")
-        first = result[0]
-        required = ["Date", "Investor", "PurchaseAmount", "SaleAmount", "Net"]
-        missing = [f for f in required if f not in first]
-        assert not missing, (
-            f"tpex_3insti_summary removed fields that get_otc_institutional_summary uses.\n"
-            f"Missing: {missing}\nActual fields: {sorted(first.keys())}"
-        )

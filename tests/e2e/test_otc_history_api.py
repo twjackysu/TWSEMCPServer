@@ -5,8 +5,11 @@ where TPEx repeats identical column names, an arithmetic invariant that only hol
 column order the tool assumes).
 """
 
+import pytest
+
 from tests.helpers import fetch_or_skip
 from tools.otc.history import TRADING_STOCK_URL, INSTI_DAILY_URL, MARGIN_BALANCE_URL
+from tools.otc.institutional_summary import INSTI_SUMMARY_URL
 
 FIXED_DATE = "2025/01/03"  # 固定歷史交易日
 FIXED_OTC_STOCK = "6488"   # 環球晶
@@ -149,3 +152,41 @@ def test_new_endpoints_return_latest_day_without_date():
         resp = fetch_or_skip(f"https://www.tpex.org.tw/www/zh-tw/{path}", params={"response": "json"})
         assert len(str(resp.get("date", ""))) == 8, f"{path} 不帶 date 時不再回傳交易日期: {resp!r:.200}"
         assert _first_table(resp).get("data"), f"{path} 不帶 date 時沒有資料"
+
+
+class TestOTCInstitutionalSectAPI:
+    """get_otc_institutional 的 category 對應 sect：EW（預設，不含權證）、EE（etf）；category="stock"
+    從 EW 去掉 00 開頭代號，依賴「上櫃 ETF 皆為 00 開頭」."""
+
+    @staticmethod
+    def _codes(sect: str) -> set:
+        table = _first_table(fetch_or_skip(
+            INSTI_DAILY_URL, params={"type": "Daily", "sect": sect, "date": FIXED_DATE, "response": "json"}))
+        return {row[0].strip() for row in table.get("data") or []}
+
+    def test_etf_sect_is_exactly_the_00_prefixed_rows(self):
+        etf, default = self._codes("EE"), self._codes("EW")
+        assert etf and etf == {c for c in default if c.startswith("00")}, (
+            "sect=EE 與 EW 中 00 開頭代號不再一致，category=stock 的排除規則需要調整"
+        )
+
+
+class TestOTCInstitutionalSummaryAPI:
+    """get_otc_institutional_summary：insti/summary 依位置讀 row[0..3]（單位名稱、買進、賣出、買賣超），
+    type 為 Daily／Weekly／Monthly，prod 1＝上櫃股票、0＝上櫃有價證券."""
+
+    @staticmethod
+    def _table(period: str, prod: str) -> dict:
+        return _first_table(fetch_or_skip(
+            INSTI_SUMMARY_URL, params={"type": period, "prod": prod, "date": FIXED_DATE, "response": "json"}))
+
+    @pytest.mark.parametrize("period", ["Daily", "Weekly", "Monthly"])
+    def test_columns_per_period(self, period):
+        table = self._table(period, "1")
+        assert (table.get("fields") or [])[:4] == ["單位名稱", "買進金額(元)", "賣出金額(元)", "買賣超(元)"], (
+            f"{period} 欄位已變更: {table.get('fields')}"
+        )
+        assert table.get("data"), f"{period} 固定歷史日期應有資料"
+
+    def test_prod_switches_scope(self):
+        assert self._table("Daily", "0").get("data") != self._table("Daily", "1").get("data"), "prod 參數不再生效"
