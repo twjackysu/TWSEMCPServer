@@ -16,7 +16,7 @@ from utils.api_client import TWSEAPIClient
 
 pytestmark = pytest.mark.offline
 
-PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
+PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 # `get_xxx(...)`：只認放在反引號內、括號不巢狀的呼叫寫法
 CALL_REF = re.compile(r"`(get_[a-z0-9_]+)\(([^`]*)\)`")
 TOOL_NAME_REF = re.compile(r"`(get_[a-z0-9_]+)\(")

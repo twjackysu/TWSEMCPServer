@@ -21,6 +21,7 @@ def run_tests(scope="all"):
         "taifex": ["pytest", "tests/contract/test_taifex_api.py", "tests/contract/test_taifex_new_api.py", "tests/contract/test_taifex_batch2_api.py",
                    "tests/contract/test_taifex_history_api.py", "-v"],
         "contract": ["pytest", "tests/contract/", "-v", "--tb=short"],  # All third-party contract tests
+        "unit": ["pytest", "tests/unit/", "--tb=short"],  # All offline unit tests
         "cov": ["pytest", "tests/", "-v", "--cov=tools", "--cov=utils", "--cov-report=html", "--cov-report=term"],
         "quick": ["pytest", "tests/", "-x", "--tb=short"],  # Stop at first failure
         "parallel": ["pytest", "tests/", "-v", "--tb=short", "-n", "auto", "--dist=worksteal"],  # Parallel execution

@@ -29,7 +29,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 | Run server (prod) | `uv run fastmcp run server.py` |
 | Run all tests | `uv run pytest` |
 | Run specific test file | `uv run pytest tests/contract/test_history_api.py -v` |
-| Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `etf`, `contract` = all contract tests) |
+| Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `etf`; `contract` = all contract tests, `unit` = all offline unit tests) |
 | Quick test (fail fast) | `python run_tests.py quick` |
 | Tests with coverage | `python run_tests.py cov` (opens HTML report) |
 | Run server directly | `python server.py` (HTTP on port 8000) |
@@ -131,17 +131,17 @@ All configuration in `utils/config.py` reads from environment variables with sen
 
 Two kinds of tests, kept strictly apart:
 
-- **Live contract tests** (`tests/test_api_schemas.py`, `tests/contract/`) call the real third-party APIs. Their only job is to detect an interface change on TWSE / TAIFEX / TPEx / MIS that would break our tools: endpoint gone, response format changed (JSON → CSV/HTML, list → dict), a field or column our tool hardcodes renamed/moved. They must **not** assert on our own logic (pagination, output caps, filtering, message wording), and must **not** assert that upstream has data today — an empty `[]` from a "latest day only" endpoint is not an interface change (TWSE `t187ap42_L` served `[]` for days after the 2026 Mid-Autumn long weekend). Use `records_or_skip()` from `tests/helpers.py` for such endpoints. Fixed historical dates (`FIXED_DATE`) are expected to have data, so an empty result there is still a failure.
-- **Offline unit tests** (every `tests/test_*.py` except `test_api_schemas.py`; most are named `*_unit.py`) test our own logic against canned payloads — via `OfflineClient` (`tests/offline.py`, stubs only the HTTP layer so client-side filtering still runs) or a small stub client. Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test.
+- **Live contract tests** (`tests/contract/`) call the real third-party APIs. Their only job is to detect an interface change on TWSE / TAIFEX / TPEx / MIS that would break our tools: endpoint gone, response format changed (JSON → CSV/HTML, list → dict), a field or column our tool hardcodes renamed/moved. They must **not** assert on our own logic (pagination, output caps, filtering, message wording), and must **not** assert that upstream has data today — an empty `[]` from a "latest day only" endpoint is not an interface change (TWSE `t187ap42_L` served `[]` for days after the 2026 Mid-Autumn long weekend). Use `records_or_skip()` from `tests/helpers.py` for such endpoints. Fixed historical dates (`FIXED_DATE`) are expected to have data, so an empty result there is still a failure.
+- **Offline unit tests** (`tests/unit/`) test our own logic against canned payloads — via `OfflineClient` (`tests/offline.py`, stubs only the HTTP layer so client-side filtering still runs) or a small stub client. Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test.
 
 The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiting.
 
 **Test files**:
-- `tests/test_api_schemas.py` — parametrized tests that verify fields tools **hardcode with `.get()`** still exist in live API responses. Endpoints are defined in `tests/tool_field_dependencies.py`. Only catches breakage that would silently return "N/A" in a tool.
-- `tests/tool_field_dependencies.py` — the source of truth: maps each TWSE OpenAPI endpoint to the list of field names its tool hardcodes. Edit this file when adding or changing hardcoded field access in a tool.
+- `tests/contract/test_api_schemas.py` — parametrized tests that verify fields tools **hardcode with `.get()`** still exist in live API responses. Endpoints are defined in `tests/contract/tool_field_dependencies.py`. Only catches breakage that would silently return "N/A" in a tool.
+- `tests/contract/tool_field_dependencies.py` — the source of truth: maps each TWSE OpenAPI endpoint to the list of field names its tool hardcodes. Edit this file when adding or changing hardcoded field access in a tool.
 - `tests/contract/test_*.py` — per-category contract tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro, etf). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC, SITCA), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
-- `tests/test_output_limits_unit.py`, `tests/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
-- `tests/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
+- `tests/unit/test_output_limits_unit.py`, `tests/unit/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
+- `tests/unit/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -157,7 +157,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
 7. Format output with utilities from `utils/formatters.py`
 8. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
-   - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/tool_field_dependencies.py`. The parametrized test in `tests/test_api_schemas.py` will pick it up automatically.
+   - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/contract/tool_field_dependencies.py`. The parametrized test in `tests/contract/test_api_schemas.py` will pick it up automatically.
    - **Non-TWSE-OpenAPI tools** (TAIFEX, OTC/TPEx, MIS, legacy `exchangeReport`, MOPS, TDCC, NDC, CBC): add a `test_hardcoded_fields_exist` method to the relevant `tests/contract/test_*.py` file.
    - **No hardcoded fields** (tool uses `format_properties_with_values_multiline` to dump all fields generically): no API field test needed — the tool adapts automatically to schema changes.
 

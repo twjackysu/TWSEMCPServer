@@ -6,8 +6,8 @@
 用來偵測 TWSE／TPEx／TAIFEX／MOPS 等第三方 API 的介面是否有變化。它不會在 push 或 Pull Request 時觸發。
 
 測試分兩類（細節見 `CLAUDE.md` 的 Testing 章節）：
-- **Live contract tests**（`tests/contract/`、`tests/test_api_schemas.py`）：打真實的第三方 API，只驗證介面契約。
-- **Offline unit tests**（其餘 `tests/test_*.py`）：用假資料測我們自己的邏輯，不打網路。
+- **Live contract tests**（`tests/contract/`）：打真實的第三方 API，只驗證介面契約。
+- **Offline unit tests**（`tests/unit/`）：用假資料測我們自己的邏輯，不打網路。
 
 ## 觸發方式
 
