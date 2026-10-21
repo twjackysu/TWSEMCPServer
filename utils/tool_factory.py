@@ -11,7 +11,7 @@ from utils import (
     format_properties_with_values_multiline,
 )
 from utils.decorators import handle_api_errors
-from utils.types import DataFormatter
+from utils.types import DataFormatter, TWSEDataItem
 
 def create_company_tool(
     mcp: FastMCP,
@@ -61,6 +61,7 @@ def create_list_tool(
     formatter: DataFormatter,
     filter_field: Optional[str] = None,
     client: Optional[TWSEAPIClient] = None,
+    normalize: Optional[Callable[[TWSEDataItem], TWSEDataItem]] = None,
 ) -> Callable[..., str]:
     """
     Create and register a standard list-style market/company query tool.
@@ -82,6 +83,8 @@ def create_list_tool(
             substring-filters rows on this field; when None, the tool only
             exposes ``limit``/``offset``
         client: TWSEAPIClient instance for dependency injection
+        normalize: Applied to every row before filtering and rendering, for sources
+            whose rows need repairing first; returns a new row
 
     Returns:
         The registered tool function
@@ -91,6 +94,8 @@ def create_list_tool(
     def _render(data, filter_value: str, limit: int, offset: int) -> str:
         if not data:
             return MSG_NO_DATA.format(data_type=empty_data_type)
+        if normalize:
+            data = [normalize(d) for d in data]
         if filter_field and filter_value:
             data = [d for d in data if filter_value in d.get(filter_field, "")]
         return format_list_response(data, label, formatter, limit=limit, offset=offset)

@@ -84,8 +84,11 @@ TOOL_REQUIRED_FIELDS: Dict[str, List[str]] = {
 
     # --- company/listing.py ---
     "/company/applylistingForeign": ["ApplicationDate", "ApprovedDate", "Code", "Company", "ListingDate"],
-    "/company/applylistingLocal": ["ApplicationDate", "ApprovedDate", "Code", "Company", "ListingDate"],
-    "/company/newlisting": ["Code", "Company", "ListingDate"],
+    # applylistingLocal rows are shifted against their keys; listing.py reads all of these to repair them
+    "/company/applylistingLocal": ["Code", "Company", "ApplicationDate", "Chairman", "AmountofCapital ",
+                                   "CommitteeDate", "ApprovedDate", "AgreementDate", "ListingDate",
+                                   "ApprovedListingDate"],
+    "/company/newlisting": ["Code", "Company", "ApprovedListingDate"],
     "/company/suspendListingCsvAndHtml": ["Code", "Company", "DelistingDate"],
 
     # --- company/financials.py ---
