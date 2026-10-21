@@ -1,10 +1,7 @@
 """Shared test helpers for the live contract tests (tests/contract/) and offline unit tests."""
 
-import functools
-import inspect
 import json
 
-import anyio
 import pytest
 import requests
 from utils.api_client import TWSEAPIClient
@@ -105,23 +102,6 @@ def records_or_skip(data, source: str) -> list:
     return data
 
 
-def _run_sync(fn):
-    """A blocking callable for an async tool, so tests can call ``fn(...)`` and get the text.
-
-    Tools are async — ``handle_api_errors`` runs the body in a worker thread — so this runs
-    each call to completion on its own event loop, through the same thread hop and
-    ``ToolError`` translation the server uses.
-    """
-    if not inspect.iscoroutinefunction(fn):
-        return fn
-
-    @functools.wraps(fn)
-    def run(*args, **kwargs):
-        return anyio.run(functools.partial(fn, *args, **kwargs))
-
-    return run
-
-
 class _CapturingMCP:
     """Minimal stand-in for FastMCP that records the functions modules register.
 
@@ -137,13 +117,13 @@ class _CapturingMCP:
     def tool(self, *args, **kwargs):
         if args and callable(args[0]):
             fn = args[0]
-            self.tools[fn.__name__] = _run_sync(fn)
+            self.tools[fn.__name__] = fn
             return fn
 
         name = kwargs.get("name")
 
         def decorator(fn):
-            self.tools[name or fn.__name__] = _run_sync(fn)
+            self.tools[name or fn.__name__] = fn
             return fn
 
         return decorator
