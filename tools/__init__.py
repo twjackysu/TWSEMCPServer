@@ -111,12 +111,15 @@ class ToolRegistrar:
     - ``annotations=READ_ONLY``: every tool only reads.
     - ``tags``: the data source(s) of the registering module (``SOURCE_TAGS``).
 
-    A keyword the tool passes itself always wins.
+    A keyword the tool passes itself always wins. ``registered``, when given, collects each tool's
+    name and final tags (``register_all_tools`` returns it, to tag the prompts).
     """
 
-    def __init__(self, mcp: "FastMCP", tags: FrozenSet[str] = frozenset()):
+    def __init__(self, mcp: "FastMCP", tags: FrozenSet[str] = frozenset(),
+                 registered: Optional[Dict[str, FrozenSet[str]]] = None):
         self._mcp = mcp
         self._tags = tags
+        self._registered = registered
 
     def tool(self, name_or_fn: Any = None, **kwargs: Any) -> Any:
         if callable(name_or_fn):
@@ -131,6 +134,8 @@ class ToolRegistrar:
             kwargs = {"tags": set(self._tags), **kwargs}
         if name is not None:  # mcp.tool("custom_name")
             kwargs = {"name": name, **kwargs}
+        if self._registered is not None:
+            self._registered[kwargs.get("name") or fn.__name__] = frozenset(kwargs.get("tags") or ())
         return self._mcp.tool(fn, **kwargs)
 
 
@@ -151,7 +156,7 @@ def discover_tool_modules() -> List[str]:
     return sorted(modules)
 
 
-def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> None:
+def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> Dict[str, FrozenSet[str]]:
     """
     Automatically discover and register all MCP tools from submodules.
 
@@ -160,7 +165,8 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     server that silently lacks that module's tools.
 
     Modules register through a ``ToolRegistrar`` around ``mcp``, which applies the server-wide
-    tool defaults and the module's source tags.
+    tool defaults and the module's source tags. Returns every registered tool's tags by name
+    (``prompts.register_all_prompts`` tags each prompt with those of the tools it names).
 
     Args:
         mcp: FastMCP instance to register tools with
@@ -169,12 +175,14 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     modules = discover_tool_modules()
     logger.info(f"Total modules to register: {len(modules)}")
 
+    registered: Dict[str, FrozenSet[str]] = {}
     for module_path in modules:
         logger.info(f"Registering tools from: {module_path}")
         module = importlib.import_module(module_path)
         if not hasattr(module, "register_tools"):
             raise ImportError(f"Tool module {module_path} has no register_tools(mcp, client) function")
-        module.register_tools(ToolRegistrar(mcp, tags=source_tags(module_path)), client)
+        module.register_tools(ToolRegistrar(mcp, tags=source_tags(module_path), registered=registered), client)
+    return registered
 
 
 __all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'ToolRegistrar', 'discover_tool_modules', 'enabled_sources',

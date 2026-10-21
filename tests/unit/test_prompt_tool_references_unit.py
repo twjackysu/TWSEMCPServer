@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from prompts import TOOL_REFERENCE as TOOL_NAME_REF  # what prompts.register_all_prompts tags a prompt by
 from tests.helpers import _CapturingMCP
 from tools import register_all_tools
 from utils.api_client import TWSEAPIClient
@@ -19,7 +20,6 @@ pytestmark = pytest.mark.offline
 PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
 # `get_xxx(...)`：只認放在反引號內、括號不巢狀的呼叫寫法
 CALL_REF = re.compile(r"`(get_[a-z0-9_]+)\(([^`]*)\)`")
-TOOL_NAME_REF = re.compile(r"`(get_[a-z0-9_]+)\(")
 KEYWORD = re.compile(r"\b([a-z_][a-z0-9_]*)=")
 
 

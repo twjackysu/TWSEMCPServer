@@ -5,10 +5,8 @@
 """
 
 import asyncio
-import inspect
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -25,7 +23,6 @@ pytestmark = pytest.mark.offline
 
 ROOT = Path(__file__).resolve().parents[2]
 ALL = frozenset(tools.SOURCES)
-TOOL_NAME_REF = re.compile(r"`(get_[a-z0-9_]+)\(")
 
 
 def _server(sources):
@@ -88,20 +85,6 @@ def test_calling_a_hidden_tool_fails_as_an_unknown_tool():
 
     with pytest.raises(ToolError, match="Unknown tool"):
         asyncio.run(call())
-
-
-def test_prompt_tags_are_the_sources_of_the_tools_they_name(tags):
-    """prompt 的 tags（server.py）必須等於它點名的工具的來源聯集，開關來源時它才會跟著工具走."""
-    prompts = asyncio.run(server.mcp.list_prompts())
-    assert len(prompts) == 9
-    wrong = {}
-    for prompt in prompts:
-        builder = getattr(server, re.search(r"return (\w+)\(", inspect.getsource(prompt.fn)).group(1))
-        text = Path(inspect.getsourcefile(builder)).read_text(encoding="utf-8")
-        needed = set().union(*(tags[name] for name in TOOL_NAME_REF.findall(text)))
-        if prompt.tags != needed:
-            wrong[prompt.name] = {"declared": sorted(prompt.tags), "named tools read": sorted(needed)}
-    assert wrong == {}
 
 
 # The real server, configured from the environment: run in a fresh interpreter, since server.py reads

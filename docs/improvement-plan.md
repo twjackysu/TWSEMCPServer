@@ -53,7 +53,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags、
-  #130 依來源開關工具；下一步搜尋式工具清單、結構化輸出、回應大小上限、prompts 自動註冊）
+  #130 依來源開關工具、#131 prompts 自動註冊；下一步搜尋式工具清單、結構化輸出、回應大小上限）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -119,7 +119,7 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
 13. **無 tool annotations**：全唯讀卻沒標 `readOnlyHint` / `openWorldHint` / `idempotentHint`。
 14. **打包**：Dockerfile 裝用不到的 Node.js、root 執行、單階段；`requirements*.txt` 與 `uv.lock` 重複；
     `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。
-15. **prompts 手寫註冊**：`server.py` 9 個 wrapper，tools 卻自動發現。
+15. **prompts 手寫註冊**：`server.py` 9 個 wrapper，tools 卻自動發現。（已修，#131：`prompts.register_all_prompts`）
 
 ## 目標架構
 
@@ -297,7 +297,11 @@ def get_twse_institutional_investors_summary(
 - 文字型 tool 設 `output_schema=None`，`tools/call` 不再把同一份文字在 `structuredContent` 多回一次；
   screener、技術指標這類改回真的結構化資料（dataclass → output schema）。
 - `ResponseLimitingMiddleware` 當最後保險（各 tool 仍自己用 `cap_rows` 控制筆數）。
-- prompts 改自動發現（FastMCP 4 的 prompt 回傳 `str`，#107 已改）。
+- ✅ prompts 改自動發現（#131）：`prompts/` 每個模組一個公開函式，函式名稱＝prompt 名稱、docstring＝說明，
+  `prompts.register_all_prompts` 逐一註冊，`server.py` 刪掉 9 個 wrapper。prompt 的來源 tags 不再手寫：
+  `register_all_tools` 回傳每支工具的 tags，prompt 取它點名的工具（`` `get_xxx(...)` ``）的聯集；點名不存在的工具，
+  server 啟動失敗。函式改成原本對外的名稱（`twse_stock_trend_prompt` → `stock_trend_analysis_prompt` 等），兩個說明
+  改成 server.py 原本用的版本；prompts/list 與 20 組渲染結果和 main 逐字相同，只有清單順序變成模組名稱順序。
 
 ### Phase 5：打包
 - Dockerfile 多階段、non-root、去 Node.js、`--no-dev`、HEALTHCHECK。

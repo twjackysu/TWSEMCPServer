@@ -1,7 +1,7 @@
 """Prompt for market hotspot monitoring using TWSE OpenAPI endpoints."""
 
 
-def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", date_filter: str = "today") -> str:
+def market_hotspot_monitoring(monitoring_scope: str = "comprehensive", date_filter: str = "today") -> str:
     """Prompt for market hotspot monitoring using TWSE OpenAPI endpoints."""
     content = f"""台灣股市熱點監控指引
 

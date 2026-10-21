@@ -1,7 +1,7 @@
 """Prompt for TAIFEX futures/options derivatives analysis."""
 
 
-def taifex_derivatives_prompt(scope: str = "comprehensive") -> str:
+def taifex_derivatives(scope: str = "comprehensive") -> str:
     """Prompt for TAIFEX futures/options chip analysis using TAIFEX OpenAPI endpoints."""
     content = f"""台灣期貨選擇權籌碼分析指引
 

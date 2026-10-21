@@ -1,7 +1,7 @@
 """Prompt for foreign investment analysis using TWSE OpenAPI endpoints."""
 
 
-def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry: str = "", stock_symbol: str = "") -> str:
+def foreign_investment_analysis(analysis_type: str = "overview", industry: str = "", stock_symbol: str = "") -> str:
     """Prompt for foreign investment analysis using TWSE OpenAPI endpoints."""
     content = f"""台灣股市外資投資分析指引
 

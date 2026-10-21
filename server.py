@@ -3,15 +3,7 @@
 from fastmcp import FastMCP
 import logging
 
-from prompts.twse_stock_trend_prompt import twse_stock_trend_prompt
-from prompts.foreign_investment_analysis_prompt import foreign_investment_analysis_prompt
-from prompts.market_hotspot_monitoring_prompt import market_hotspot_monitoring_prompt
-from prompts.dividend_investment_strategy_prompt import dividend_investment_strategy_prompt
-from prompts.investment_screening_prompt import investment_screening_prompt
-from prompts.taifex_derivatives_prompt import taifex_derivatives_prompt
-from prompts.institutional_flow_prompt import institutional_flow_prompt
-from prompts.company_fundamental_healthcheck_prompt import company_fundamental_healthcheck_prompt
-from prompts.pre_trade_risk_scan_prompt import pre_trade_risk_scan_prompt
+from prompts import register_all_prompts
 from toolkit import ArgumentErrorsInChinese
 from tools import SOURCES, enabled_sources, register_all_tools, show_only_sources
 from utils.api_client import TWSEAPIClient
@@ -44,55 +36,10 @@ mcp.add_middleware(ArgumentErrorsInChinese())
 # This is the root of our Dependency Injection tree
 api_client = TWSEAPIClient()
 
-# Register prompts. Each prompt's tags are the sources of the tools it names (checked by
-# tests/unit/test_source_visibility_unit.py); it stays visible while any of them is served.
-@mcp.prompt(tags={"twse", "tpex", "mops", "tdcc", "ndc", "cbc"})
-def stock_trend_analysis_prompt(stock_symbol: str, period: str) -> str:
-    """Prompt for Taiwan stock trend analysis using TWSE OpenAPI endpoints."""
-    return twse_stock_trend_prompt(stock_symbol, period)
-
-@mcp.prompt(tags={"twse", "tpex", "mops", "tdcc", "cbc"})
-def foreign_investment_analysis(analysis_type: str = "overview", industry: str = "", stock_symbol: str = "") -> str:
-    """Prompt for foreign investment analysis using TWSE OpenAPI endpoints."""
-    return foreign_investment_analysis_prompt(analysis_type, industry, stock_symbol)
-
-@mcp.prompt(tags={"twse", "mops", "sitca", "ndc", "cbc"})
-def market_hotspot_monitoring(monitoring_scope: str = "comprehensive", date_filter: str = "today") -> str:
-    """Prompt for market hotspot monitoring using TWSE OpenAPI endpoints."""
-    return market_hotspot_monitoring_prompt(monitoring_scope, date_filter)
-
-@mcp.prompt(tags={"twse", "tpex", "mops", "sitca"})
-def dividend_investment_strategy(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> str:
-    """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
-    return dividend_investment_strategy_prompt(strategy_type, time_horizon)
-
-@mcp.prompt(tags={"twse", "tpex", "mops", "tdcc", "sitca", "ndc"})
-def investment_screening(screening_criteria: str = "comprehensive", risk_level: str = "moderate") -> str:
-    """Prompt for investment screening using TWSE OpenAPI endpoints."""
-    return investment_screening_prompt(screening_criteria, risk_level)
-
-@mcp.prompt(tags={"taifex"})
-def taifex_derivatives(scope: str = "comprehensive") -> str:
-    """Prompt for TAIFEX futures/options chip analysis using TAIFEX OpenAPI endpoints."""
-    return taifex_derivatives_prompt(scope)
-
-@mcp.prompt(tags={"twse", "tpex", "taifex", "mops", "tdcc"})
-def institutional_flow(target: str = "market", stock_symbol: str = "") -> str:
-    """Prompt for three-major-institutional-investors (foreign/investment trust/dealer) flow analysis."""
-    return institutional_flow_prompt(target, stock_symbol)
-
-@mcp.prompt(tags={"twse", "tpex", "mops", "tdcc"})
-def company_fundamental_healthcheck(stock_symbol: str, depth: str = "standard") -> str:
-    """Prompt for a comprehensive fundamental/financial-statement health check on a company."""
-    return company_fundamental_healthcheck_prompt(stock_symbol, depth)
-
-@mcp.prompt(tags={"twse", "tpex", "mops"})
-def pre_trade_risk_scan(market: str = "twse", stock_symbol: str = "") -> str:
-    """Prompt for scanning disposal/warning/restriction lists before placing a trade."""
-    return pre_trade_risk_scan_prompt(market, stock_symbol)
-
 # Pass dependencies to tool registration
-register_all_tools(mcp, api_client)
+tool_tags = register_all_tools(mcp, api_client)
+# Every prompts/ module's prompt, tagged with the sources of the tools it names.
+register_all_prompts(mcp, tool_tags)
 # Hide tools (and prompts) of the sources this deployment does not serve (FastMCP Visibility on tags).
 show_only_sources(mcp, SERVED_SOURCES)
 
