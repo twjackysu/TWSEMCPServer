@@ -4,9 +4,13 @@
 """
 
 import io
+import time
 import zipfile
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -65,6 +69,30 @@ def _intraday_fn():
     return register_module_tools(intraday, client)["get_futures_intraday"]
 
 
+class _YieldingDict(OrderedDict):
+    """寫入後讓出執行緒 5ms，把「寫入後、讀回前」這段 race 的時間窗撐大到每次都會發生."""
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        time.sleep(0.005)
+
+
+def test_parsed_ticks_cache_survives_concurrent_eviction(monkeypatch):
+    """工具在 worker thread 並行執行；快取只放 1 筆時，每次呼叫都會擠掉別人剛放進去的資料.
+
+    沒加鎖時，一個呼叫剛寫入的 key 會在讀回之前被另一個呼叫淘汰（KeyError → 查詢失敗）。
+    在有 GIL 的 CPython 上這段時間窗極短，所以用 _YieldingDict 把它撐大。
+    """
+    monkeypatch.setattr(intraday, "MAX_PARSED", 1)
+    monkeypatch.setattr(intraday, "OrderedDict", _YieldingDict)
+    fn = _intraday_fn()
+    contracts = ["TX", "MTX", "CDF", "QFF"]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda i: (contracts[i % 4], fn(contracts[i % 4], date="20261016")), range(40)))
+    for contract, text in results:
+        assert text.startswith(f"【{contract} 202610 盤中走勢】"), text[:80]
+
+
 # ---------- parsing and bars ----------
 
 def test_parse_ticks_filters_product_and_spreads_and_guards_header():
@@ -113,9 +141,12 @@ def test_intraday_all_sessions_month_and_stock_code():
 
 def test_intraday_validation_and_listing():
     fn = _intraday_fn()
-    assert "interval 必須是" in fn(interval=3)
-    assert "session 必須是" in fn(session="morning")
-    assert "只能查最近 30 個交易日：20261016～20261019" in fn(date="20250101")
+    with pytest.raises(ToolError, match="interval 必須是"):
+        fn(interval=3)
+    with pytest.raises(ToolError, match="session 必須是"):
+        fn(session="morning")
+    with pytest.raises(ToolError, match="只能查最近 30 個交易日：20261016～20261019"):
+        fn(date="20250101")
     assert "CDF、MTX、QFF、TX" in fn(contract="", date="20261016")
     assert "查無 ZZZ" in fn(contract="ZZZ", date="20261016")
 
@@ -157,4 +188,5 @@ def test_monthly_statistics_market_switch():
     fn = register_module_tools(trading_statistics, client)["get_monthly_trading_statistics"]
     assert fn(market="options").startswith("【選擇權市場月統計】") and "股價指數選擇權" in fn(market="options")
     assert fn().startswith("【期貨市場月統計】")
-    assert "market 必須是 futures、options" in fn(market="stock")
+    with pytest.raises(ToolError, match="market 必須是 futures、options"):
+        fn(market="stock")

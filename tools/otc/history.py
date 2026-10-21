@@ -10,6 +10,7 @@ import re
 from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
 from utils.institutional import SIDES, SORT_LABELS, check_choice, rank, to_int
 
@@ -78,7 +79,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         tpex_date = to_tpex_date(date)
         if not tpex_date:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260801\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260801\"")
         resp = _client.fetch_json(
             TRADING_STOCK_URL, params={"code": code.strip(), "date": tpex_date, "response": "json"}
         )
@@ -125,15 +126,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
         if error:
-            return error
+            raise ToolError(error)
         sect = OTC_SECTS.get(category.strip().lower())
         if sect is None:
             sect = category.strip().upper() if re.fullmatch(r"[0-9A-Za-z]{2}", category.strip()) else None
         if sect is None:
-            return "category 必須留空，或是 stock、etf、all、產業代碼（例如 24）"
+            raise ToolError("category 必須留空，或是 stock、etf、all、產業代碼（例如 24）")
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\"")
         resp = _client.fetch_json(
             INSTI_DAILY_URL, params={"type": "Daily", "sect": sect, **params, "response": "json"}
         )
@@ -178,7 +179,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\"")
         resp = _client.fetch_json(MARGIN_BALANCE_URL, params={**params, "response": "json"})
         table = first_table(resp)
         rows = table.get("data") or []

@@ -9,6 +9,7 @@ call to a handful of seconds under the client's rate limit.
 from datetime import date
 from typing import List, Optional, Tuple
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.mops import mops_post
 
@@ -106,7 +107,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if start_month.strip():
             months, error = parse_month_range(start_month.strip(), (end_month or start_month).strip())
             if error:
-                return error
+                raise ToolError(error)
             # 多抓區間前一個月，讓第一個月也有月增率
             results = {ym: _fetch(code, *ym) for ym in [previous_month(*months[0])] + months}
         else:

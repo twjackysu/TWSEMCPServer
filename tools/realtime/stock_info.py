@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 
 MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp"
@@ -24,7 +25,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             stock_nos: 股票代號列表，例如 ["2330", "0050", "2317"]
         """
         if not stock_nos:
-            return "請提供至少一個股票代號"
+            raise ToolError("請提供至少一個股票代號")
 
         # Build ex_ch parameter: try tse_ first for all stocks
         # Format: tse_2330.tw|tse_0050.tw|otc_6547.tw

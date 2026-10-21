@@ -9,6 +9,7 @@ The listed-market counterpart is get_exright_results_history (TWSE TWT49U).
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
 from .history import TPEX_WWW, first_table, to_tpex_date
 
@@ -41,7 +42,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start = to_tpex_date(start_date or end_date)
             end = to_tpex_date(end_date or start_date)
             if not start or not end:
-                return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260701\""
+                raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260701\"")
             params.update(startDate=start, endDate=end)
         resp = _client.fetch_json(EX_DAILY_Q_URL, params=params)
         served = str((resp or {}).get("date", "")).replace("~", "～")

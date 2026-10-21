@@ -13,12 +13,14 @@ against the daily market report: the night session matches within 0.3%; the day 
 """
 
 import re
+import threading
 import zipfile
 import io
 from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.taifex import TAIFEX_DOWNLOAD_BASE, TAIFEX_HEADERS, is_stock_code, stock_futures_contracts
 
@@ -135,7 +137,10 @@ def format_session(label: str, ticks: List[Tick], interval: int, start_minute: i
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register the futures intraday tool."""
     _client = client or TWSEAPIClient.get_instance()
+    # Shared by concurrent calls (tools run in worker threads): every read and write of
+    # `parsed` happens under the lock.
     parsed: "OrderedDict[Tuple[str, str], List[Tick]]" = OrderedDict()
+    parsed_lock = threading.Lock()
 
     def _csv_text(day: str) -> str:
         url = f"{TICK_ZIP_BASE}/Daily_{day[:4]}_{day[4:6]}_{day[6:]}.zip"
@@ -145,11 +150,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _ticks(day: str, contract: str) -> List[Tick]:
         key = (day, contract)
-        if key not in parsed:
-            if len(parsed) >= MAX_PARSED:
+        with parsed_lock:
+            ticks = parsed.get(key)
+        if ticks is not None:
+            return ticks
+        # Parse outside the lock (seconds for a ~45 MB file) so cache hits for other days don't
+        # wait. Two calls missing the same key both parse; the zip itself is fetched once.
+        ticks = parse_ticks(_csv_text(day), contract)
+        with parsed_lock:
+            parsed.pop(key, None)
+            while len(parsed) >= MAX_PARSED:
                 parsed.popitem(last=False)
-            parsed[key] = parse_ticks(_csv_text(day), contract)
-        return parsed[key]
+            parsed[key] = ticks
+        # Return our own result: another call may evict `key` before we could read it back.
+        return ticks
 
     @mcp.tool
     @handle_api_errors()
@@ -170,16 +184,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             month: 到期月份，例如 "202611"、"202610W4"（選填，留空＝當日成交量最大的月份，通常是近月）
         """
         if interval not in INTERVALS:
-            return f"interval 必須是 {', '.join(map(str, INTERVALS))} 其中之一"
+            raise ToolError(f"interval 必須是 {', '.join(map(str, INTERVALS))} 其中之一")
         if session not in SESSIONS:
-            return f"session 必須是 {'、'.join(SESSIONS)} 其中之一"
+            raise ToolError(f"session 必須是 {'、'.join(SESSIONS)} 其中之一")
         page = _client.fetch_bytes(TICK_PAGE_URL, headers=TAIFEX_HEADERS, timeout=60, cache_ttl=TICK_PAGE_CACHE_TTL)
         days = available_days(page.decode("utf-8", errors="replace"))
         if not days:
             raise ValueError("期交所每筆成交下載頁找不到任何檔案連結，頁面可能改版")
         day = date.strip()
         if day and day not in days:
-            return f"只能查最近 30 個交易日：{days[-1]}～{days[0]}（{day} 不在範圍內或非交易日）"
+            raise ToolError(f"只能查最近 30 個交易日：{days[-1]}～{days[0]}（{day} 不在範圍內或非交易日）")
 
         contract = contract.strip().upper()
         if not day:

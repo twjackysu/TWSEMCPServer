@@ -11,6 +11,7 @@ import io
 import zipfile
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 
 # data.gov.tw/dataset/6099 景氣指標及燈號 (zip of CSVs, monthly since 1982)
@@ -81,7 +82,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         filename = CYCLE_TABLES.get(table.strip().lower())
         if filename is None:
-            return f"table 只能是 {', '.join(CYCLE_TABLES)}"
+            raise ToolError(f"table 只能是 {', '.join(CYCLE_TABLES)}")
         months = max(1, min(months, MAX_MONTHS))
         body = _client.fetch_bytes(NDC_BUSINESS_CYCLE_ZIP_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)
         rows = read_zip_csv(body, filename)

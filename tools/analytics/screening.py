@@ -4,6 +4,7 @@ snapshot (see utils/market_snapshot.py)."""
 from statistics import median
 from typing import List, Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response
 from utils.market_snapshot import LISTED, OTC, StockSnapshot, industry_members, industry_of, market_snapshot
 
@@ -62,9 +63,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         markets = MARKETS.get(market.strip().lower())
         if markets is None:
-            return f"market 只能是 {', '.join(MARKETS)}"
+            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
         if sort_by not in SORTS:
-            return f"sort_by 只能是 {', '.join(SORTS)}"
+            raise ToolError(f"sort_by 只能是 {', '.join(SORTS)}")
 
         snapshot, as_of = market_snapshot(_client, markets)
         rows = list(snapshot.values())
@@ -109,7 +110,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         code = code.strip()
         if sort_by not in SORTS:
-            return f"sort_by 只能是 {', '.join(SORTS)}"
+            raise ToolError(f"sort_by 只能是 {', '.join(SORTS)}")
         industry = industry_of(_client, code)
         if not industry:
             return f"查無 {code} 的產業別（僅支援上市、上櫃公司）"

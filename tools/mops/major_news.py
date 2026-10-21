@@ -11,6 +11,7 @@ announcement's full text inline; MOPS lists subjects and serves the text per ann
 from datetime import timedelta
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, truncate, MSG_OFFSET_OUT_OF_RANGE
 from utils.mops import mops_post, to_roc_year
 from utils.date_helper import taipei_today
@@ -55,7 +56,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def _company(code: str, date: str, year: str, limit: int, offset: int) -> str:
         roc_day = _roc_day(date) if date else None
         if date and roc_day is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         roc_year = to_roc_year(year) if year else (int(roc_day[:3]) if roc_day else taipei_today().year - 1911)
         result = mops_post(_client, "t05st01", {
             "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
@@ -89,7 +90,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def _market(date: str, market: str, limit: int, offset: int) -> str:
         if date:
             if _roc_day(date) is None:
-                return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\""
+                raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
             days = [date]
         else:
             today = taipei_today()
@@ -144,7 +145,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             offset: 跳過前 N 則（預設 0，搭配 limit 分頁）
         """
         if market and market not in MARKET_LABELS:
-            return f"market 只能是 {', '.join(MARKET_LABELS)}"
+            raise ToolError(f"market 只能是 {', '.join(MARKET_LABELS)}")
         if code.strip():
             return _company(code.strip(), date.strip(), year.strip(), limit, offset)
         return _market(date.strip(), market, limit, offset)

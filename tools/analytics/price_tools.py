@@ -4,6 +4,7 @@ prices and ex-rights results (see utils/price_series.py)."""
 from datetime import date
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.date_helper import taipei_today
 from utils.indicators import bollinger, kd, macd, rsi, sma
@@ -58,7 +59,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         end, count = parse_months(start_month.strip(), end_month.strip())
         if isinstance(end, str):
-            return end
+            raise ToolError(end)
         months = months_back(count, date(*end, 1) if end else None)
         market, name, bars = fetch_daily_bars(_client, code.strip(), months)
         if not bars:

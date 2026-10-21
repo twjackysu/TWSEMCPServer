@@ -9,6 +9,7 @@ The day-trading and index tools replace OpenAPI versions (/exchangeReport/TWTB4U
 import re
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
 
 TWT49U_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
@@ -172,7 +173,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         matcher = INDEX_CATEGORIES.get(category.strip().lower())
         if matcher is None:
-            return f"category 只能是 {', '.join(INDEX_CATEGORIES)}"
+            raise ToolError(f"category 只能是 {', '.join(INDEX_CATEGORIES)}")
         params = {"type": "IND", "response": "json"}
         if date.strip():
             params["date"] = date.strip()

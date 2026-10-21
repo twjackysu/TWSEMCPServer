@@ -145,6 +145,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 - `tests/unit/test_output_limits_unit.py`, `tests/unit/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
 - `tests/unit/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
 - `tests/unit/test_tool_docstrings_unit.py` — every line of a tool's docstring must reach the MCP tool description or a parameter description (catches sections FastMCP drops, e.g. `Returns:`).
+- `tests/unit/test_argument_errors_unit.py` — scans every tool function for an argument-error message (`必須是`, `只能是`, `格式錯誤`, …) or a validator's `error` that is `return`ed instead of raised as `ToolError`. "查無…" replies are normal results and stay `return`.
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 

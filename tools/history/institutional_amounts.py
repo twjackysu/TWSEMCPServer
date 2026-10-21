@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.institutional import PERIODS, check_choice, week_start, yi
 
@@ -44,12 +45,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         error = check_choice("period", period, PERIODS)
         if error:
-            return error
+            raise ToolError(error)
         date = date.strip()
         try:
             anchor = datetime.strptime(date, "%Y%m%d") if date else None
         except ValueError:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\"")
 
         if period == "day":
             resp = _fetch(type="day", dayDate=date) if date else _fetch(type="day")

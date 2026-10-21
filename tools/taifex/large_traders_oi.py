@@ -11,6 +11,7 @@ commodities (~340 futures, ~36 options) and filtering is local.
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
@@ -71,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"
         )
         if error:
-            return error
+            raise ToolError(error)
         if parsed is None:
             return f"查無 {label} 的期貨大額交易人未沖銷部位資料"
         rows = parsed[1]
@@ -116,7 +117,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"
         )
         if error:
-            return error
+            raise ToolError(error)
         if parsed is None:
             return f"查無 {label} 的選擇權大額交易人未沖銷部位資料"
         rows = parsed[1]

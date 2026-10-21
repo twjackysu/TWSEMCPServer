@@ -9,6 +9,7 @@ larger) and has 均價 and 次日參考價, while the website's afterTrading/otc
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE, format_list_response
 from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
 
@@ -92,7 +93,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         def fetch(security_type):
             resp = _client.fetch_json(
                 OTC_QUOTES_URL, params={**params, "type": security_type, "response": "json"},

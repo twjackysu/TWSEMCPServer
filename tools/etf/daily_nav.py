@@ -11,6 +11,7 @@ numbers or strings depending on the issuer, so everything goes through _num.
 from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 
 MIS_ALL_ETF_URL = "https://mis.twse.com.tw/stock/data/all_etf.txt"
@@ -110,9 +111,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return "\n".join(lines)
 
         if sort_by not in SORTS:
-            return f"sort_by 必須是 {'、'.join(SORTS)} 其中之一"
+            raise ToolError(f"sort_by 必須是 {'、'.join(SORTS)} 其中之一")
         if limit < 1 or limit > MAX_LIST:
-            return f"limit 必須介於 1～{MAX_LIST}"
+            raise ToolError(f"limit 必須介於 1～{MAX_LIST}")
         label, key, reverse = SORTS[sort_by]
         ranked = sorted(rows, key=key, reverse=reverse)[:limit]
         lines = [f"【ETF {label}排行】資料日期 {latest[:4]}-{latest[4:6]}-{latest[6:]}（共 {len(rows)} 檔，列出前 {len(ranked)} 檔）\n"]

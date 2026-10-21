@@ -8,6 +8,7 @@
 from datetime import datetime
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 import utils.taifex as taifex
 from tests.helpers import register_module_tools
@@ -218,6 +219,7 @@ def test_large_traders_options_lists_contracts_and_validates_range():
     fn = register_module_tools(large_traders_oi, OfflineClient({"/cht/3/largeTraderOptDown": _lt_opt_route([])}))[
         "get_large_traders_options_oi"]
     assert "CA(南亞)、TXO(臺指)" in fn(contract="", start_date="20260929")
-    assert "不可超過 31 天" in fn(start_date="20260101", end_date="20260301")
+    with pytest.raises(ToolError, match="不可超過 31 天"):
+        fn(start_date="20260101", end_date="20260301")
     # 舊的位置參數順序 (contract, call_put) 維持不變
     assert "共 1 筆" in fn("TXO", "買權", "20260929")

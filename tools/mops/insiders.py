@@ -11,6 +11,7 @@ different disclosure.
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from utils.mops import mops_post, flatten_titles, to_roc_year
 
@@ -67,7 +68,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         body, error = period_body(code.strip(), year.strip(), month.strip())
         if error:
-            return error
+            raise ToolError(error)
         result = mops_post(_client, "stapap1", body)
         parent = (result or {}).get("parentCompany") or {}
         rows = parent.get("data") or []
@@ -114,7 +115,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         body, error = period_body(code.strip(), year.strip(), month.strip())
         if error:
-            return error
+            raise ToolError(error)
         result = mops_post(_client, "query6_1", body)
         rows = (result or {}).get("data") or []
         if not rows:

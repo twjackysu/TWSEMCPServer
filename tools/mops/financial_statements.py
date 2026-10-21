@@ -8,6 +8,7 @@ every industry, for the latest quarter (``dataType`` "1") or any past one ("2").
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.mops import mops_post, flatten_titles, to_roc_year
 
@@ -62,7 +63,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             body = {"companyId": code, "dataType": "1", "year": "", "season": "", "subsidiaryCompanyId": ""}
             period = "最新一季"
         elif not year or season not in (1, 2, 3, 4):
-            return "請同時指定 year 與 season（1～4），或兩者都留空查詢最新一季"
+            raise ToolError("請同時指定 year 與 season（1～4），或兩者都留空查詢最新一季")
         else:
             roc_year = to_roc_year(year)
             body = {"companyId": code, "dataType": "2", "year": str(roc_year), "season": str(season),

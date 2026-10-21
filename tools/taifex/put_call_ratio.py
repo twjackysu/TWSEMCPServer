@@ -8,6 +8,7 @@ but could not reach further back.
 from datetime import timedelta
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
@@ -48,7 +49,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date, end_date = start_date or end_date, end_date or start_date
             start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260501")
             if error:
-                return error
+                raise ToolError(error)
             label = f"{start_date}～{end_date}"
 
         body = _client.fetch_bytes(

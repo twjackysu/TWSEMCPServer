@@ -10,6 +10,7 @@ and the futures page additionally carried 臺灣中型100期貨, which openapi o
 from collections import OrderedDict
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
@@ -63,7 +64,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _query(url: str, contract: str, start_date: str, end_date: str):
         """Fetch rows for a contract code (server-side filter), a Chinese contract name
-        (client-side filter over all contracts) or every contract."""
+        (client-side filter over all contracts) or every contract.
+
+        Returns (rows, label, not_found): ``not_found`` is the reply for a contract name with no
+        match. A bad date range is an argument error and raises ``ToolError``."""
         contract = contract.strip()
         code = contract.upper() if contract and is_contract_code(contract) else ""
 
@@ -78,8 +82,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return decode_and_parse_csv(body)
 
         parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
-        if error or parsed is None:
-            return None, label, error
+        if error:
+            raise ToolError(error)
+        if parsed is None:
+            return None, label, None
         rows = parsed[1]
         if contract and not code:
             matched = [r for r in rows if contract in r[1]]
@@ -109,9 +115,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, error = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
-        if error:
-            return error
+        rows, label, not_found = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if not_found:
+            return not_found
         if rows is None:
             return f"查無 {contract or '全部契約'} 在 {label} 的三大法人期貨資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
         return _render("三大法人期貨契約交易明細", rows, label, "千元")
@@ -129,9 +135,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, error = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
-        if error:
-            return error
+        rows, label, not_found = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if not_found:
+            return not_found
         if rows is None:
             return f"查無 {contract or '全部契約'} 在 {label} 的三大法人選擇權資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
         return _render("三大法人選擇權契約交易明細", rows, label, "千元")
@@ -151,9 +157,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, error = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
-        if error:
-            return error
+        rows, label, not_found = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
+        if not_found:
+            return not_found
         if rows is None:
             return f"查無 {contract or '全部契約'} 在 {label} 的三大法人買賣權分計資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
         if call_put.strip().upper() in ("CALL", "PUT"):

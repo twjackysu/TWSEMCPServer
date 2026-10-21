@@ -4,6 +4,7 @@
 """
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -53,8 +54,10 @@ def test_summary_category_mapping_and_stock_filter():
     fn(category="etf")
     fn(category="24")
     assert [p["selectType"] for p in seen[-2:]] == ["0099P", "24"]
-    assert "category 必須" in fn(category="半導體")
-    assert "side 必須是" in fn(side="up")
+    with pytest.raises(ToolError, match="category 必須"):
+        fn(category="半導體")
+    with pytest.raises(ToolError, match="side 必須是"):
+        fn(side="up")
 
 
 def test_amounts_week_falls_forward_to_first_trading_day():
@@ -73,7 +76,8 @@ def test_amounts_week_falls_forward_to_first_trading_day():
     assert "合計：買進 1.00 億 | 賣出 0.00 億 | 買賣差額 1.00 億（100,000,000 元）" in week
     seen.clear()
     assert "10月01日至10月19日" in fn(period="month") and seen == [None, "20261019"]  # 先取最新交易日
-    assert "period 必須是" in fn(period="year")
+    with pytest.raises(ToolError, match="period 必須是"):
+        fn(period="year")
 
 
 def test_otc_summary_maps_period_and_scope():
@@ -88,4 +92,5 @@ def test_otc_summary_maps_period_and_scope():
     assert seen[-1] == {"type": "Weekly", "prod": "0", "date": "2026/10/14", "response": "json"}
     fn()
     assert seen[-1] == {"type": "Daily", "prod": "1", "response": "json"}
-    assert "scope 必須是" in fn(scope="otc")
+    with pytest.raises(ToolError, match="scope 必須是"):
+        fn(scope="otc")

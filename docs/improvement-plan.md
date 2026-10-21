@@ -11,9 +11,11 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] P0 修正（#106，2026-10-21 合併）：
   P0-1 thread offload；P0-2 失敗改 `ToolError`；P0-3 profitability 排序；P0-4 註冊 fail-fast；
   P0-5 PR 跑 unit test、CI Python 版本。另含 per-site thread-safe 節流、single-flight。
-  未做：參數錯誤仍以一般文字回傳（13 處日期驗證、`check_choice`）→ 併入 Phase 2。
 - [x] 套件升級：FastMCP 2.12.3 → 4.1.3、mcp 1.27 → 2.3 等（#107，2026-10-21 合併）
-- [ ] FastMCP 4 對齊（小）：`handle_api_errors` 改回同步、只做錯誤轉換；文字型 tool 設 `output_schema=None`
+- [x] FastMCP 4 對齊（#109，2026-10-21 合併）：`handle_api_errors` 改回同步、只做錯誤轉換；`ToolRegistrar`
+  讓文字型 tool 設 `output_schema=None`
+- [x] P0 收尾（#110）：參數錯誤改 `raise ToolError`（32 個模組 63 處，訊息不變，
+  `test_argument_errors_unit.py` 把關）；`get_futures_intraday` 共用快取加鎖（#106 漏掉的並行 race）
 - [ ] Phase 0 剩餘：`ruff check` 進 CI
 - [ ] Phase 1 剩餘：Session + Retry、backoff、circuit breaker、per-site policy（見「防止被鎖 IP」）
 - [ ] Phase 2 共用核心
@@ -199,8 +201,8 @@ def get_twse_institutional_investors_summary(
 - `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
 - `TradingDate` 取代 13 份日期驗證；`Page` 取代 13 份手刻分頁。
 - 列舉參數全改 `Literal`、範圍用 `Annotated[int, Field(ge=…, le=…)]`：FastMCP 4 依 schema 驗證，錯了直接回
-  `isError`，不必在函式裡手寫檢查。其餘參數錯誤改 `raise ToolError`。統一 profitability 分頁寫法（參數改名屬
-  breaking，記 changelog）。
+  `isError`，不必在函式裡手寫檢查（手寫檢查目前已 `raise ToolError`，#110；改成 schema 後可刪掉那些檢查）。
+- 統一 profitability 分頁寫法（參數改名屬 breaking，記 changelog）。
 - 參數說明寫在 docstring 的 `Args:`：FastMCP 4 會搬進各參數的 `description`；`Returns:` 等其他段落會被丟掉，
   回傳內容寫在 `Args:` 之前（`回傳：…`，#107 已改，`test_tool_docstrings_unit.py` 把關）。
 - 驗收：grep 計數 9→1、13→1、13→0。
