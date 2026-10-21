@@ -7,6 +7,8 @@ so that both markets take the same sort_by / side / category / period values.
 from datetime import datetime, timedelta
 from typing import Callable, List, Literal, Sequence, TypeVar
 
+from .parse import int_or_none
+
 Row = TypeVar("Row")
 
 SORT_LABELS = {"total": "三大法人合計", "foreign": "外資", "trust": "投信", "dealer": "自營商"}
@@ -17,13 +19,6 @@ PERIODS = {"day": "日", "week": "週", "month": "月"}
 Investor = Literal["total", "foreign", "trust", "dealer"]  # SORT_LABELS
 Side = Literal["abs", "buy", "sell"]                        # SIDES
 Period = Literal["day", "week", "month"]                    # PERIODS
-
-
-def to_int(value) -> int:
-    try:
-        return int(str(value).replace(",", "").strip())
-    except ValueError:
-        return 0
 
 
 def rank(rows: Sequence[Row], value: Callable[[Row], int], side: str) -> List[Row]:
@@ -40,7 +35,7 @@ def rank(rows: Sequence[Row], value: Callable[[Row], int], side: str) -> List[Ro
 
 def yi(amount_text: str) -> str:
     """"-68,513,664,272" (元) → "-685.14 億"."""
-    return f"{to_int(amount_text) / 1e8:,.2f} 億"
+    return f"{(int_or_none(amount_text) or 0) / 1e8:,.2f} 億"
 
 
 def week_start(day: datetime) -> datetime:

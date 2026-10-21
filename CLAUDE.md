@@ -71,7 +71,7 @@ utils/                        # Bottom layer: HTTP, parsing, formatting. Never i
 ├── constants.py              # Localized message templates (Chinese)
 ├── date_helper.py            # roc_date() / roc_year_of() / slash_date(): a YYYYMMDD input → an upstream's form; parse_roc_date() / roc_to_ad() for ROC dates in replies; taipei_today()
 ├── errors.py                 # InvalidArgument (→ ToolError as is), UpstreamFormatError (a reply's shape changed)
-├── parse.py                  # decimal_or_none() / int_or_none(): exchange-printed numbers, "--" → None
+├── parse.py                  # decimal_or_none() / int_or_none() / float_or_none(): every exchange-printed number in the repo; "--" → None (write `or 0` where none counts as 0)
 ├── pagination.py             # Page / Paged: limit/offset paging
 ├── formatters.py             # Data → string formatting functions; printed(): a gateway number as the exchange prints it
 ├── http_transport.py         # Per-site pooled sessions, TLS policy, UpstreamRetry

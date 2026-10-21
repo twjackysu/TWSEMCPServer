@@ -9,6 +9,7 @@ from typing import Literal, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, format_list_response
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
+from utils.parse import float_or_none
 
 MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
 
@@ -19,10 +20,9 @@ SortBy = Literal["code", "ratio"]
 
 
 def _ratio(row) -> float:
-    try:
-        return float(str(row[COL_HELD_RATIO]).replace(",", ""))
-    except (ValueError, IndexError):
-        return -1.0
+    """持股比率 for sorting; a short row or a blank cell sorts last (-1)."""
+    ratio = float_or_none(row[COL_HELD_RATIO]) if len(row) > COL_HELD_RATIO else None
+    return -1.0 if ratio is None else ratio
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:

@@ -15,6 +15,7 @@ from typing import List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
 from utils.date_helper import parse_roc_date, taipei_today
+from utils.parse import float_or_none
 from sources.caching import PAST_MONTH_CACHE_TTL, month_cache_ttl
 from sources.twse.stock_day import stock_day_month
 from sources.twse.twt49u import exright_results
@@ -47,14 +48,6 @@ class ExRightEvent:
         return self.reference / self.close_before
 
 
-def _num(value) -> Optional[float]:
-    text = str(value).replace(",", "").strip()
-    try:
-        return float(text)
-    except ValueError:
-        return None  # "--" on days without trades
-
-
 def months_back(count: int, end: Optional[date] = None) -> List[Tuple[int, int]]:
     """The last ``count`` calendar months up to ``end`` (default: this month), oldest first."""
     end = end or taipei_today().date()
@@ -66,15 +59,11 @@ def months_back(count: int, end: Optional[date] = None) -> List[Tuple[int, int]]
     return out[::-1]
 
 
-def _float(value) -> Optional[float]:
-    return None if value is None else float(value)
-
-
 def _listed_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Optional[str], List[Bar]]:
     month = stock_day_month(client, code, y, m)
     if month is None:
         return None, []
-    bars = [Bar(r.day, _float(r.open), _float(r.high), _float(r.low), _float(r.close), float(r.volume or 0))
+    bars = [Bar(r.day, float_or_none(r.open), float_or_none(r.high), float_or_none(r.low), float_or_none(r.close), float(r.volume or 0))
             for r in month.rows]
     return month.name, bars
 
@@ -91,7 +80,7 @@ def _otc_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Option
         # r: 日期,成交張數,成交仟元,開盤,最高,最低,收盤,漲跌,筆數
         d = parse_roc_date(r[0])
         if d:
-            bars.append(Bar(d, _num(r[3]), _num(r[4]), _num(r[5]), _num(r[6]), (_num(r[1]) or 0.0) * 1000))
+            bars.append(Bar(d, float_or_none(r[3]), float_or_none(r[4]), float_or_none(r[5]), float_or_none(r[6]), (float_or_none(r[1]) or 0.0) * 1000))
     return (resp or {}).get("name") or None, bars
 
 
@@ -139,7 +128,7 @@ def fetch_exright_events(client: TWSEAPIClient, market: str, code: str, start: d
         # 除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息, ...
         if r[1].strip() != code:
             continue
-        d, before, ref = parse_roc_date(r[0]), _num(r[3]), _num(r[4])
+        d, before, ref = parse_roc_date(r[0]), float_or_none(r[3]), float_or_none(r[4])
         if d and before and ref:
             events.append(ExRightEvent(d, before, ref, str(r[8]).strip()))
     return sorted(events, key=lambda e: e.day)

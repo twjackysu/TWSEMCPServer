@@ -50,7 +50,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      `rank(flows, f.net(sort_by))`。T86 依欄名讀三種歷史格式（12 欄、2014-12-01 起 16 欄、2017-12-18 起 19 欄），
      修好 2017-12-18 前的日期一律「查無」；TPEx 7 組同名欄位依順序對應（Adapter），逐列檢查加總。呈現仍各自保留（上市排行沒有拆外資自營商、
      自營商自行／避險），統一會改變輸出，另議。
-- [ ] Phase 2 共用核心
+- [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面
 - [ ] Phase 5 打包
@@ -245,7 +245,10 @@ def get_twse_institutional_investors_summary(
 - 之後可考慮：超過一兩分鐘的工作改 `task=True` 背景任務（需要 client 支援 MCP tasks）。
 
 ### Phase 2：共用核心
-- `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
+- ✅ `utils/parse.py` 取代 9 份數字解析（#128）：`_num`／`_float`（market_snapshot、price_series）、`_num`（ETF
+  daily_nav、monthly_stats）、`_to_int`（TAIFEX）、`to_int`（institutional）、`to_number`（sitca），以及 3 處寫在程式裡的
+  轉換（外資持股比率、月營收、TDCC）。只新增 `float_or_none`；沒有數字一律 `None`，要當 0 的地方由呼叫端寫
+  `or 0`（不另設 `int_or_zero`）。真實資料 16,436 個值新舊解析逐一相同，受影響工具 24 個案例輸出與 main 相同。
 - ✅ `TradingDate` 取代日期驗證（#126）。做成參數型別而不是 Value Object：`toolkit.TradingDate`／`RequiredTradingDate`
   （西元 YYYYMMDD 的 pattern ＋ 日期必須存在），所有 56 個日期參數都用它，FastMCP 在工具執行前驗證，中文訊息由
   `ArgumentErrorsInChinese` 產生。刪掉 11 個模組的手寫檢查與 `parse_date_range` 的格式分支（`example` 參數一併拿掉）。

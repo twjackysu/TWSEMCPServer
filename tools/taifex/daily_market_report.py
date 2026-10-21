@@ -13,6 +13,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
+from utils.parse import int_or_none
 from toolkit import Limit, TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
@@ -46,13 +47,6 @@ def has_regular_session(parsed) -> bool:
 
 def _is_zero(value: str) -> bool:
     return value.strip() in ("", "0", "-")
-
-
-def _to_int(value: str) -> int:
-    try:
-        return int(value.replace(",", "").strip())
-    except ValueError:
-        return 0
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -187,7 +181,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     by_date[r[0]].append(r)
             shown = []
             for date in sorted(by_date):
-                shown += sorted(by_date[date], key=lambda r: -_to_int(r[9]))[:limit]
+                shown += sorted(by_date[date], key=lambda r: -(int_or_none(r[9]) or 0))[:limit]
             total = sum(len(v) for v in by_date.values())
             header = (
                 f"【選擇權每日交易行情】{contract} | {label}（有成交共 {total} 筆，每日依成交量取前 {limit} 筆）\n"

@@ -16,7 +16,7 @@ they are absent; a fund appears from its first monthly report.
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from .api_client import TWSEAPIClient
 from .mops import parse_html_table
@@ -60,15 +60,6 @@ def query_rows(client: TWSEAPIClient, result_page: str, ym: str, code: str = "",
     if not table or not table[0] or table[0][0] != "序號":
         return []
     return [table[0]] + [r for r in table[1:] if r and r[0].isdigit()]
-
-
-def to_number(text: str) -> Optional[float]:
-    """"2,384,122,964,603" / "14.5%" / "106.6400" → float; "-" or blank → None."""
-    text = (text or "").replace(",", "").replace("%", "").strip()
-    try:
-        return float(text)
-    except ValueError:
-        return None
 
 
 # --- 基金投資明細 (holdings) -------------------------------------------------------------

@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
 from utils.date_helper import slash_date
+from utils.parse import float_or_none
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 
@@ -56,32 +57,20 @@ class StockSnapshot:
         return self.change / (self.close - self.change) * 100
 
 
-def _float(value) -> Optional[float]:
-    return None if value is None else float(value)
-
-
-def _num(value) -> Optional[float]:
-    text = str(value).replace(",", "").replace("%", "").strip()
-    try:
-        return float(text)
-    except ValueError:
-        return None  # "-", "--", "N/A": no value (e.g. P/E of a loss-making company)
-
-
 def _listed(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     out: Dict[str, StockSnapshot] = {}
     report = valuation_ratios(client)
     day = report.date
     for v in report.valuations:
-        out[v.code] = StockSnapshot(v.code, v.name, LISTED, close=_float(v.close), dividend_yield=_float(v.dividend_yield),
-                                    dividend_year=v.dividend_year, pe=_float(v.pe), pb=_float(v.pb), fiscal=v.fiscal)
+        out[v.code] = StockSnapshot(v.code, v.name, LISTED, close=float_or_none(v.close), dividend_yield=float_or_none(v.dividend_yield),
+                                    dividend_year=v.dividend_year, pe=float_or_none(v.pe), pb=float_or_none(v.pb), fiscal=v.fiscal)
     table = stock_quotes(client, "ALLBUT0999", day)
     for q in table.quotes if table else []:
         s = out.setdefault(q.code, StockSnapshot(q.code, q.name, LISTED))
-        s.close = s.close if s.close is not None else _float(q.close)
+        s.close = s.close if s.close is not None else float_or_none(q.close)
         if q.change is not None:
             s.change = float(q.change)
-        s.volume = _float(q.volume)
+        s.volume = float_or_none(q.volume)
     return out, day
 
 
@@ -91,8 +80,8 @@ def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     day = str((val or {}).get("date") or "")
     for r in ((val or {}).get("tables") or [{}])[0].get("data") or []:
         # r: 股票代號,公司名稱,本益比,每股股利,股利年度,殖利率(%),股價淨值比,財報年/季
-        out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), OTC, pe=_num(r[2]), dividend_year=str(r[4]),
-                                          dividend_yield=_num(r[5]), pb=_num(r[6]), fiscal=str(r[7]))
+        out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), OTC, pe=float_or_none(r[2]), dividend_year=str(r[4]),
+                                          dividend_yield=float_or_none(r[5]), pb=float_or_none(r[6]), fiscal=str(r[7]))
     params = {"response": "json", "type": "EW"}
     if len(day) == 8:
         params["date"] = slash_date(day)
@@ -100,7 +89,7 @@ def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     for r in ((quotes or {}).get("tables") or [{}])[0].get("data") or []:
         # r: 代號,名稱,收盤,漲跌(帶正負號),開盤,最高,最低,成交股數,...
         s = out.setdefault(r[0].strip(), StockSnapshot(r[0].strip(), r[1].strip(), OTC))
-        s.close, s.change, s.volume = _num(r[2]), _num(r[3]), _num(r[7])
+        s.close, s.change, s.volume = float_or_none(r[2]), float_or_none(r[3]), float_or_none(r[7])
     return out, day
 
 

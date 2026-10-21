@@ -24,6 +24,7 @@ from fastmcp import FastMCP
 from utils import TWSEAPIClient
 from toolkit import bounded, handle_api_errors
 from utils.deadline import time_budget
+from utils.parse import float_or_none, int_or_none
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
 # Weekly data in one ~2.3 MB file: without a cache every single-stock lookup re-downloads
@@ -132,10 +133,9 @@ def parse_result_rows(html: str) -> Dict[str, Tuple[int, int, float]]:
             key = seq
         else:
             continue
-        try:
-            out[key] = (int(people.replace(",", "") or 0), int(shares.replace(",", "")), float(pct))
-        except ValueError:
-            continue
+        counts = (int_or_none(people) if people else 0, int_or_none(shares), float_or_none(pct))
+        if None not in counts:  # a cell that is not a number: skip the row, as before
+            out[key] = counts
     return out
 
 
