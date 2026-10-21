@@ -129,6 +129,13 @@ This project is powered by **Prefect Horizon**, which hosts a free remote MCP Se
 }
 ```
 
+### 🎛️ Serving Only Some Data Sources
+There are many tools; turn off the sources you don't need to shorten the tool list your client reads. Source tags: `twse` (TWSE), `tpex` (TPEx), `taifex` (TAIFEX), `mops` (MOPS), `tdcc` (TDCC), `sitca` (SITCA), `ndc` (National Development Council), `cbc` (Central Bank).
+- `TWSE_INCLUDE_SOURCES=twse,tpex`: serve only these sources (unset = all)
+- `TWSE_EXCLUDE_SOURCES=taifex`: turn these sources off
+
+A tool is hidden when any source it reads is off (e.g. ETF info reads SITCA, TWSE and TPEx). With Docker, pass `-e TWSE_EXCLUDE_SOURCES=taifex`.
+
 ### 🔧 Local Installation
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git

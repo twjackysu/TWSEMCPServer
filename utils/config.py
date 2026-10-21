@@ -76,6 +76,23 @@ class APIConfig:
     ))
 
 
+class ServerConfig:
+    """Which tools the server shows."""
+
+    # Data sources to serve: comma-separated source tags (tools.SOURCES: twse, tpex, taifex, mops,
+    # tdcc, sitca, ndc, cbc). INCLUDE empty = every source; EXCLUDE is taken off what INCLUDE leaves.
+    # A tool that reads a source not served is hidden (tools.show_only_sources), e.g.
+    # TWSE_EXCLUDE_SOURCES=taifex drops the futures/options tools from tools/list.
+    INCLUDE_SOURCES: Final[str] = os.getenv(
+        'TWSE_INCLUDE_SOURCES',
+        ''
+    )
+    EXCLUDE_SOURCES: Final[str] = os.getenv(
+        'TWSE_EXCLUDE_SOURCES',
+        ''
+    )
+
+
 class DisplayConfig:
     """Display and formatting configuration."""
     
@@ -105,6 +122,7 @@ class TestConfig:
 # Convenience exports
 __all__ = [
     'APIConfig',
+    'ServerConfig',
     'DisplayConfig',
     'TestConfig',
 ]

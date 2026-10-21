@@ -52,8 +52,8 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      自營商自行／避險），統一會改變輸出，另議。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
-- [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags；
-  下一步 Visibility、搜尋式工具清單、結構化輸出、回應大小上限、prompts 自動註冊）
+- [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags、
+  #130 依來源開關工具；下一步搜尋式工具清單、結構化輸出、回應大小上限、prompts 自動註冊）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -281,8 +281,14 @@ def get_twse_institutional_investors_summary(
   `twse` 131、`tpex` 17、`taifex` 17、`mops` 11、`sitca` 3、`ndc` 2、`cbc` 1、`tdcc` 1 支），`create_company_tool` /
   `create_list_tool` 產生的工具也經過它。新模組沒登記來源就註冊失敗；靜態檢查「碰到哪個網站就要有那個 tag」；
   用真實請求核對 59 支工具連到的網站都在 tags 內。
-- 讓使用者只載入需要的子集：`Visibility` transform 依 tags 開關（取代原本想自己做的 `MCP_INCLUDE_TAGS`
-  過濾），環境變數只負責決定要加哪些 `Visibility`。
+- ✅ 讓使用者只載入需要的子集（#130）：`TWSE_INCLUDE_SOURCES`／`TWSE_EXCLUDE_SOURCES`（逗號分隔的來源 tag）
+  只決定開哪些來源，過濾本身是 FastMCP 的 `Visibility`（`tools.show_only_sources` 呼叫 `mcp.disable(tags=)`）。
+  - 工具：讀到任何一個沒開的來源就隱藏（`get_etf_info` 要 sitca＋twse＋tpex 都開），呼叫時是 `Unknown tool`。
+  - prompt：多數 prompt 跨 4–6 個來源，全部要開才顯示太嚴；改成只要有一個來源開著就保留（再加一個只對
+    prompt 的 `mcp.enable(tags=開著的來源)`，後加的標記優先）。prompt 的 tags 是它點名的工具的來源聯集，
+    測試把兩邊綁在一起。
+  - server instructions 開頭只列開著的來源（`tools.SOURCES` 改存簡稱，預設輸出與之前逐字相同）。
+  - 打錯來源名稱、或全部排除，server 直接啟動失敗，不默默藏掉工具。
 - 177 個 tool 吃 context：評估 `RegexSearchTransform`（`list_tools` 只剩 `search_tools` + `call_tool`，
   需要時再搜）。**不要用 `BM25SearchTransform`**：它的 tokenizer（`[^\W_]{2,}`）不切中文，整段中文描述
   變成一個詞，實測「外資 買超 排行 上市」排第一的是期貨月統計；regex `外資.*買超` 則正確找到三支三大法人
