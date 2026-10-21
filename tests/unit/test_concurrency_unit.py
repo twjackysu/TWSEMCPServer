@@ -132,7 +132,7 @@ def test_same_site_requests_stay_spaced_across_threads(monkeypatch):
     client = TWSEAPIClient(request_interval=interval, cache_ttl=0)
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(client.fetch_bytes, ["https://www.twse.com.tw/x"] * 4))
-    gaps = [b - a for a, b in zip(sorted(sent), sorted(sent)[1:])]
+    gaps = [b - a for a, b in zip(sorted(sent), sorted(sent)[1:], strict=False)]
     assert min(gaps) >= interval * 0.95, f"同網站請求間隔不足: {gaps}"
 
 

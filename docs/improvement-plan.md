@@ -18,7 +18,8 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
   `test_argument_errors_unit.py` 把關）；`get_futures_intraday` 共用快取加鎖（#106 漏掉的並行 race）
 - [x] 開始 P1 前的掃描與順帶修正：TDCC 逐週趨勢把錯誤頁當成沒資料（#111）；上市日期讀錯欄位、
   `applylistingLocal` 整排錯位（#112）
-- [ ] Phase 0 剩餘：`ruff check` 進 CI
+- [x] Phase 0 `ruff check` 進 CI（#124）：ruff 0.17.1 固定版本，只開抓 bug 的規則（F、E4/E7/E9、B）；
+  先修掉現有 38 個。ruff 自己的預設規則還會報約 680 個型別寫法與 import 排序，屬於風格，留待 Phase 2 一起處理
 - [x] P1-7 傳輸層（#113）：每網站一個連線池 Session、全部網站開啟 TLS 驗證、Retry（間隔、Retry-After 上限）
 - [x] Phase 1 circuit breaker（#122）：每個網站連續 3 次失敗、或一次被擋（403／429／封鎖頁）就冷卻
   30 秒，冷卻後的試探再失敗就加倍（上限 10 分鐘）；冷卻中直接回錯誤、快取照常可用（`utils/circuit_breaker.py`）

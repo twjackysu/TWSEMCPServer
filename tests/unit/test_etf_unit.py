@@ -29,7 +29,10 @@ def _month_page(months):
 
 def _grid(header, rows):
     """SITCA 的結果表放在外層排版表格的儲存格裡。"""
-    cells = lambda r, tag: "".join(f"<{tag}>{c}</{tag}>" for c in r)
+
+    def cells(r, tag):
+        return "".join(f"<{tag}>{c}</{tag}>" for c in r)
+
     body = "".join(f"<tr>{cells(r, 'td')}</tr>" for r in rows)
     total = f"<tr>{cells(['合計'] + ['-'] * (len(header) - 1), 'td')}</tr>"
     grid = f'<table id="ctl00_ContentPlaceHolder1_GridView1"><tr>{cells(header, "th")}</tr>{body}{total}</table>'
@@ -350,7 +353,10 @@ def test_etf_holdings_latest_and_past_period_names():
 
 def test_etf_holdings_quarterly_ranks_by_weight_and_messages():
     quarterly_header = [h for h in HOLD_HEADER if h != "名次"]
-    q_row = lambda code, name, pct: ["國內上市", code, name, "1", "", "", "0", pct]
+
+    def q_row(code, name, pct):
+        return ["國內上市", code, name, "1", "", "", "0", pct]
+
 
     class Quarterly(_FakeHoldingsPage):
         def __call__(self, params, body):

@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
+from utils import TWSEAPIClient, has_meaningful_data
 from toolkit import CompanyToolSpec, create_company_tool, handle_api_errors
 
 # Simple company data tools

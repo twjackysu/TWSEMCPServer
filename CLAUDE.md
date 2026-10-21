@@ -27,6 +27,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 | Install with test deps | `uv sync --extra dev` |
 | Run server (dev) | `uv run fastmcp dev inspector server.py` |
 | Run server (prod) | `uv run fastmcp run server.py` |
+| Lint (CI gate) | `uv run ruff check .` — rules and pinned version in `pyproject.toml`: F, E4/E7/E9, B (bugs, not style) |
 | Run all tests | `uv run pytest` |
 | Run specific test file | `uv run pytest tests/contract/test_history_api.py -v` |
 | Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `etf`; `contract` = all contract tests, `unit` = all offline unit tests) |
@@ -161,7 +162,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 Two kinds of tests, kept strictly apart:
 
 - **Live contract tests** (`tests/contract/`) call the real third-party APIs. Their only job is to detect an interface change on TWSE / TAIFEX / TPEx / MIS that would break our tools: endpoint gone, response format changed (JSON → CSV/HTML, list → dict), a field or column our tool hardcodes renamed/moved. They must **not** assert on our own logic (pagination, output caps, filtering, message wording), and must **not** assert that upstream has data today — an empty `[]` from a "latest day only" endpoint is not an interface change (TWSE `t187ap42_L` served `[]` for days after the 2026 Mid-Autumn long weekend). Use `records_or_skip()` from `tests/helpers.py` for such endpoints. Fixed historical dates (`FIXED_DATE`) are expected to have data, so an empty result there is still a failure.
-- **Offline unit tests** (`tests/unit/`) test our own logic against canned payloads — via `OfflineClient` (`tests/offline.py`, stubs only the HTTP layer so client-side filtering still runs) or a small stub client. Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test. `register_module_tools()` (`tests/helpers.py`) returns a module's tool functions; a tool failure raises `ToolError`, so assert it with `pytest.raises(ToolError, match=...)`. The "Unit Tests" workflow (`.github/workflows/unit-tests.yml`) runs them on every PR.
+- **Offline unit tests** (`tests/unit/`) test our own logic against canned payloads — via `OfflineClient` (`tests/offline.py`, stubs only the HTTP layer so client-side filtering still runs) or a small stub client. Mark the module `pytestmark = pytest.mark.offline`: `conftest.py` then skips the rate-limit sleep and makes any real HTTP request fail the test. `register_module_tools()` (`tests/helpers.py`) returns a module's tool functions; a tool failure raises `ToolError`, so assert it with `pytest.raises(ToolError, match=...)`. The "Unit Tests" workflow (`.github/workflows/unit-tests.yml`) runs `ruff check` and then them on every PR. Every `zip()` states `strict=`: `True` where the lengths are equal by construction, `False` where a table row may be shorter than its header.
 
 The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiting.
 

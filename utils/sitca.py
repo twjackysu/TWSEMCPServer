@@ -129,7 +129,10 @@ def parse_holdings(html: str) -> Tuple[List[str], Dict[str, List[List[str]]]]:
         return [], {}
     table = html[html.rfind("<table", 0, start):]
     table = table[: table.find("</table>")]
-    clean = lambda c: " ".join(_TAG_RE.sub(" ", c.replace("<br>", " ")).replace("&nbsp;", " ").split())
+
+    def clean(cell: str) -> str:
+        return " ".join(_TAG_RE.sub(" ", cell.replace("<br>", " ")).replace("&nbsp;", " ").split())
+
     header: List[str] = []
     funds: Dict[str, List[List[str]]] = {}
     current = None

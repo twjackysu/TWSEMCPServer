@@ -51,7 +51,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         try:
             anchor = datetime.strptime(date, "%Y%m%d") if date else None
         except ValueError:
-            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\"")
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\"") from None
 
         if period == "day":
             resp = _fetch(type="day", dayDate=date) if date else _fetch(type="day")

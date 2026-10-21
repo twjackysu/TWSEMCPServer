@@ -1,6 +1,6 @@
 """Type definitions for TWSE API data structures."""
 
-from typing import TypedDict, Protocol, Any
+from typing import TypedDict, Protocol
 
 
 class TWSEDataItem(TypedDict, total=False):

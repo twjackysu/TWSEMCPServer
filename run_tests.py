@@ -43,7 +43,7 @@ def run_tests(scope="all"):
         # 自動開啟瀏覽器查看報告
         html_path = os.path.abspath("htmlcov/index.html")
         if os.path.exists(html_path):
-            print(f"🌐 Opening coverage report in browser...")
+            print("🌐 Opening coverage report in browser...")
             webbrowser.open(f"file://{html_path}")
     
     return result.returncode

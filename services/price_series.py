@@ -156,6 +156,10 @@ def adjust_bars(bars: List[Bar], events: List[ExRightEvent]) -> List[Bar]:
         if factor == 1.0:
             out.append(b)
             continue
-        scale = lambda v: None if v is None else round(v * factor, 4)  # noqa: E731
-        out.append(replace(b, open=scale(b.open), high=scale(b.high), low=scale(b.low), close=scale(b.close)))
+        out.append(replace(b, open=_scaled(b.open, factor), high=_scaled(b.high, factor),
+                           low=_scaled(b.low, factor), close=_scaled(b.close, factor)))
     return out
+
+
+def _scaled(price: Optional[float], factor: float) -> Optional[float]:
+    return None if price is None else round(price * factor, 4)

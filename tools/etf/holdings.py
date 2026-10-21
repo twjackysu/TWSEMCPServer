@@ -50,7 +50,7 @@ def _amount(value: Optional[float]) -> str:
 def format_holdings(header: List[str], rows: List[List[str]]) -> List[str]:
     """Holding rows (fund-name column already removed) → ranked text lines."""
     cols = header[1:]
-    items: List[Dict[str, str]] = [dict(zip(cols, r)) for r in rows]
+    items: List[Dict[str, str]] = [dict(zip(cols, r, strict=False)) for r in rows]
     # The quarterly page has no 名次: rank by weight.
     if COL_RANK not in cols:
         items.sort(key=lambda h: to_number(h.get(COL_PCT, "")) or 0, reverse=True)
@@ -102,13 +102,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if len(statement) < 2:
             return (f"查無 ETF 代號 {code} 的投信投顧公會資料"
                     "（期貨 ETF、外幣級別代號或尚未公布月報的新 ETF 不在此資料中）")
-        info = dict(zip(statement[0], statement[1]))
+        info = dict(zip(statement[0], statement[1], strict=False))
         # Funds get renamed (兆豐國際臺灣藍籌30 → 兆豐臺灣藍籌30), so for a past period use the
         # name and class the ETF zone shows for that month, found by 基金統編.
         if ym != statement_months[0] and ym in statement_months:
             past = query_rows(_client, STATEMENT_RESULT, ym, fund_id=info.get("基金統編", ""))
             if len(past) >= 2:
-                info.update({k: v for k, v in zip(past[0], past[1]) if k in ("基金名稱", "類型代號")})
+                info.update({k: v for k, v in zip(past[0], past[1], strict=False) if k in ("基金名稱", "類型代號")})
         fund_name, fund_class = info.get("基金名稱", ""), info.get("類型代號", "")
 
         header, funds = holdings_by_class(_client, page, ym, fund_class)
@@ -124,7 +124,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     "槓桿型、反向型 ETF 多半只持有期貨與現金而不列入；新 ETF 要等首次申報後才有資料")
 
         lines = format_holdings(header, rows)
-        total = sum(to_number(dict(zip(header[1:], r)).get(COL_PCT, "")) or 0 for r in rows)
+        total = sum(to_number(dict(zip(header[1:], r, strict=False)).get(COL_PCT, "")) or 0 for r in rows)
         scope = "每季占淨值 1% 以上持股" if quarterly else "每月前十大持股"
         out = [f"【{code} {info.get('證券簡稱', '')} 持股明細】{fund_name}",
                f"資料期間 {ym[:4]}-{ym[4:]}｜{scope}｜共 {len(lines)} 檔，合計占淨值 {total:.2f}%\n"]

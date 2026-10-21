@@ -52,7 +52,7 @@ def records(rows: List[List[str]]) -> List[Dict[str, str]]:
     missing = [c for c in REQUIRED_COLUMNS if c not in header]
     if missing:
         raise ValueError(f"投信投顧公會 ETF 月報欄位已變更，缺少: {missing}")
-    return [dict(zip(header, r)) for r in rows[1:]]
+    return [dict(zip(header, r, strict=False)) for r in rows[1:]]
 
 
 def _num(r: Dict[str, str], col: str) -> float:

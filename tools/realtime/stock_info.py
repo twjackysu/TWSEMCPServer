@@ -105,10 +105,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             bid_vols = item.get("g", "").rstrip("_").split("_")
 
             if asks and asks[0]:
-                ask_parts = [f"{p}({v}張)" for p, v in zip(asks, ask_vols) if p]
+                ask_parts = [f"{p}({v}張)" for p, v in zip(asks, ask_vols, strict=False) if p]
                 lines.append(f"  賣五檔: {' / '.join(ask_parts)}")
             if bids and bids[0]:
-                bid_parts = [f"{p}({v}張)" for p, v in zip(bids, bid_vols) if p]
+                bid_parts = [f"{p}({v}張)" for p, v in zip(bids, bid_vols, strict=False) if p]
                 lines.append(f"  買五檔: {' / '.join(bid_parts)}")
 
         return "\n".join(lines)

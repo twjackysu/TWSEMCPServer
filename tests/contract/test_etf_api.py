@@ -19,7 +19,7 @@ from tests.helpers import fetch_bytes_or_skip, fetch_or_skip
 from tools.etf.daily_nav import MIS_ALL_ETF_URL
 from tools.etf.holdings import REQUIRED_COLUMNS as HOLDINGS_COLUMNS
 from tools.etf.info import TPEX_ETF_DETAIL_URL, TPEX_ETF_LIST_URL, TPEX_ETF_TYPES
-from tools.etf.monthly_stats import REQUIRED_COLUMNS, records
+from tools.etf.monthly_stats import records
 from utils.api_client import TWSEAPIClient
 from utils.sitca import (
     HOLDINGS_MONTHLY_PAGE,
@@ -61,7 +61,7 @@ class TestSitcaEtfZone:
         assert rows, "etf_info2 找不到 GridView1 表格或表頭不再以「序號」開頭"
         missing = [c for c in INFO_COLUMNS if c not in rows[0]]
         assert not missing, f"etf_info2 欄位已變更，缺少 {missing}: {rows[0]}"
-        assert len(rows) == 2 and dict(zip(rows[0], rows[1]))["證券代號"] == "0050", "txtemcode 代號篩選失效"
+        assert len(rows) == 2 and dict(zip(rows[0], rows[1], strict=True))["證券代號"] == "0050", "txtemcode 代號篩選失效"
 
     def test_statement_columns_and_code_filter(self, client):
         rows = records(query_rows(client, "etf_statement2.aspx", FIXED_MONTH_WITH_CODES, code="0050"))  # raises on missing columns

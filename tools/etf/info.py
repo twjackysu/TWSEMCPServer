@@ -45,7 +45,7 @@ def sitca_info_records(rows: List[List[str]]) -> List[Dict[str, str]]:
     if not rows:
         return []
     header = rows[0]
-    records = [dict(zip(header, r)) for r in rows[1:]]
+    records = [dict(zip(header, r, strict=False)) for r in rows[1:]]
     return [r for r in records if r.get("證券代號", "-") not in ("", "-")]
 
 
@@ -78,7 +78,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             fields, data = table.get("fields") or [], table.get("data") or []
             if not data or len(fields) < 2:
                 continue  # the PCF table is only a link to the issuer's site
-            for name, value in zip(fields, data[0]):
+            for name, value in zip(fields, data[0], strict=False):
                 value = " ".join(_TAG_RE.sub(" ", str(value)).split())
                 if value and name not in ("證券代號",):
                     lines.append(f"{name}: {value}")

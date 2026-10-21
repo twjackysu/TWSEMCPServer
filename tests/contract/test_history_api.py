@@ -3,7 +3,6 @@
 只驗證 tools 中有寫死用到的欄位索引與格式，足以偵測來源 API 結構異動。
 """
 
-import pytest
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.stock_day import stock_day_month
 from tests.helpers import fetch_or_skip, gateway_or_skip

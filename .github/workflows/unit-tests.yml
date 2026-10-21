@@ -28,5 +28,9 @@ jobs:
       - name: 📦 Install dependencies
         run: uv sync --extra dev
 
+      # Rules and pinned version live in pyproject.toml ([tool.ruff], dev extra)
+      - name: 🧹 Ruff
+        run: uv run ruff check .
+
       - name: 🧪 Run offline unit tests
         run: uv run pytest tests/unit --tb=short
