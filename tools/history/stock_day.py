@@ -1,16 +1,16 @@
 """Historical daily OHLCV data for individual stocks."""
 
+from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, roc_to_ad
+from utils import TWSEAPIClient, InvalidArgument
 from toolkit import handle_api_errors
+from sources.twse.stock_day import stock_day_month
 
-STOCK_DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 
-
-def _parse_number(value: str) -> str:
-    """Remove commas from number strings, return as-is if not parseable."""
-    return value.replace(",", "")
+def _text(value) -> str:
+    """A number as TWSE prints it without thousands separators; "--" where it has none."""
+    return "--" if value is None else str(value)
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -29,37 +29,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
             date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月整月）
         """
-        resp = _client.fetch_json(
-            STOCK_DAY_URL,
-            params={"response": "json", "stockNo": stock_no, "date": date},
-        )
+        try:
+            day = datetime.strptime(date.strip(), "%Y%m%d")
+        except ValueError:
+            raise InvalidArgument(f"日期格式錯誤，請使用 YYYYMMDD，例如 \"20250101\"（收到：{date}）") from None
 
-        if not resp or resp.get("stat") != "OK":
+        month = stock_day_month(_client, stock_no.strip(), day.year, day.month)
+        if month is None:
             return f"查無 {stock_no} 在 {date} 的交易資料，請確認該日期為交易日（非假日或週末）"
 
-        data = resp.get("data", [])
-        if not data:
-            return f"查無 {stock_no} 在 {date[:6]} 的交易資料"
-
-        title = resp.get("title", f"{stock_no} 歷史日K")
-        lines = [f"【{title}】\n"]
-
-        for row in data:
-            # row: [日期, 成交股數, 成交金額, 開盤價, 最高價, 最低價, 收盤價, 漲跌價差, 成交筆數]
-            ad_date = roc_to_ad(row[0])
-            volume = _parse_number(row[1])
-            trade_value = _parse_number(row[2])
-            open_price = _parse_number(row[3])
-            high = _parse_number(row[4])
-            low = _parse_number(row[5])
-            close = _parse_number(row[6])
-            change = row[7]
-            transactions = _parse_number(row[8])
-
+        lines = [f"【{month.title or f'{stock_no} 歷史日K'}】\n"]
+        for row in month.rows:
             lines.append(
-                f"日期: {ad_date} | 開: {open_price} | 高: {high} | "
-                f"低: {low} | 收: {close} | 漲跌: {change} | "
-                f"成交量: {volume} | 成交金額: {trade_value} | 筆數: {transactions}"
+                f"日期: {row.day.isoformat()} | 開: {_text(row.open)} | 高: {_text(row.high)} | "
+                f"低: {_text(row.low)} | 收: {_text(row.close)} | 漲跌: {row.change} | "
+                f"成交量: {_text(row.volume)} | 成交金額: {_text(row.value)} | 筆數: {_text(row.transactions)}"
             )
 
         return "\n".join(lines)

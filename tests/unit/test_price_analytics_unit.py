@@ -11,8 +11,9 @@ from fastmcp.exceptions import ToolError
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tools.analytics import price_tools
-from utils import indicators, price_series
-from utils.price_series import Bar, ExRightEvent, adjust_bars, fetch_daily_bars, fetch_exright_events
+from utils import indicators
+from services import price_series
+from services.price_series import Bar, ExRightEvent, adjust_bars, fetch_daily_bars, fetch_exright_events
 
 pytestmark = pytest.mark.offline
 
@@ -80,8 +81,9 @@ def test_market_detection_falls_back_to_otc_and_converts_lots_to_shares():
 
 def test_listed_detection_parses_name_and_skips_untraded_days():
     payload = {"stat": "OK", "title": "115年09月 2330 台積電           各日成交資訊",
-               "data": [["115/09/29", "1,000", "1", "2,475.00", "2,495.00", "2,475.00", "2,475.00", "0", "1"],
-                        ["115/09/30", "0", "0", "--", "--", "--", "--", "0", "0"]]}
+               "fields": ["日期", "成交股數", "成交金額", "開盤價", "最高價", "最低價", "收盤價", "漲跌價差", "成交筆數", "註記"],
+               "data": [["115/09/29", "1,000", "1", "2,475.00", "2,495.00", "2,475.00", "2,475.00", "0", "1", ""],
+                        ["115/09/30", "0", "0", "--", "--", "--", "--", "0", "0", ""]]}
     client = OfflineClient({"/exchangeReport/STOCK_DAY": payload})
     market, name, bars = fetch_daily_bars(client, "2330", [(2026, 9)])
     assert (market, name) == ("上市", "台積電")
