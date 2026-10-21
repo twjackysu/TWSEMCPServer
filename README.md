@@ -123,6 +123,13 @@ openapi.taifex.com.tw 僅提供最新一個交易日，本專案改用期交所�
 }
 ```
 
+### 🎛️ 只開部分資料來源
+工具很多，用不到的來源可以關掉，減少 client 要讀的工具清單。來源代號：`twse`（證交所）、`tpex`（櫃買中心）、`taifex`（期交所）、`mops`（公開資訊觀測站）、`tdcc`（集保）、`sitca`（投信投顧公會）、`ndc`（國發會）、`cbc`（央行）。
+- `TWSE_INCLUDE_SOURCES=twse,tpex`：只開這些來源（不設＝全部）
+- `TWSE_EXCLUDE_SOURCES=taifex`：關掉這些來源
+
+工具只要用到一個沒開的來源就不會出現（例如 ETF 基本資料同時查投信投顧公會、證交所、櫃買中心）。Docker 用 `-e TWSE_EXCLUDE_SOURCES=taifex` 傳入。
+
 ### 🔧 本地安裝
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git

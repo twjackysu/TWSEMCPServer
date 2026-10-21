@@ -22,15 +22,16 @@ logger = logging.getLogger(__name__)
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True)
 
 # The data provider(s) behind each tool module, as tags. The longest matching module prefix applies.
-# A deployment can serve a subset with FastMCP's Visibility transform (e.g. only twse and tpex).
+# A deployment can serve a subset (show_only_sources). The names, in this order, open the server
+# instructions (server.py).
 SOURCES = {
-    "twse": "臺灣證券交易所（OpenAPI、網站 rwd／exchangeReport、MIS 即時行情）",
-    "tpex": "證券櫃檯買賣中心",
-    "taifex": "臺灣期貨交易所",
+    "twse": "證交所",          # OpenAPI, website rwd / exchangeReport, MIS quotes
+    "tpex": "櫃買中心",
+    "taifex": "期交所",
     "mops": "公開資訊觀測站",
-    "tdcc": "臺灣集中保管結算所",
-    "sitca": "中華民國證券投資信託暨顧問商業同業公會",
-    "ndc": "國家發展委員會",
+    "tdcc": "集保結算所",
+    "sitca": "投信投顧公會",
+    "ndc": "國發會",
     "cbc": "中央銀行",
 }
 SOURCE_TAGS: Dict[str, FrozenSet[str]] = {
@@ -61,6 +62,41 @@ def source_tags(module_path: str) -> FrozenSet[str]:
     if not prefixes:
         raise LookupError(f"{module_path} has no entry in tools.SOURCE_TAGS: say which source(s) its tools read")
     return SOURCE_TAGS[max(prefixes, key=len)]
+
+
+def enabled_sources(include: str = "", exclude: str = "") -> FrozenSet[str]:
+    """The sources a deployment serves: ``include`` (comma-separated tags; empty = every source) minus ``exclude``.
+
+    An unknown name is an error rather than ignored, since a typo would hide tools without a word.
+    """
+    def names(text: str) -> set:
+        found = {name.strip().lower() for name in text.split(",") if name.strip()}
+        unknown = found - set(SOURCES)
+        if unknown:
+            raise ValueError(f"unknown data source(s) {sorted(unknown)}; known sources: {', '.join(SOURCES)}")
+        return found
+
+    served = frozenset((names(include) or set(SOURCES)) - names(exclude))
+    if not served:
+        raise ValueError("every data source is excluded: the server would have no tools")
+    return served
+
+
+def show_only_sources(mcp: "FastMCP", sources: FrozenSet[str]) -> None:
+    """Hide what depends on sources outside ``sources``, with FastMCP's Visibility transform on tags.
+
+    - A tool is hidden when any source it reads is off, since it could not answer in full
+      (``get_etf_info`` reads sitca, twse and tpex). Calling a hidden tool fails as an unknown tool.
+    - A prompt stays while any of its sources is on: a prompt walks through tools of several sources
+      and is still useful with some of them. Its tags are the sources of the tools it names.
+    - Untagged components are left alone.
+    """
+    hidden = set(SOURCES) - sources
+    if not hidden:
+        return
+    mcp.disable(tags=hidden)
+    mcp.enable(tags=set(sources), components={"prompt"})  # later Visibility marks win
+    logger.info(f"Serving sources {sorted(sources)}; tools reading {sorted(hidden)} are hidden")
 
 
 class ToolRegistrar:
@@ -141,5 +177,5 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
         module.register_tools(ToolRegistrar(mcp, tags=source_tags(module_path)), client)
 
 
-__all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'ToolRegistrar', 'discover_tool_modules', 'register_all_tools',
-           'source_tags']
+__all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'ToolRegistrar', 'discover_tool_modules', 'enabled_sources',
+           'register_all_tools', 'show_only_sources', 'source_tags']
