@@ -3,12 +3,15 @@
 註冊失敗曾經只寫 log：server 照常啟動，卻悄悄少掉整個模組的工具。現在必須 fail fast。
 FastMCP 4 會替每個 -> str 工具產生 {"result": string} 的 output schema，每次呼叫把同一份文字
 在 content 與 structuredContent 各回一次；ToolRegistrar 讓文字工具不帶 output schema。
+ToolRegistrar 也替每個工具加上唯讀 annotations 與資料來源 tags（tools.SOURCE_TAGS）。
 """
 
 import asyncio
+from pathlib import Path
 
 import pytest
 from fastmcp import Client, FastMCP
+from mcp.types import ToolAnnotations
 
 import tools
 from tests.offline import OfflineClient
@@ -84,6 +87,104 @@ def test_text_tool_reply_is_sent_once():
     result = asyncio.run(call())
     assert result.content[0].text == "bare"
     assert result.structured_content is None
+
+
+def _registered_tools():
+    mcp = FastMCP("probe")
+    tools.register_all_tools(mcp, OfflineClient({}))
+    return asyncio.run(mcp.list_tools())
+
+
+def test_every_tool_is_annotated_read_only():
+    """全部工具都只讀公開資料：client 可據此免確認、並行呼叫."""
+    not_read_only = [t.name for t in _registered_tools() if t.annotations != tools.READ_ONLY]
+    assert not_read_only == []
+    assert (tools.READ_ONLY.read_only_hint, tools.READ_ONLY.destructive_hint, tools.READ_ONLY.idempotent_hint,
+            tools.READ_ONLY.open_world_hint) == (True, False, True, True)
+
+
+def test_every_tool_is_tagged_with_known_sources():
+    untagged = {t.name: t.tags for t in _registered_tools() if not t.tags or not t.tags <= set(tools.SOURCES)}
+    assert untagged == {}
+
+
+def test_tags_follow_the_module_s_sources():
+    by_name = {t.name: t.tags for t in _registered_tools()}
+    assert by_name["get_otc_institutional"] == {"tpex"}
+    assert by_name["get_twse_institutional_investors_summary"] == {"twse"}
+    assert by_name["get_company_dividend"] == {"mops"}
+    assert by_name["get_etf_info"] == {"sitca", "twse", "tpex"}
+    assert by_name["get_stock_screener"] == {"twse", "tpex"}
+    assert by_name["get_company_profile"] == {"twse"}  # an OpenAPI spec tool (create_company_tool)
+    assert by_name["get_exchange_rates"] == {"cbc"}
+
+
+# Where a module's code reaches a source, its tags must name that source (a module that starts calling
+# TPEx but stays tagged twse alone would hide from a tpex filter).
+_HOSTS = {"mops.twse.com.tw": "mops", "mopsov.twse.com.tw": "mops", "tpex.org.tw": "tpex",
+          "taifex.com.tw": "taifex", "tdcc.com.tw": "tdcc", "sitca.org.tw": "sitca", "ndc.gov.tw": "ndc",
+          "cbc.gov.tw": "cbc"}
+_HELPERS = {"utils.mops": "mops", "utils.sitca": "sitca", "utils.taifex": "taifex", "sources.tpex": "tpex",
+            "TPEX_WWW": "tpex", "services.price_series": "tpex", "services.market_snapshot": "tpex"}
+
+
+def test_source_tags_cover_what_each_module_reaches():
+    missing = {}
+    for module in tools.discover_tool_modules():
+        text = Path(module.replace(".", "/") + ".py").read_text(encoding="utf-8")
+        needed = {tag for host, tag in _HOSTS.items() if host in text}
+        needed |= {tag for marker, tag in _HELPERS.items() if marker in text}
+        if "twse.com.tw" in text.replace("mops.twse.com.tw", "").replace("mopsov.twse.com.tw", "") \
+                or "fetch_data(" in text or "fetch_company_data(" in text or "Spec(" in text \
+                or "sources.twse" in text or "services." in text:
+            needed.add("twse")
+        if not needed <= tools.source_tags(module):
+            missing[module] = needed - tools.source_tags(module)
+    assert missing == {}
+
+
+def test_a_module_without_source_tags_is_an_error():
+    with pytest.raises(LookupError, match="SOURCE_TAGS"):
+        tools.source_tags("tools.newsource.quotes")
+    assert tools.source_tags("tools.etf.info") == {"sitca", "twse", "tpex"}  # the longest prefix wins
+    assert tools.source_tags("tools.otc.history") == {"tpex"}
+
+
+def test_explicit_annotations_and_tags_win():
+    mcp = FastMCP("probe")
+    registrar = tools.ToolRegistrar(mcp, tags=frozenset({"twse"}))
+
+    @registrar.tool(tags={"tpex"}, annotations=ToolAnnotations(read_only_hint=True, open_world_hint=False))
+    def special() -> str:
+        return "x"
+
+    @registrar.tool
+    def plain() -> str:
+        return "y"
+
+    found = {t.name: t for t in asyncio.run(mcp.list_tools())}
+    assert found["special"].tags == {"tpex"} and found["special"].annotations.open_world_hint is False
+    assert found["plain"].tags == {"twse"} and found["plain"].annotations == tools.READ_ONLY
+
+
+def test_annotations_and_tags_reach_the_client():
+    async def listed():
+        async with Client(_registrar_probe_with_tags()) as client:
+            return await client.list_tools()
+
+    tool = asyncio.run(listed())[0]
+    assert tool.annotations.read_only_hint is True and tool.annotations.destructive_hint is False
+    assert tool.meta["fastmcp"]["tags"] == ["twse"]
+
+
+def _registrar_probe_with_tags():
+    mcp = FastMCP("probe")
+
+    @tools.ToolRegistrar(mcp, tags=frozenset({"twse"})).tool
+    def probe() -> str:
+        return "x"
+
+    return mcp
 
 
 def test_module_that_fails_to_import_stops_registration(monkeypatch):

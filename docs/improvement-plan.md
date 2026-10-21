@@ -52,7 +52,8 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      自營商自行／避險），統一會改變輸出，另議。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
-- [ ] Phase 4 MCP 介面
+- [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags；
+  下一步 Visibility、搜尋式工具清單、結構化輸出、回應大小上限、prompts 自動註冊）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -275,8 +276,11 @@ def get_twse_institutional_investors_summary(
 - 驗收：`r[n]` 只出現在 `sources/`，tools/ 內 0 處。
 
 ### Phase 4：MCP 介面（全部用 FastMCP 4 原生機制）
-- 全部 tool 加 `@mcp.tool(annotations=READ_ONLY)`、依來源加 `tags`（`twse`、`tpex`、`taifex`、`mops`…）。
-  `create_company_tool` / `create_list_tool` 一併帶上。
+- ✅ 全部 tool 加 annotations 與依來源的 `tags`（#129）：`ToolRegistrar` 統一加上 `READ_ONLY`（唯讀、非破壞、
+  冪等、open world；MCP SDK v2 欄位名 `read_only_hint` …）與模組的來源 tags（`tools.SOURCE_TAGS`，最長前綴：
+  `twse` 131、`tpex` 17、`taifex` 17、`mops` 11、`sitca` 3、`ndc` 2、`cbc` 1、`tdcc` 1 支），`create_company_tool` /
+  `create_list_tool` 產生的工具也經過它。新模組沒登記來源就註冊失敗；靜態檢查「碰到哪個網站就要有那個 tag」；
+  用真實請求核對 59 支工具連到的網站都在 tags 內。
 - 讓使用者只載入需要的子集：`Visibility` transform 依 tags 開關（取代原本想自己做的 `MCP_INCLUDE_TAGS`
   過濾），環境變數只負責決定要加哪些 `Visibility`。
 - 177 個 tool 吃 context：評估 `RegexSearchTransform`（`list_tools` 只剩 `search_tools` + `call_tool`，
