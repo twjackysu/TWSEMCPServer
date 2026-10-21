@@ -53,7 +53,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags、
-  #130 依來源開關工具、#131 prompts 自動註冊；下一步搜尋式工具清單、結構化輸出、回應大小上限）
+  #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限；下一步搜尋式工具清單、結構化輸出）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -296,7 +296,11 @@ def get_twse_institutional_investors_summary(
   `call_tool` 代理再上線。
 - 文字型 tool 設 `output_schema=None`，`tools/call` 不再把同一份文字在 `structuredContent` 多回一次；
   screener、技術指標這類改回真的結構化資料（dataclass → output schema）。
-- `ResponseLimitingMiddleware` 當最後保險（各 tool 仍自己用 `cap_rows` 控制筆數）。
+- ✅ `ResponseLimitingMiddleware` 當最後保險（#132）：`toolkit.response_limit` 換上中文截斷說明，`server.py` 預設
+  500,000 bytes（`TWSE_MAX_RESPONSE_BYTES`，0 關閉）。實測：正常回應 2–48 KB、一次取整個市場 60–280 KB（上市全部
+  1,383 檔 184 KB、TXO 全部履約價 280 KB），只有含權證的全量才到 1.7–5.6 MB（`get_warrant_basic_info(limit=100000)`
+  44,717 筆、上櫃全部證券 12,950 筆、T86 `category="ALL"` 19,990 筆），上限只截這些。74 個 `limit` 參數沒有上限，
+  各 tool 的筆數控制仍是另一件事（`Page(max_limit=)`）。截斷點落在位元組上，說明裡標明最後一行可能不完整。
 - ✅ prompts 改自動發現（#131）：`prompts/` 每個模組一個公開函式，函式名稱＝prompt 名稱、docstring＝說明，
   `prompts.register_all_prompts` 逐一註冊，`server.py` 刪掉 9 個 wrapper。prompt 的來源 tags 不再手寫：
   `register_all_tools` 回傳每支工具的 tags，prompt 取它點名的工具（`` `get_xxx(...)` ``）的聯集；點名不存在的工具，

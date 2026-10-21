@@ -92,6 +92,15 @@ class ServerConfig:
         ''
     )
 
+    # Last-resort cap on one tool reply, in bytes of the serialized result (FastMCP's
+    # ResponseLimitingMiddleware): a longer reply is cut and ends with a notice. Tools keep their own
+    # row limits; normal replies measured 2-48 KB and a whole board at once (every listed stock,
+    # every TXO strike) 110-280 KB, while every warrant at once is 5.6 MB. 0 turns the cap off.
+    MAX_RESPONSE_BYTES: Final[int] = int(os.getenv(
+        'TWSE_MAX_RESPONSE_BYTES',
+        '500000'
+    ))
+
 
 class DisplayConfig:
     """Display and formatting configuration."""

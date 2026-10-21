@@ -47,7 +47,8 @@ toolkit/                      # MCP-side building blocks for tool modules (only 
 ├── decorators.py             # @handle_api_errors — the tool error boundary (exception → ToolError)
 ├── factory.py                # CompanyToolSpec / ListToolSpec + create_company_tool / create_list_tool
 ├── params.py                 # Limit / Offset / bounded(low, high) / TradingDate / RequiredTradingDate: parameter types FastMCP validates
-└── validation.py             # ArgumentErrorsInChinese: middleware rewording FastMCP's argument-validation errors
+├── validation.py             # ArgumentErrorsInChinese: middleware rewording FastMCP's argument-validation errors
+└── response_limit.py         # response_limit(max_size): FastMCP's ResponseLimitingMiddleware with the Chinese truncation notice
 services/                     # Data the tools need, assembled from gateways + pure logic (uses sources/, utils/)
 ├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
 └── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date) and industry membership
@@ -159,6 +160,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 - `TWSE_RESPONSE_CACHE_MAX_ENTRIES` (default: `256`) — bound on the per-call response cache that `fetch_json` / `fetch_bytes` use when a tool passes `cache_ttl=` (TAIFEX download pages 300s, MOPS 600s, TDCC/CBC 1h, NDC 6h). It stores raw bytes, so callers can't mutate each other's data; only successful responses are cached
 - `TWSE_BREAKER_FAILURES` (default: `3`; `0` disables), `TWSE_BREAKER_COOLDOWN` (default: `30` s), `TWSE_BREAKER_MAX_COOLDOWN` (default: `600` s) — the per-site circuit breaker
 - `TWSE_INCLUDE_SOURCES` (default: empty = every source), `TWSE_EXCLUDE_SOURCES` (default: empty) — comma-separated source tags (`tools.SOURCES`) this deployment serves; exclude is taken off include. `server.py` passes them to `tools.enabled_sources` (an unknown name stops the server) and `tools.show_only_sources`, which adds FastMCP `Visibility` transforms: a tool is hidden when any source it reads is off (`get_etf_info` needs sitca, twse and tpex) and calling it fails as an unknown tool; a prompt stays while any of its tags is on (its tags are the sources of the tools it names, see Prompts); the server instructions name only the sources served
+- `TWSE_MAX_RESPONSE_BYTES` (default: `500000`; `0` turns it off) — last-resort cap on one tool reply (`toolkit.response_limit`, FastMCP's `ResponseLimitingMiddleware`, added in `server.py` after `ArgumentErrorsInChinese`): a longer reply keeps its leading text, cut at a UTF-8 boundary, and ends with `MSG_RESPONSE_TRUNCATED` (「⚠️ 回應超過 500,000 位元組上限，以上只是前段…請縮小查詢」); errors are raised, so never cut. It is not a row limit: most `limit` parameters have no upper bound, and replies measured 2–48 KB normally, 60–280 KB for a whole board at once (every listed stock, every TXO strike), 1.7–5.6 MB only when warrants are included (`get_warrant_basic_info(limit=100000)`, `get_otc_daily`, T86 `category="ALL"`) — those are the replies it cuts
 - `DISPLAY_LIMIT` (default: `50`)
 - `PYTEST_DELAY_SECONDS` (default: `1.0` — rate limit delay between tests)
 
