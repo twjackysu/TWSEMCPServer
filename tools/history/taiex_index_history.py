@@ -21,11 +21,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢發行量加權股價指數（大盤）每日開高低收：預設本月，也可查任意過去月份。
         與個股的 get_stock_history 對應，但查的是大盤指數本身，適合大盤走勢/K線分析。
 
+        回傳：該月份每個交易日的加權指數開盤、最高、最低、收盤指數
+
         Args:
             date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
-
-        Returns:
-            該月份每個交易日的加權指數開盤、最高、最低、收盤指數
         """
         params = {"response": "json"}
         if date:

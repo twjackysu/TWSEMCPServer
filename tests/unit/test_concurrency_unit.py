@@ -82,7 +82,7 @@ def test_tool_keeps_its_parameter_schema():
         """說明文字。"""
         return code
 
-    tool = asyncio.run(mcp.get_tools())["documented"]
+    tool = asyncio.run(mcp.get_tool("documented"))
     assert tool.description == "說明文字。"
     assert set(tool.parameters["properties"]) == {"code", "limit"}
     assert tool.parameters["required"] == ["code"]

@@ -17,13 +17,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃零股（不足一張）交易行情，包含零股成交價、成交量、成交金額。
         可指定股票代號只查單一個股。
 
+        回傳：每支上櫃股的零股成交價、成交股數、成交金額、最佳買/賣價
+
         Args:
             stock_no: 股票代號（選填），若指定則只回傳該股票的零股資料
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁；指定 stock_no 時忽略）
-
-        Returns:
-            每支上櫃股的零股成交價、成交股數、成交金額、最佳買/賣價
         """
         data = _client.fetch_json(TPEX_ODD_LOT_URL)
 

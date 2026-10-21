@@ -29,16 +29,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢信用額度總量管制餘額表：融券賣出餘額與借券賣出餘額。
         與 get_margin_balance（融資融券）不同，此工具涵蓋借券賣出（證券出借）的餘額面。
 
+        回傳：每支股票的融券（前日餘額/賣出/買進/現券/今日餘額/次一營業日限額）及
+        借券（前日餘額/當日賣出/當日還券/當日調整/當日餘額/次一營業日可限額）
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的融券（前日餘額/賣出/買進/現券/今日餘額/次一營業日限額）及
-            借券（前日餘額/當日賣出/當日還券/當日調整/當日餘額/次一營業日可限額）
         """
         resp = _client.fetch_json(
             TWT93U_URL,
@@ -103,15 +102,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢當日融券賣出與借券賣出成交量值。
         與 get_short_sale_lending_balance_history（餘額）互補，此工具是「當日實際成交」的量與金額。
 
+        回傳：每支股票的融券賣出成交數量/金額、借券賣出成交數量/金額
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的融券賣出成交數量/金額、借券賣出成交數量/金額
         """
         resp = _client.fetch_json(
             TWTASU_URL,

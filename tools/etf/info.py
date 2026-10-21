@@ -118,6 +118,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         經理人、保管機構；上櫃 ETF 另有管理費、保管費與交易規則。
         不指定 code 時列出 ETF 清單，可用 issuer／category／keyword 篩選。
 
+        回傳：單一 ETF：各來源的基本資料；清單：代號、簡稱、經理公司、分類、追蹤指數、成立日
+
         Args:
             code: ETF 證券代號，例如 "0050"、"00679B"、"00981A"（選填，留空＝列清單）
             issuer: 投信名稱關鍵字，例如 "元大"、"國泰"（列清單時篩選）
@@ -125,9 +127,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             keyword: 代號、名稱或追蹤指數關鍵字，例如 "高股息"、"S&P"（列清單時篩選）
             limit: 清單筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            單一 ETF：各來源的基本資料；清單：代號、簡稱、經理公司、分類、追蹤指數、成立日
         """
         code = code.strip().upper()
         if code:

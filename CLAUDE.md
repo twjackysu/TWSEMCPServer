@@ -25,7 +25,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 |------|---------|
 | Install dependencies | `uv sync` |
 | Install with test deps | `uv sync --extra dev` |
-| Run server (dev) | `uv run fastmcp dev server.py` |
+| Run server (dev) | `uv run fastmcp dev inspector server.py` |
 | Run server (prod) | `uv run fastmcp run server.py` |
 | Run all tests | `uv run pytest` |
 | Run specific test file | `uv run pytest tests/contract/test_history_api.py -v` |
@@ -105,7 +105,7 @@ The `client` is captured via closure. Tools are registered with `@mcp.tool` — 
 **API Client**: `TWSEAPIClient` has instance methods (`fetch_data`, `fetch_company_data`, `fetch_latest_market_data`) and class-method wrappers (`get_data`, `get_company_data`, `get_latest_market_data`) for backward compatibility. Instance methods are preferred. Includes built-in rate limiting: 0.5s between requests to the same site (`throttle_key` — the last three host labels, so every `*.twse.com.tw` host shares one clock), one request at a time per site, different sites in parallel; the client is thread-safe and concurrent identical requests (same `fetch_data` endpoint, or same cached `fetch_json`/`fetch_bytes` call) reach upstream once. For non-OpenAPI sources (legacy TWSE, MIS, TPEx, TAIFEX), use `fetch_json(url, params)` / `get_json(url, params)` which accepts full URLs with query parameters and returns raw JSON (pass `json_body=` to send a JSON POST instead of a GET), and `fetch_bytes(url, data=, method=)` for CSV/zip/HTML bodies.
 
 **Decorators**: Tool functions use decorators from `utils/decorators.py`:
-- `@handle_api_errors(use_code_param=True)` — required on every tool. Turns the blocking function into an async one that runs in a worker thread (FastMCP calls plain functions on the event loop, so one slow request would stall the whole server), and turns any exception into `ToolError(MSG_QUERY_FAILED)`, which MCP returns with `isError=true`. Raise `ToolError` yourself for a bad argument (it passes through unchanged); never return failures as ordinary text. Tool modules that keep state across calls must lock it.
+- `@handle_api_errors(use_code_param=True)` — required on every tool. Turns the blocking function into an async one that runs in a worker thread, so one slow request never stalls the whole server (FastMCP 4 also threads plain sync functions; FastMCP 2 ran them on the event loop), and turns any exception into `ToolError(MSG_QUERY_FAILED)`, which MCP returns with `isError=true`. Raise `ToolError` yourself for a bad argument (it passes through unchanged); never return failures as ordinary text. Tool modules that keep state across calls must lock it.
 
 **Formatters**: `utils/formatters.py` provides:
 - `format_properties_with_values_multiline(data)` — single record dict → multiline string
@@ -142,6 +142,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 - `tests/contract/test_*.py` — per-category contract tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro, etf). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC, SITCA), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
 - `tests/unit/test_output_limits_unit.py`, `tests/unit/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
 - `tests/unit/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
+- `tests/unit/test_tool_docstrings_unit.py` — every line of a tool's docstring must reach the MCP tool description or a parameter description (catches sections FastMCP drops, e.g. `Returns:`).
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -152,7 +153,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 1. Check for overlap first. Don't ship two tools for the same data. Decide overlap from the upstream data, never from tool names or descriptions: fetch both endpoints for the same day and compare row sets, columns and values. If a new source covers an existing tool's data with more range (history, more markets, more columns), make the new tool's period parameters optional so it also serves the "latest" case, give it the existing tool's name, and delete the old one (plus its field dependencies/tests, and update `prompts/`). Tools covering different scopes (e.g. whole-market latest snapshot vs. one stock's month of history) are not overlaps.
 2. Add tool function in the appropriate module under `tools/` (or create a new module)
 3. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
-4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description
+4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description. FastMCP keeps only the text before the first Google-style section: `Args:` lines become the parameter descriptions and any other section (`Returns:`, `Note:`, …) is dropped, so say what the tool returns before `Args:` (`回傳：…`)
 5. Use `@handle_api_errors()` for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
 6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
 7. Format output with utilities from `utils/formatters.py`

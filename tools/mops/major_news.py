@@ -133,6 +133,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         指定 code：列出該公司某年度的重大訊息（由新到舊，每則附符合條款、事實發生日與說明全文）。
         不指定 code：列出某一天全市場的重大訊息主旨（預設最近一個有公告的日子）。
 
+        回傳：發言日期與時間、公司、主旨；指定 code 時另含符合條款、事實發生日、發言人與說明全文
+
         Args:
             code: 股票代號（選填），例如 "2330"
             date: 發言日期 YYYYMMDD（選填）。搭配 code 時只看該日；不搭配 code 時查該日全市場
@@ -140,9 +142,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             market: 市場別篩選（選填，僅全市場模式）：sii 上市、otc 上櫃、rotc 興櫃、pub 公發
             limit: 回傳則數上限（預設 50；指定 code 時每頁最多 10 則，因每則全文需另外查詢）
             offset: 跳過前 N 則（預設 0，搭配 limit 分頁）
-
-        Returns:
-            發言日期與時間、公司、主旨；指定 code 時另含符合條款、事實發生日、發言人與說明全文
         """
         if market and market not in MARKET_LABELS:
             return f"market 只能是 {', '.join(MARKET_LABELS)}"

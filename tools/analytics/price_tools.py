@@ -49,13 +49,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上市或上櫃股票的「還原權息」日K：把除權息造成的價格缺口還原，才能正確比較長期漲跌與報酬。
         以證交所／櫃買中心公告的除權息參考價計算還原因子（參考價÷除權息前收盤價），往前回溯調整。
 
+        回傳：每個交易日的還原開高低收、原始收盤價、成交量（股），以及期間內套用的除權息事件與還原因子
+
         Args:
             code: 股票代號，例如 "2330"、"6488"（自動判斷上市或上櫃）
             start_month: 起始月份 YYYYMM（選填，預設最近 3 個月）
             end_month: 結束月份 YYYYMM（選填，預設同 start_month）。區間最多 12 個月
-
-        Returns:
-            每個交易日的還原開高低收、原始收盤價、成交量（股），以及期間內套用的除權息事件與還原因子
         """
         end, count = parse_months(start_month.strip(), end_month.strip())
         if isinstance(end, str):
@@ -89,14 +88,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """計算上市或上櫃股票的技術指標（以最近約半年的日K計算，預設使用還原權息價避免除權息缺口干擾）：
         均線 MA5/10/20/60、KD(9,3,3)、RSI(14)、MACD(12,26,9)、布林通道(20,2)、成交量均量。
 
+        回傳：最新一日各指標數值與相對位置描述（收盤相對均線、K 與 D、DIF 與 MACD 的高低），
+        以及最近 days 個交易日的收盤、MA5/MA20、K/D、RSI、DIF/MACD/OSC
+
         Args:
             code: 股票代號，例如 "2330"、"6488"（自動判斷上市或上櫃）
             adjusted: 是否使用還原權息價（預設 True）
             days: 列出最近幾個交易日的指標（預設 10，最多 60）
-
-        Returns:
-            最新一日各指標數值與相對位置描述（收盤相對均線、K 與 D、DIF 與 MACD 的高低），
-            以及最近 days 個交易日的收盤、MA5/MA20、K/D、RSI、DIF/MACD/OSC
         """
         days = max(1, min(days, 60))
         months = months_back(INDICATOR_MONTHS)

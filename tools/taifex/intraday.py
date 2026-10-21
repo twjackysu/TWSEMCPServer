@@ -159,6 +159,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         而不只是收盤價。可查最近 30 個交易日（日盤 08:45–13:45、夜盤 15:00–次日 05:00）。
         列出當日開高低收與高低點出現時間、振幅、均價、成交最集中的時段，以及每根 K 線。
 
+        回傳：各時段的開高低收（含時間）、振幅、均價、成交口數與筆數、成交最集中的 3 個時段，以及每根 K 線
+
         Args:
             contract: 期貨商品代號，預設 TX（臺股期貨）；也可填 MTX、TMF、TE、TF，
                 或股票／ETF 代號（例如 "2330"），會自動換成對應的股票期貨。留空則列出當日所有商品代號
@@ -166,9 +168,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             interval: K 線分鐘數，1、5（預設）、15、30、60
             session: day（日盤，預設）、night（夜盤）、all（夜盤＋日盤）
             month: 到期月份，例如 "202611"、"202610W4"（選填，留空＝當日成交量最大的月份，通常是近月）
-
-        Returns:
-            各時段的開高低收（含時間）、振幅、均價、成交口數與筆數、成交最集中的 3 個時段，以及每根 K 線
         """
         if interval not in INTERVALS:
             return f"interval 必須是 {', '.join(map(str, INTERVALS))} 其中之一"

@@ -23,13 +23,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Delta 接近 1（或 -1）代表深度價內，接近 0 代表深度價外。
         因資料量龐大（TXO 每月逾 200 筆），建議指定 contract_month 縮小範圍。
 
+        回傳：指定條件下各履約價的 Delta 值與到期日
+
         Args:
             contract: 選擇權契約代碼，預設 TXO。留空則列出所有可用契約代碼。
             contract_month: 到期月份/週次，例如「202605」或「202605W1」。留空則列出可用月份。
             call_put: 篩選「買權」或「賣權」，留空則顯示全部。
-
-        Returns:
-            指定條件下各履約價的 Delta 值與到期日
         """
         data = _client.fetch_json(_DELTA_URL, headers=TAIFEX_HEADERS)
 
@@ -81,8 +80,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢台指選擇權每日未平倉量增減，顯示今日與前一交易日的未平倉量及變化量。
         未平倉大幅增加代表新部位建立，大幅減少代表部位了結或到期。
 
-        Returns:
-            今日未平倉量、前一交易日未平倉量及增減變化
+        回傳：今日未平倉量、前一交易日未平倉量及增減變化
         """
         data = _client.fetch_json(_OI_CHANGE_URL, headers=TAIFEX_HEADERS)
 

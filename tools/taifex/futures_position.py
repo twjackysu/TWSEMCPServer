@@ -45,12 +45,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         也可回溯任意區間（最長 92 天，約近 3 年內）。外資期貨淨未平倉是台股最常引用的籌碼指標之一；
         期貨與選擇權並列，方便比較兩者布局是否一致。期貨+選擇權合計請用 get_institutional_general。
 
+        回傳：每個交易日、每個身份別的期貨與選擇權各自多空交易口數、契約金額（千元）、未平倉口數與契約金額
+
         Args:
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
-
-        Returns:
-            每個交易日、每個身份別的期貨與選擇權各自多空交易口數、契約金額（千元）、未平倉口數與契約金額
         """
         parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
         if error:

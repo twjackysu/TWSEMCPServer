@@ -133,7 +133,7 @@ This project is powered by **Prefect Horizon**, which hosts a free remote MCP Se
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git
 cd TWStockMCPServer
-uv sync && uv run fastmcp dev server.py
+uv sync && uv run fastmcp dev inspector server.py
 ```
 
 ## 📡 Data Sources

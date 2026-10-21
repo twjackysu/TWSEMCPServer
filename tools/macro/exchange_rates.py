@@ -29,13 +29,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         為當日 16:00 銀行間即期交易匯率，適合觀察新台幣升貶與外資動向。
         央行約每月更新一次檔案，最近幾週的資料可能尚未納入。
 
+        回傳：每日各幣別匯率（標示方向，例如 NTD/USD＝1 美元兌多少新台幣、USD/EUR＝1 歐元兌多少美元）
+
         Args:
             start_date: 起始日期 YYYYMMDD（選填）。未指定時回傳資料中最近 10 個交易日
             end_date: 結束日期 YYYYMMDD（選填，預設到最新）。區間最多回傳 120 個交易日
             currency: 幣別關鍵字（選填），例如 "新台幣"、"NTD"、"JPY"、"人民幣"；可用逗號分隔多個
-
-        Returns:
-            每日各幣別匯率（標示方向，例如 NTD/USD＝1 美元兌多少新台幣、USD/EUR＝1 歐元兌多少美元）
         """
         resp = _client.fetch_json(CBC_FX_URL, params={"FileName": CBC_FX_FILE}, timeout=60, cache_ttl=CBC_CACHE_TTL)
         data = (resp or {}).get("data") or {}

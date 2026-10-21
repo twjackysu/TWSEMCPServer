@@ -22,12 +22,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢台灣上市股票歷史日K資料。
         一次回傳指定月份的每日 OHLCV 資料，從 2010 年至今皆可查。
 
+        回傳：該月份每日交易資料，含日期(西元)、開盤價、最高價、最低價、收盤價、成交量、成交金額
+
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
             date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月整月）
-
-        Returns:
-            該月份每日交易資料，含日期(西元)、開盤價、最高價、最低價、收盤價、成交量、成交金額
         """
         resp = _client.fetch_json(
             STOCK_DAY_URL,

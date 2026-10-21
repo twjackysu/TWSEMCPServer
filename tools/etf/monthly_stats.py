@@ -120,6 +120,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         筆數／戶數／金額。資料自 2007 年起，通常於次月中旬公布上月資料。
         指定 code 時列出該 ETF 逐月趨勢；不指定時列出單月全市場排行。
 
+        回傳：每月（或每檔）的規模、市占、淨值、單位數、受益人數、申購買回與定期定額資料
+
         Args:
             code: ETF 代號，例如 "0050"、"00679B"（留空＝單月排行）
             months: 指定 code 時的月數（預設 6，最多 24；每多一個月多一次查詢，約 2–4 秒）
@@ -127,9 +129,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             sort_by: 排行依據：scale（規模，預設）、holders（受益人數）、net_flow（淨申購金額）、
                 regular（定期定額扣款金額）
             limit: 排行筆數（預設 30，最多 100）
-
-        Returns:
-            每月（或每檔）的規模、市占、淨值、單位數、受益人數、申購買回與定期定額資料
         """
         all_months = available_months(_client, STATEMENT_PAGE)
         period = period.strip()

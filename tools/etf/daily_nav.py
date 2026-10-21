@@ -82,15 +82,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         涵蓋所有投信、上市與上櫃（含債券 ETF、期貨 ETF）。盤中為投信即時預估淨值（約 15 秒更新），
         收盤後為當日最終數字。可用來檢查是否溢價過高、哪些 ETF 正大量申購或買回。
 
+        回傳：每檔 ETF 的市價、預估淨值、折溢價(%)、前日淨值、已發行單位數與較前日增減、
+        規模估計（已發行單位數 × 前日淨值）與資料時間
+
         Args:
             code: ETF 代號，可用逗號查多檔，例如 "0050" 或 "0050,00878,00679B"（留空＝列排行）
             sort_by: 未指定 code 時的排序：scale（規模，預設）、premium（溢價最高）、
                 discount（折價最深）、creation（單位數增加最多）、redemption（單位數減少最多）
             limit: 排行筆數（預設 30，最多 100）
-
-        Returns:
-            每檔 ETF 的市價、預估淨值、折溢價(%)、前日淨值、已發行單位數與較前日增減、
-            規模估計（已發行單位數 × 前日淨值）與資料時間
         """
         rows = parse_all_etf(_client.fetch_json(MIS_ALL_ETF_URL, cache_ttl=MIS_ETF_CACHE_TTL))
         if not rows:

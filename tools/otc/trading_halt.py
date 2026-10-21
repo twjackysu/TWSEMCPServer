@@ -18,11 +18,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃注意股票，列出當前被列為交易注意的上櫃股票及其警示原因。
         可指定股票代號查詢特定股票是否在注意名單。
 
+        回傳：注意股票代號、名稱、注意事由、收盤價、本益比
+
         Args:
             stock_no: 股票代號（選填），若指定則只回傳該股票資料
-
-        Returns:
-            注意股票代號、名稱、注意事由、收盤價、本益比
         """
         data = _client.fetch_json(TPEX_WARNING_URL)
 
@@ -50,11 +49,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃處置股票，列出當前被列為交易處置的上櫃股票、處置期間及原因。
         可指定股票代號查詢特定股票是否在處置名單。
 
+        回傳：處置股票代號、名稱、處置期間、處置原因、處置條件
+
         Args:
             stock_no: 股票代號（選填），若指定則只回傳該股票資料
-
-        Returns:
-            處置股票代號、名稱、處置期間、處置原因、處置條件
         """
         data = _client.fetch_json(TPEX_DISPOSAL_URL)
 

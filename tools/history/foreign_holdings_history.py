@@ -36,6 +36,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         sort_by="ratio" 可依外資持股比率由高到低排行（例如 limit=20 即外資持股前 20 名）。
         產業別匯總請用 get_foreign_investment_by_industry。
 
+        回傳：每支股票的代號、名稱、全體外資及陸資持股比率、尚可投資比率、投資上限比率、持有股數、發行股數
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
@@ -43,9 +45,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             sort_by: "code"＝依證券代號（預設）；"ratio"＝依全體外資及陸資持股比率由高到低
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的代號、名稱、全體外資及陸資持股比率、尚可投資比率、投資上限比率、持有股數、發行股數
         """
         if sort_by not in SORT_OPTIONS:
             return f"sort_by 只能是 {', '.join(SORT_OPTIONS)}"

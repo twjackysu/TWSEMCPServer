@@ -18,11 +18,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         上市股與上櫃股皆可查，系統自動判斷前綴。
         盤後回傳最後成交價。
 
+        回傳：每支股票的即時報價：代號、名稱、成交價、開盤、最高、最低、昨收、成交量、漲跌、漲跌幅、時間
+
         Args:
             stock_nos: 股票代號列表，例如 ["2330", "0050", "2317"]
-
-        Returns:
-            每支股票的即時報價：代號、名稱、成交價、開盤、最高、最低、昨收、成交量、漲跌、漲跌幅、時間
         """
         if not stock_nos:
             return "請提供至少一個股票代號"

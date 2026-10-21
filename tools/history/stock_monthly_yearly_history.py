@@ -24,12 +24,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上市個股月成交資訊（每月一筆：最高價、最低價、加權平均價、成交量值、週轉率）。
         預設今年至今每個月，也可查過去年度的全部 12 個月。
 
+        回傳：該年度每月的最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率
+
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）
             date: 任意日期 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年（留空＝今年）
-
-        Returns:
-            該年度每月的最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率
         """
         params = {"response": "json", "stockNo": stock_no}
         if date:
@@ -62,11 +61,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         與 get_stock_monthly_trading（單一年度逐月）互補，此工具是「每年一筆」的長期彙總，
         適合看個股長期價格區間演變。
 
+        回傳：每年度的最高價（及日期）、最低價（及日期）、收盤平均價、成交股數、成交金額、成交筆數
+
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）
-
-        Returns:
-            每年度的最高價（及日期）、最低價（及日期）、收盤平均價、成交股數、成交金額、成交筆數
         """
         # FMNPTK 以 date 的年份當作歷年序列的終點。這裡原本寫死 "20260101"，等於把終點
         # 凍結在當初寫程式的年份：跨年之後最新年度會從結果中默默消失（輸出格式完全正常，

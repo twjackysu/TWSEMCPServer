@@ -34,12 +34,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢台指選擇權 Put/Call Ratio，衡量市場恐慌與樂觀程度的情緒指標：預設近 30 天，
         也可指定任意過去區間。PCR > 1.5 通常視為過度悲觀，< 0.5 通常視為過度樂觀。
 
+        回傳：每個交易日的成交量 PCR、未平倉量 PCR，以及 put/call 各自的成交量與未平倉量
+
         Args:
             start_date: 起始日期，格式 YYYYMMDD，例如 "20260501"（選填，留空＝近 30 天）
             end_date: 結束日期，格式 YYYYMMDD（選填，預設同 start_date）。區間不可超過 30 天
-
-        Returns:
-            每個交易日的成交量 PCR、未平倉量 PCR，以及 put/call 各自的成交量與未平倉量
         """
         if not start_date and not end_date:
             end_dt = taipei_today()

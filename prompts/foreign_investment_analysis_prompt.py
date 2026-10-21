@@ -1,9 +1,7 @@
 """Prompt for foreign investment analysis using TWSE OpenAPI endpoints."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry: str = "", stock_symbol: str = "") -> PromptMessage:
+def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry: str = "", stock_symbol: str = "") -> str:
     """Prompt for foreign investment analysis using TWSE OpenAPI endpoints."""
     content = f"""台灣股市外資投資分析指引
 
@@ -74,4 +72,4 @@ def foreign_investment_analysis_prompt(analysis_type: str = "overview", industry
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的外資投資分析。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

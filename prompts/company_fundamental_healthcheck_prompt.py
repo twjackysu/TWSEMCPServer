@@ -1,9 +1,7 @@
 """Prompt for a company fundamental (financial statement) health check."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "standard") -> PromptMessage:
+def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "standard") -> str:
     """Prompt for a comprehensive fundamental/financial-statement health check on a company."""
     content = f"""個股基本面財報體檢指引
 
@@ -100,4 +98,4 @@ def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "stan
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的基本面財報體檢。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

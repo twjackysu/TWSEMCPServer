@@ -60,13 +60,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         也可回溯任意區間（最長一個月）。前五大、前十大部位集中度越高，代表市場籌碼越集中。
         常用契約：TX（臺股期貨，含 MTX 折算）、MTX、TE、TF。
 
+        回傳：每個交易日、每個到期月份的前五大／前十大交易人多空部位及全市場未沖銷部位，區分所有交易人與特定法人
+
         Args:
             contract: 期貨契約代碼，預設 TX。留空則列出所有可用契約代碼
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
-
-        Returns:
-            每個交易日、每個到期月份的前五大／前十大交易人多空部位及全市場未沖銷部位，區分所有交易人與特定法人
         """
         parsed, label, error = fetch_period(
             _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"
@@ -105,14 +104,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢選擇權大額交易人（前五大、前十大）未沖銷部位，觀察大戶選擇權布局：預設最新交易日，
         也可回溯任意區間（最長一個月）。常用契約：TXO（臺指選擇權）。
 
+        回傳：每個交易日、每個到期月份的前五大／前十大交易人買賣權部位及全市場未沖銷部位，區分所有交易人與特定法人
+
         Args:
             contract: 選擇權契約代碼，預設 TXO。留空則列出所有可用契約代碼
             call_put: 篩選「買權」或「賣權」，留空則顯示全部
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
-
-        Returns:
-            每個交易日、每個到期月份的前五大／前十大交易人買賣權部位及全市場未沖銷部位，區分所有交易人與特定法人
         """
         parsed, label, error = fetch_period(
             _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"

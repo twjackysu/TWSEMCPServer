@@ -18,7 +18,7 @@ def test_every_tool_module_registers():
     """每個 tools/ 模組都能匯入並註冊；任何一個壞掉，這裡（以及 server 啟動）就會失敗."""
     mcp = FastMCP("probe")
     tools.register_all_tools(mcp, OfflineClient({}))
-    registered = asyncio.run(mcp.get_tools())
+    registered = asyncio.run(mcp.list_tools())
     assert len(tools.discover_tool_modules()) > 50
     assert len(registered) > 100
 

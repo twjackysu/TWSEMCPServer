@@ -26,16 +26,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃股票除權除息計算結果：預設今天與下一個交易日，也可指定任意過去區間。
         可用於還原權息、計算填權息。上市股票請用 get_exright_results_history。
 
+        回傳：除權息日期、代號、名稱、類型、除權息前收盤價、參考價、權值、息值、漲跌停價、
+        開始交易基準價、現金股利、每仟股無償配股、現金增資股數與認購價
+
         Args:
             start_date: 起始日期 YYYYMMDD（選填，留空＝今天起）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）
             stock_no: 股票代號（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            除權息日期、代號、名稱、類型、除權息前收盤價、參考價、權值、息值、漲跌停價、
-            開始交易基準價、現金股利、每仟股無償配股、現金增資股數與認購價
         """
         params = {"response": "json"}
         if start_date or end_date:

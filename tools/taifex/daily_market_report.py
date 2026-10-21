@@ -86,13 +86,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         也可直接填股票／ETF 代號（例如 "2330"、"0050"），會列出該標的所有股票期貨契約
         （標準型與小型，例如台積電 CDF、QFF）。
 
+        回傳：每個交易日、每個到期月份、一般與盤後時段的行情；價差組合只列出有成交的
+
         Args:
             contract: 期貨契約代碼，預設 TX；或股票／ETF 代號。留空則列出所有可用契約代碼
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
-
-        Returns:
-            每個交易日、每個到期月份、一般與盤後時段的行情；價差組合只列出有成交的
         """
         contract = contract.strip().upper()
         if not contract:
@@ -144,6 +143,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         指定 contract_month 時列出該到期月份的完整履約價序列。
         常用契約代碼：TXO（臺指選擇權）、TEO（電子選擇權）、TFO（金融選擇權）。
 
+        回傳：履約價、買賣權、開高低收、成交量、結算價、未平倉量、最後最佳買賣價
+
         Args:
             contract: 選擇權契約代碼，預設 TXO。留空則列出所有可用契約代碼
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
@@ -151,9 +152,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             contract_month: 到期月份/週次，例如「202610」或「202610W1」（選填）
             call_put: 篩選「買權」或「賣權」，留空則顯示全部
             limit: 未指定 contract_month 時，每個交易日顯示的筆數（依成交量排序，預設 30）
-
-        Returns:
-            履約價、買賣權、開高低收、成交量、結算價、未平倉量、最後最佳買賣價
         """
         contract = contract.strip().upper()
         if not contract:

@@ -44,6 +44,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """依估值條件篩選上市／上櫃股票（最新交易日）：本益比區間、股價淨值比上限、殖利率下限，
         可限定產業。條件填 0 代表不設限；設定本益比條件時，本益比為空（虧損）的公司會被排除。
 
+        回傳：符合條件的股票代號、名稱、市場、收盤價、漲跌幅、本益比、股價淨值比、殖利率
+
         Args:
             market: all＝上市+上櫃（預設）、listed＝上市、otc＝上櫃
             industry: 產業代碼（選填，兩位數，例如 "24" 半導體、"28" 電子零組件、"17" 金融保險；
@@ -57,9 +59,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 change（當日漲跌幅高→低）、volume（成交量大→小）
             limit: 回傳筆數上限（預設 30）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            符合條件的股票代號、名稱、市場、收盤價、漲跌幅、本益比、股價淨值比、殖利率
         """
         markets = MARKETS.get(market.strip().lower())
         if markets is None:
@@ -101,13 +100,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """同業比較：找出與指定股票同產業的上市、上櫃公司（最新交易日），並列本益比、淨值比、
         殖利率、漲跌幅，附產業中位數與該股的排名位置。
 
+        回傳：產業名稱、同業家數、本益比／淨值比／殖利率中位數、該股在各指標的排名，以及同業清單（▶ 標示該股）
+
         Args:
             code: 股票代號，例如 "2330"
             sort_by: pe（本益比低→高，預設）、pb、yield、change、volume
             limit: 列出的同業家數上限（預設 30；該股一定會列出）
-
-        Returns:
-            產業名稱、同業家數、本益比／淨值比／殖利率中位數、該股在各指標的排名，以及同業清單（▶ 標示該股）
         """
         code = code.strip()
         if sort_by not in SORTS:

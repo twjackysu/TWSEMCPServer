@@ -19,11 +19,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         與 get_daily_market_trading_info（openapi 版）不同：openapi 版只回傳最近約 12 個交易日的
         滾動視窗，無法指定過去月份；此工具可查任意過去月份。
 
+        回傳：該月份每個交易日的成交股數、成交金額、成交筆數、加權指數、漲跌點數
+
         Args:
             date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
-
-        Returns:
-            該月份每個交易日的成交股數、成交金額、成交筆數、加權指數、漲跌點數
         """
         params = {"response": "json"}
         if date:

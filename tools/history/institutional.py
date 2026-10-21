@@ -91,6 +91,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         市場整體的法人買賣金額請用 get_market_institutional_amounts_history；
         單一個股的完整明細請用 get_twse_institutional_investors_by_stock；上櫃股票請用 get_otc_institutional。
 
+        回傳：依指定方式排序的個股，每筆含外資、投信、自營商與三大法人合計的買賣超股數
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             category: 範圍（選填）：留空＝不含權證、牛熊證（含 ETF）；"stock"＝再排除 ETF
@@ -101,9 +103,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             side: buy（只列買超，由大到小）、sell（只列賣超，由大到小）、abs（買超與賣超依絕對值混排，預設）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            依指定方式排序的個股，每筆含外資、投信、自營商與三大法人合計的買賣超股數
         """
         error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
         if error:
@@ -165,13 +164,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         要找「哪些股票被法人買超／賣超最多」請用 get_twse_institutional_investors_summary；
         上櫃股票請用 get_otc_institutional(stock_no=...)。
 
+        回傳：外資（不含外資自營商）、外資自營商、投信、自營商（自行買賣／避險）各自的買進、賣出、買賣超股數，
+        以及三大法人合計
+
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
-
-        Returns:
-            外資（不含外資自營商）、外資自營商、投信、自營商（自行買賣／避險）各自的買進、賣出、買賣超股數，
-            以及三大法人合計
         """
         resp = _client.fetch_json(T86_URL, params=_params(date, "ALL"))
 
