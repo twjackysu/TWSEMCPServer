@@ -7,7 +7,6 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
-from fastmcp.exceptions import ToolError
 
 from sources.twse.stock_day import stock_day_month
 from tests.helpers import register_module_tools
@@ -86,6 +85,3 @@ def test_tool_prints_the_same_line_as_before_the_gateway():
     assert "日期: 2026-09-02 | 開: -- | 高: -- | 低: -- | 收: -- | 漲跌:  0.00 | 成交量: 0 | 成交金額: 0 | 筆數: 0" in text
 
 
-def test_tool_rejects_a_malformed_date():
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        _tool()("2330", "2026-09")

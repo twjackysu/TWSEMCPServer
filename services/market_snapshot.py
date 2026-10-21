@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
+from utils.date_helper import slash_date
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 
@@ -94,7 +95,7 @@ def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
                                           dividend_yield=_num(r[5]), pb=_num(r[6]), fiscal=str(r[7]))
     params = {"response": "json", "type": "EW"}
     if len(day) == 8:
-        params["date"] = f"{day[:4]}/{day[4:6]}/{day[6:]}"
+        params["date"] = slash_date(day)
     quotes = client.fetch_json(TPEX_QUOTES_URL, params=params, cache_ttl=SNAPSHOT_CACHE_TTL)
     for r in ((quotes or {}).get("tables") or [{}])[0].get("data") or []:
         # r: 代號,名稱,收盤,漲跌(帶正負號),開盤,最高,最低,成交股數,...

@@ -3,7 +3,8 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
+from utils.date_helper import roc_date
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -12,7 +13,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_news(start_date: str = "", end_date: str = "") -> str:
+    def get_twse_news(start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢證交所新聞。
 
         Args:
@@ -22,47 +23,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         from datetime import datetime
         import calendar
         
-        # If no dates provided, use current month
+        # The news list dates items in ROC 1150930; the inputs are Gregorian 20260930. A missing end
+        # defaults to the month of the other end (the current month when both are missing). The
+        # month's last day comes from the Gregorian year, which decides leap years (2024-02-29).
         if not start_date and not end_date:
             now = datetime.now()
-            # Convert to 民國年 format (subtract 1911 years)
-            roc_year = now.year - 1911
-            start_date = f"{roc_year:03d}{now.month:02d}01"
-            
-            # Get last day of current month
-            last_day = calendar.monthrange(now.year, now.month)[1]
-            end_date = f"{roc_year:03d}{now.month:02d}{last_day:02d}"
+            start_date = f"{now:%Y%m}01"
+            end_date = f"{now:%Y%m}{calendar.monthrange(now.year, now.month)[1]:02d}"
         elif start_date and not end_date:
-            # If only start_date provided, convert to 民國年 and use same month
-            if len(start_date) == 8:  # YYYYMMDD format
-                ad_year = int(start_date[:4])
-                year = ad_year - 1911
-                month = start_date[4:6]
-                day = start_date[6:8]
-                start_date = f"{year:03d}{month}{day}"
-
-                # Set end_date to last day of that month. The leap-year rule has to be
-                # applied to the AD year: this used to re-read the already-converted
-                # 民國年 string, so "1130201" gave year 1130+1911=3041 and 2024-02 ended
-                # on the 28th, dropping every news item dated 1130229.
-                last_day = calendar.monthrange(ad_year, int(month))[1]
-                end_date = f"{year:03d}{month}{last_day:02d}"
+            end_date = f"{start_date[:6]}{calendar.monthrange(int(start_date[:4]), int(start_date[4:6]))[1]:02d}"
         elif not start_date and end_date:
-            # If only end_date provided, convert to 民國年 and use same month start
-            if len(end_date) == 8:  # YYYYMMDD format
-                year = int(end_date[:4]) - 1911
-                month = end_date[4:6]
-                day = end_date[6:8]
-                end_date = f"{year:03d}{month}{day}"
-                start_date = f"{year:03d}{month}01"
-        else:
-            # Both dates provided, convert both to 民國年 format
-            if len(start_date) == 8:  # YYYYMMDD format
-                year = int(start_date[:4]) - 1911
-                start_date = f"{year:03d}{start_date[4:]}"
-            if len(end_date) == 8:  # YYYYMMDD format
-                year = int(end_date[:4]) - 1911
-                end_date = f"{year:03d}{end_date[4:]}"
+            start_date = f"{end_date[:6]}01"
+        start_date, end_date = roc_date(start_date, sep=""), roc_date(end_date, sep="")
         
         # Get all news data
         data = _client.fetch_data("/news/newsList")

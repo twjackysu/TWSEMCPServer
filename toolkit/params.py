@@ -7,9 +7,10 @@ worded in Chinese by ``ArgumentErrorsInChinese`` (toolkit/validation.py). Enumer
 the mapping they index (e.g. ``utils.institutional.Investor`` with ``SORT_LABELS``).
 """
 
+from datetime import datetime
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import AfterValidator, Field
 
 Limit = Annotated[int, Field(ge=1)]   # rows in one reply
 Offset = Annotated[int, Field(ge=0)]  # rows skipped before them (paging)
@@ -18,3 +19,23 @@ Offset = Annotated[int, Field(ge=0)]  # rows skipped before them (paging)
 def bounded(low: int, high: int):
     """An int parameter that must lie in ``low``..``high``."""
     return Annotated[int, Field(ge=low, le=high)]
+
+
+def _calendar_date(value: str) -> str:
+    """The pattern admits 20261301; a date parameter has to name a day that exists."""
+    if value:
+        try:
+            datetime.strptime(value, "%Y%m%d")
+        except ValueError:
+            raise ValueError("日期不存在") from None
+    return value
+
+
+# Every date a tool takes is a Gregorian (西元) YYYYMMDD string, whatever the upstream wants: the
+# tool converts it (ROC 115/09/30 or 1150930 for TWSE / MOPS, 2026/09/30 for TPEx). The value
+# reaches the tool unchanged. TradingDate may be "" — the tool's default, usually the latest
+# trading day; RequiredTradingDate may not. Neither knows the trading calendar: a holiday passes
+# and the upstream answers that it has no data.
+DATE_PATTERN = r"^\d{8}$"
+TradingDate = Annotated[str, Field(pattern=r"^(\d{8})?$"), AfterValidator(_calendar_date)]
+RequiredTradingDate = Annotated[str, Field(pattern=DATE_PATTERN), AfterValidator(_calendar_date)]

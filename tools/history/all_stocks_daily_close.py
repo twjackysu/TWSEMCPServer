@@ -8,7 +8,7 @@ last bid/ask and P/E, and accepts past dates.
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, printed
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from sources.twse.mi_index import stock_quotes
 
 
@@ -18,7 +18,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_stock_daily_trading(date: str = "", stock_no: str = "", name: str = "",
+    def get_stock_daily_trading(date: TradingDate = "", stock_no: str = "", name: str = "",
                                 limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票單日成交資訊（開高低收、漲跌、成交量值與筆數、本益比）：預設最新交易日，
         也可指定過去日期；可查單一個股，或整個市場的快照用於篩選。

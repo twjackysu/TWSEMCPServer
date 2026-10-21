@@ -8,7 +8,7 @@ back to 1993. CBC refreshes the file about monthly, so the latest weeks may be m
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 CBC_FX_URL = "https://cpx.cbc.gov.tw/API/DataAPI/Get"
 CBC_FX_FILE = "BP01D01"
@@ -25,7 +25,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_exchange_rates(start_date: str = "", end_date: str = "", currency: str = "") -> str:
+    def get_exchange_rates(start_date: TradingDate = "", end_date: TradingDate = "", currency: str = "") -> str:
         """查詢中央銀行公布的每日匯率：新台幣及主要貿易對手通貨對美元匯率（1993 年起）。
         為當日 16:00 銀行間即期交易匯率，適合觀察新台幣升貶與外資動向。
         央行約每月更新一次檔案，最近幾週的資料可能尚未納入。

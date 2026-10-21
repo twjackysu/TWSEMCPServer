@@ -12,7 +12,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -82,7 +82,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             )
             return decode_and_parse_csv(body)
 
-        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
+        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS)
         if error:
             raise ToolError(error)
         if parsed is None:
@@ -105,7 +105,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_institutional_traders_by_futures(contract: str = "", start_date: str = "", end_date: str = "") -> str:
+    def get_institutional_traders_by_futures(contract: str = "", start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢三大法人各期貨契約的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
 
         回傳：自營商、投信、外資及陸資在各期貨契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
@@ -125,7 +125,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_institutional_traders_by_options(contract: str = "", start_date: str = "", end_date: str = "") -> str:
+    def get_institutional_traders_by_options(contract: str = "", start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢三大法人各選擇權契約（買權+賣權合計）的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
         買權、賣權分開請用 get_institutional_traders_calls_puts。
 
@@ -146,7 +146,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_institutional_traders_calls_puts(contract: str = "", call_put: str = "",
-                                             start_date: str = "", end_date: str = "") -> str:
+                                             start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢三大法人選擇權買賣權分計（CALL 與 PUT 分開）：預設最新交易日，也可回溯任意區間（最長 92 天）。
         觀察法人對後市看法的重要指標，外資偏多時 CALL 淨買方未平倉通常增加。
 

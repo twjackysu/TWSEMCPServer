@@ -362,8 +362,6 @@ def test_buybacks_decode_purpose_and_filter_code():
         "get_treasury_stock_buybacks"]
     text = fn("20260901", "20260930", code="1437")
     assert "共有 1 筆" in text and "目的:轉讓股份予員工" in text and "是否執行完畢:Y" in text
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        fn("2026-09-01")
 
 
 def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():

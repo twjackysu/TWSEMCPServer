@@ -11,11 +11,10 @@ announcement's full text inline; MOPS lists subjects and serves the text per ann
 from datetime import timedelta
 from typing import Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, truncate, Page
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from utils.mops import mops_post, to_roc_year
-from utils.date_helper import taipei_today
+from utils.date_helper import roc_date, roc_year_of, taipei_today
 
 Market = Literal["", "sii", "otc", "rotc", "pub"]  # "" (every market) or a key of MARKET_LABELS
 MARKET_LABELS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公發"}
@@ -28,13 +27,6 @@ MAX_TEXT_CHARS = 1500
 def _one_line(text) -> str:
     """Subjects often contain line breaks; keep each announcement on one line."""
     return " ".join(str(text).split())
-
-
-def _roc_day(date: str) -> Optional[str]:
-    """YYYYMMDD → ROC "YYY/MM/DD" as MOPS prints 發言日期, or None if malformed."""
-    if len(date) != 8 or not date.isdigit():
-        return None
-    return f"{int(date[:4]) - 1911}/{date[4:6]}/{date[6:]}"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -56,10 +48,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         )
 
     def _company(code: str, date: str, year: str, limit: int, offset: int) -> str:
-        roc_day = _roc_day(date) if date else None
-        if date and roc_day is None:
-            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
-        roc_year = to_roc_year(year) if year else (int(roc_day[:3]) if roc_day else taipei_today().year - 1911)
+        roc_day = roc_date(date) if date else None  # as MOPS prints 發言日期: 115/09/10
+        roc_year = to_roc_year(year) if year else (roc_year_of(date) if date else taipei_today().year - 1911)
         result = mops_post(_client, "t05st01", {
             "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
         })
@@ -91,8 +81,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _market(date: str, market: str, limit: int, offset: int) -> str:
         if date:
-            if _roc_day(date) is None:
-                raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
             days = [date]
         else:
             today = taipei_today()
@@ -100,7 +88,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         rows, served = [], ""
         for day in days:
-            result = mops_post(_client, "t05st02", {"year": str(int(day[:4]) - 1911), "month": day[4:6], "day": day[6:]})
+            result = mops_post(_client, "t05st02", {"year": str(roc_year_of(day)), "month": day[4:6], "day": day[6:]})
             rows = (result or {}).get("data") or []
             if rows:
                 served = day
@@ -128,7 +116,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_major_news(code: str = "", date: str = "", year: str = "", market: Market = "",
+    def get_company_major_news(code: str = "", date: TradingDate = "", year: str = "", market: Market = "",
                                limit: Limit = 50, offset: Offset = 0) -> str:
         """查詢重大訊息（公開資訊觀測站），上市、上櫃、興櫃、公發公司皆可。
         指定 code：列出該公司某年度的重大訊息（由新到舊，每則附符合條款、事實發生日與說明全文）。

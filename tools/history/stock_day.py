@@ -3,8 +3,8 @@
 from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, InvalidArgument
-from toolkit import handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import RequiredTradingDate, handle_api_errors
 from sources.twse.stock_day import stock_day_month
 
 
@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_stock_history(stock_no: str, date: str) -> str:
+    def get_stock_history(stock_no: str, date: RequiredTradingDate) -> str:
         """查詢台灣上市股票歷史日K資料。
         一次回傳指定月份的每日 OHLCV 資料，從 2010 年至今皆可查。
 
@@ -29,10 +29,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
             date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月整月）
         """
-        try:
-            day = datetime.strptime(date.strip(), "%Y%m%d")
-        except ValueError:
-            raise InvalidArgument(f"日期格式錯誤，請使用 YYYYMMDD，例如 \"20250101\"（收到：{date}）") from None
+        day = datetime.strptime(date, "%Y%m%d")
 
         month = stock_day_month(_client, stock_no.strip(), day.year, day.month)
         if month is None:

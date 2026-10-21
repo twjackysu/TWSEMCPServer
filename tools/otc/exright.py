@@ -9,10 +9,10 @@ The listed-market counterpart is get_exright_results_history (TWSE TWT49U).
 
 from typing import Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import Limit, Offset, handle_api_errors
-from .history import TPEX_WWW, first_table, to_tpex_date
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
+from utils.date_helper import slash_date
+from .history import TPEX_WWW, first_table
 
 EX_DAILY_Q_URL = f"{TPEX_WWW}/bulletin/exDailyQ"
 
@@ -23,7 +23,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_exright(start_date: str = "", end_date: str = "", stock_no: str = "",
+    def get_otc_exright(start_date: TradingDate = "", end_date: TradingDate = "", stock_no: str = "",
                         limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃股票除權除息計算結果：預設今天與下一個交易日，也可指定任意過去區間。
         可用於還原權息、計算填權息。上市股票請用 get_exright_results_history。
@@ -40,10 +40,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         params = {"response": "json"}
         if start_date or end_date:
-            start = to_tpex_date(start_date or end_date)
-            end = to_tpex_date(end_date or start_date)
-            if not start or not end:
-                raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260701\"")
+            start = slash_date(start_date or end_date)
+            end = slash_date(end_date or start_date)
             params.update(startDate=start, endDate=end)
         resp = _client.fetch_json(EX_DAILY_Q_URL, params=params)
         served = str((resp or {}).get("date", "")).replace("~", "～")

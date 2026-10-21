@@ -8,7 +8,7 @@ from utils import (
     SUMMARY_ROW_LABELS,
     Page,
 )
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, RequiredTradingDate, handle_api_errors
 
 BFIAUU_URL = "https://www.twse.com.tw/rwd/zh/block/BFIAUU"
 
@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_block_trades_detail(date: str, stock_no: str = "", name: str = "",
+    def get_block_trades_detail(date: RequiredTradingDate, stock_no: str = "", name: str = "",
                                  limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢集中市場鉅額交易逐筆明細（含配對交易、盤後鉅額等交易別）。
         與 get_block_trades_daily（openapi 版，僅有量值統計總數）不同，此工具回傳每一筆

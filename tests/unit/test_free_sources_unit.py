@@ -56,10 +56,6 @@ def test_otc_history_sends_slash_date_and_rejects_bad_dates():
     text = tools["get_otc_stock_history"]("6488", "20260801")
     assert seen["date"] == "2026/08/01"
     assert "開:870.00 高:930.00 低:843.00 收:866.00" in text
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        tools["get_otc_stock_history"]("6488", "2026-08-01")
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        tools["get_otc_margin_balance"]("20261301")
 
 
 def test_otc_defaults_to_latest_day_and_reports_its_date():
@@ -189,8 +185,6 @@ def test_exright_filters_by_stock():
     fn = register_module_tools(twse_extra, OfflineClient({"/exRight/TWT49U": reply}))["get_exright_results_history"]
     text = fn("20260701", "20260731", stock_no="1101")
     assert "共有 1 筆" in text and "115年07月01日 | 1101 台泥 | 息 | 前收:24.05 參考價:23.25" in text
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        fn("2026-07-01", "20260731")
 
 
 # ---------- TDCC ----------
@@ -446,5 +440,3 @@ def test_otc_valuation_shows_dividend_year_and_fiscal_quarter():
     rows = [["6488", "環球晶          ", "45.87", "7.7", 114, "0.81", "4.67", "115Q2"]]
     fn = register_module_tools(otc_valuation_holdings, OfflineClient({"/afterTrading/peQryDate": {"date": "20260929", "tables": [{"data": rows}]}}))["get_otc_valuation"]
     assert "6488 環球晶 | 本益比: 45.87 | 殖利率: 0.81%（每股股利 7.7，股利年度 114）| 股價淨值比: 4.67（財報 115Q2）" in fn()
-    with pytest.raises(ToolError, match="日期格式錯誤"):
-        fn("2026-09-29")

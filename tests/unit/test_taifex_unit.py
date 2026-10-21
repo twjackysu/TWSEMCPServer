@@ -60,7 +60,7 @@ def test_latest_walks_back_until_a_day_has_data():
         asked.append(start_dt)
         return (["h"], [["2026/09/29"]]) if start_dt == datetime(2026, 9, 29) else None
 
-    parsed, label, error = taifex.fetch_period(fetch, "", "", 31, "20260601")
+    parsed, label, error = taifex.fetch_period(fetch, "", "", 31)
     assert error is None and parsed[1] == [["2026/09/29"]]
     assert asked == [datetime(2026, 9, 30), datetime(2026, 9, 29)]
     assert label.startswith("20260929")
@@ -72,22 +72,22 @@ def test_latest_skips_a_partial_day():
         return ["h"], [[f"{start_dt:%Y/%m/%d}"] + [""] * 16 + [session]]
 
     parsed, label, _ = taifex.fetch_period(
-        fetch, "", "", 31, "20260601", is_complete=daily_market_report.has_regular_session
+        fetch, "", "", 31, is_complete=daily_market_report.has_regular_session
     )
     assert label.startswith("20260929")
 
 
 def test_latest_gives_up_after_the_lookback_window():
     calls = []
-    parsed, label, error = taifex.fetch_period(lambda s, e: calls.append(s), "", "", 31, "20260601")
+    parsed, label, error = taifex.fetch_period(lambda s, e: calls.append(s), "", "", 31)
     assert parsed is None and error is None and len(calls) == taifex.LATEST_LOOKBACK_DAYS
 
 
 def test_single_date_and_invalid_range():
     seen = []
-    taifex.fetch_period(lambda s, e: seen.append((s, e)), "20260803", "", 31, "20260601")
+    taifex.fetch_period(lambda s, e: seen.append((s, e)), "20260803", "", 31)
     assert seen == [(datetime(2026, 8, 3), datetime(2026, 8, 3))]
-    _parsed, _label, error = taifex.fetch_period(lambda s, e: None, "20260101", "20260301", 31, "20260601")
+    _parsed, _label, error = taifex.fetch_period(lambda s, e: None, "20260101", "20260301", 31)
     assert "不可超過 31 天" in error
 
 

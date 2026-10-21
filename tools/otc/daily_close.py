@@ -9,9 +9,8 @@ larger) and has 均價 and 次日參考價, while the website's afterTrading/otc
 
 from typing import Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, format_list_response
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
 
 TPEX_DAILY_CLOSE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
@@ -67,7 +66,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_daily(date: str = "", stock_no: str = "", name: str = "",
+    def get_otc_daily(date: TradingDate = "", stock_no: str = "", name: str = "",
                       limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃（OTC）市場的單日收盤行情：預設最新交易日（含權證等全部證券），也可指定過去日期
         （清單為股票及 ETF；指定權證代號時會自動查詢全部證券）。
@@ -88,8 +87,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return _latest(stock_no, name, limit, offset)
 
         params = date_params(date)
-        if params is None:
-            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         def fetch(security_type):
             resp = _client.fetch_json(
                 OTC_QUOTES_URL, params={**params, "type": security_type, "response": "json"},
