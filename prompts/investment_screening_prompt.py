@@ -1,7 +1,7 @@
 """Prompt for investment screening using TWSE OpenAPI endpoints."""
 
 
-def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_level: str = "moderate") -> str:
+def investment_screening(screening_criteria: str = "comprehensive", risk_level: str = "moderate") -> str:
     """Prompt for investment screening using TWSE OpenAPI endpoints."""
     content = f"""台灣股市投資篩選指引
 

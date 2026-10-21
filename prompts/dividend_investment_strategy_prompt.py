@@ -1,7 +1,7 @@
 """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
 
 
-def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> str:
+def dividend_investment_strategy(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> str:
     """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
     content = f"""台灣股市股利投資策略指引
 

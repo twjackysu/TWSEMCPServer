@@ -5,6 +5,7 @@ toolkit/   MCP 端的積木：錯誤邊界（handle_api_errors）、tool spec �
 services/  由多個 gateway 組成的資料服務（例如 price_series）。依賴 sources、utils。
 sources/   gateway：每個上游端點一個模組，唯一知道該端點欄位長相的地方。只依賴 utils。
 utils/     最底層：HTTP client、解析、格式化、日期。不認識 MCP。
+prompts/   prompt 模板，純文字；自動註冊（register_all_prompts 收到 mcp 與工具 tags），不 import 本專案其他套件。
 
 依賴只能往下：utils 曾經 import fastmcp（tool_factory、decorators），utils/__init__ 與 tool_factory
 還互相 import。只有 tools/ 與 toolkit/ 可以碰 fastmcp。
@@ -44,6 +45,7 @@ MCP = {"fastmcp", "mcp"}
     ("sources", MCP | {"toolkit", "tools", "services"}),
     ("services", MCP | {"toolkit", "tools"}),
     ("toolkit", {"tools", "services", "sources"}),
+    ("prompts", {"toolkit", "tools", "services", "sources", "utils"}),
 ])
 def test_dependencies_only_point_down(package, forbidden):
     offenders = [f"{f}:{line} imports {mod}" for f, line, mod in _imported_top_modules(package) if mod in forbidden]
@@ -63,7 +65,7 @@ def test_data_side_does_not_load_fastmcp(module):
     assert loaded == "[]"
 
 
-@pytest.mark.parametrize("module", ["utils", "sources", "services", "toolkit", "tools"])
+@pytest.mark.parametrize("module", ["utils", "sources", "services", "toolkit", "tools", "prompts"])
 def test_each_package_imports_on_its_own(module):
     """各自在全新的 interpreter 裡 import：循環 import 只會在某些 import 順序下才出錯."""
     _fresh_import(f"import {module}")

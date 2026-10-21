@@ -1,7 +1,7 @@
 """Prompt for a pre-trade risk scan (disposal/warning/day-trading-restriction stocks)."""
 
 
-def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> str:
+def pre_trade_risk_scan(market: str = "twse", stock_symbol: str = "") -> str:
     """Prompt for scanning disposal/warning/restriction lists before placing a trade."""
     content = f"""買前風險掃描指引
 

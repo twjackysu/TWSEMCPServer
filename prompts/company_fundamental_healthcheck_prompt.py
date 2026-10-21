@@ -1,7 +1,7 @@
 """Prompt for a company fundamental (financial statement) health check."""
 
 
-def company_fundamental_healthcheck_prompt(stock_symbol: str, depth: str = "standard") -> str:
+def company_fundamental_healthcheck(stock_symbol: str, depth: str = "standard") -> str:
     """Prompt for a comprehensive fundamental/financial-statement health check on a company."""
     content = f"""個股基本面財報體檢指引
 

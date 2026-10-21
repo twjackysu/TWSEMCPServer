@@ -1,8 +1,8 @@
 """Prompt for three-major-institutional-investors (三大法人) flow analysis."""
 
 
-def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") -> str:
-    """Prompt for institutional investor (foreign/investment trust/dealer) flow analysis."""
+def institutional_flow(target: str = "market", stock_symbol: str = "") -> str:
+    """Prompt for three-major-institutional-investors (foreign/investment trust/dealer) flow analysis."""
     content = f"""三大法人籌碼流向分析指引
 
 你是台灣股市三大法人（外資、投信、自營商）籌碼分析專家。呼叫下方工具，分析法人買賣超動向。

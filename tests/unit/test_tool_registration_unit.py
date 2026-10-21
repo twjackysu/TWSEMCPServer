@@ -167,6 +167,34 @@ def test_explicit_annotations_and_tags_win():
     assert found["plain"].tags == {"twse"} and found["plain"].annotations == tools.READ_ONLY
 
 
+def test_register_all_tools_returns_every_tool_s_tags():
+    """prompts 依這份對照表算出自己的 tags：必須和真正註冊的工具一模一樣."""
+    mcp = FastMCP("probe")
+    returned = tools.register_all_tools(mcp, OfflineClient({}))
+    assert returned == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
+
+
+def test_registrar_records_the_final_name_and_tags():
+    mcp = FastMCP("probe")
+    registered = {}
+    registrar = tools.ToolRegistrar(mcp, tags=frozenset({"twse"}), registered=registered)
+
+    @registrar.tool
+    def bare() -> str:
+        return "x"
+
+    @registrar.tool("positional_name")
+    def positional() -> str:
+        return "x"
+
+    @registrar.tool(name="keyword_name", tags={"tpex"})
+    def keyword() -> str:
+        return "x"
+
+    assert registered == {"bare": {"twse"}, "positional_name": {"twse"}, "keyword_name": {"tpex"}}
+    assert registered == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
+
+
 def test_annotations_and_tags_reach_the_client():
     async def listed():
         async with Client(_registrar_probe_with_tags()) as client:
