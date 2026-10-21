@@ -247,9 +247,12 @@ def get_twse_institutional_investors_summary(
 ### Phase 2：共用核心
 - `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
 - `TradingDate` 取代 13 份日期驗證（驗證失敗丟 `InvalidArgument`）；`Page` 取代手刻分頁已在 #115 完成。
-- 列舉參數全改 `Literal`、範圍用 `Annotated[int, Field(ge=…, le=…)]`：FastMCP 4 依 schema 驗證，錯了直接回
-  `isError`，不必在函式裡手寫檢查（手寫檢查目前已 `raise ToolError`，#110；改成 schema 後可刪掉那些檢查）。
-- 統一 profitability 分頁寫法（參數改名屬 breaking，記 changelog）。
+- ✅ 列舉參數改 `Literal`、範圍改 `Field`（#125）：23 個列舉、所有 `limit`／`offset`（`toolkit.Limit`／`Offset`）
+  與 `months`／`weeks`／`limit` 上限（`toolkit.bounded`）；刪掉 19 個模組裡的手寫檢查與 `check_choice`。
+  FastMCP 依 schema 擋下錯誤值，回的是 pydantic 英文訊息；`toolkit.validation.ArgumentErrorsInChinese`
+  middleware 把它改寫成中文（「sort_by 只能是 total、foreign、trust、dealer（收到 'x'）」）。日期格式、
+  產業代碼這類開放集合、跨參數規則仍在函式內 `raise ToolError`。
+- ✅ 統一 profitability 分頁寫法（#115）。
 - 參數說明寫在 docstring 的 `Args:`：FastMCP 4 會搬進各參數的 `description`；`Returns:` 等其他段落會被丟掉，
   回傳內容寫在 `Args:` 之前（`回傳：…`，#107 已改，`test_tool_docstrings_unit.py` 把關）。
 - 驗收：grep 計數 9→1、13→1、13→0。
@@ -291,7 +294,7 @@ def get_twse_institutional_investors_summary(
 | `@mcp.tool` 新參數 | `annotations`、`tags`、`timeout`、`task`、`version`、`title`、`output_schema`、`run_in_thread` | Phase 1（task）、Phase 4（annotations/tags/output_schema） |
 | `timeout=` 用在同步 tool | `anyio.fail_after` 取消不了 threadpool 裡的執行緒：等它做完才丟逾時錯誤（英文），結果作廢。實測 timeout=1 的 3 秒工具 3.2 秒才回 | 不用；時間上限用 `utils/deadline.time_budget`（#123） |
 | `-> str` 的 outputSchema | 每個 tool 自動 `{"result": string}`，回應同一份文字兩次；`output_schema=None` 可關 | Phase 4 |
-| 參數驗證 | 依 schema（`Literal`、`Field`）驗證，`additionalProperties: false`；docstring `Args:` → 參數說明 | Phase 2 |
+| 參數驗證 | 依 schema（`Literal`、`Field`）驗證，`additionalProperties: false`；docstring `Args:` → 參數說明。錯誤是 pydantic 英文；`on_call_tool` middleware 拿得到 `fastmcp.exceptions.ValidationError`（`__cause__.errors()` 是結構化資料），可統一改寫 | 已用（#125），中文改寫見 `toolkit/validation.py` |
 | Search transform | `RegexSearchTransform` 中文可用；`BM25SearchTransform` 不切中文 | Phase 4 |
 | `Visibility` transform | 依 name / tags / version 開關 tool | Phase 4 |
 | `ResponseLimitingMiddleware` | 依位元組截斷 tool 回應 | Phase 4（保險） |

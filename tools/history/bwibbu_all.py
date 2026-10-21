@@ -8,7 +8,7 @@ values as this endpoint, which also has 股利年度 and 財報年/季.
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, printed
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from sources.twse.bwibbu_d import valuation_ratios
 
 
@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_stock_valuation_ratios(date: str = "", stock_no: str = "", name: str = "",
-                                   limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                   limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票本益比（P/E）、殖利率、股價淨值比（P/B）：預設最新交易日，也可指定過去日期。
         可查單一個股，或全市場清單用於篩選低估值個股、比較產業估值水位。
 

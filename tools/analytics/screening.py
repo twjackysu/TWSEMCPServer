@@ -2,15 +2,16 @@
 snapshot (see utils/market_snapshot.py)."""
 
 from statistics import median
-from typing import List, Optional
+from typing import List, Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from services.market_snapshot import LISTED, OTC, StockSnapshot, industry_members, industry_of, market_snapshot
 
+Market = Literal["all", "listed", "otc"]  # MARKETS
 MARKETS = {"all": (LISTED, OTC), "listed": (LISTED,), "otc": (OTC,)}
 # sort key → (attribute, descending)
+SortBy = Literal["yield", "pe", "pb", "change", "volume"]  # SORTS
 SORTS = {"yield": ("dividend_yield", True), "pe": ("pe", False), "pb": ("pb", False),
          "change": ("change_pct", True), "volume": ("volume", True)}
 
@@ -40,9 +41,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_stock_screener(market: str = "all", industry: str = "", same_industry_as: str = "",
+    def get_stock_screener(market: Market = "all", industry: str = "", same_industry_as: str = "",
                            pe_min: float = 0, pe_max: float = 0, pb_max: float = 0, yield_min: float = 0,
-                           sort_by: str = "yield", limit: int = 30, offset: int = 0) -> str:
+                           sort_by: SortBy = "yield", limit: Limit = 30, offset: Offset = 0) -> str:
         """依估值條件篩選上市／上櫃股票（最新交易日）：本益比區間、股價淨值比上限、殖利率下限，
         可限定產業。條件填 0 代表不設限；設定本益比條件時，本益比為空（虧損）的公司會被排除。
 
@@ -62,11 +63,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 30）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        markets = MARKETS.get(market.strip().lower())
-        if markets is None:
-            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
-        if sort_by not in SORTS:
-            raise ToolError(f"sort_by 只能是 {', '.join(SORTS)}")
+        markets = MARKETS[market]
 
         snapshot, as_of = market_snapshot(_client, markets)
         rows = list(snapshot.values())
@@ -98,7 +95,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_industry_peers(code: str, sort_by: str = "pe", limit: int = 30) -> str:
+    def get_industry_peers(code: str, sort_by: SortBy = "pe", limit: Limit = 30) -> str:
         """同業比較：找出與指定股票同產業的上市、上櫃公司（最新交易日），並列本益比、淨值比、
         殖利率、漲跌幅，附產業中位數與該股的排名位置。
 
@@ -110,8 +107,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 列出的同業家數上限（預設 30；該股一定會列出）
         """
         code = code.strip()
-        if sort_by not in SORTS:
-            raise ToolError(f"sort_by 只能是 {', '.join(SORTS)}")
         industry = industry_of(_client, code)
         if not industry:
             return f"查無 {code} 的產業別（僅支援上市、上櫃公司）"

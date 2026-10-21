@@ -3,7 +3,7 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 
 TPEX_ODD_LOT_URL = "https://www.tpex.org.tw/openapi/v1/tpex_odd_stock"
 
@@ -14,7 +14,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_odd_lot(stock_no: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_otc_odd_lot(stock_no: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃零股（不足一張）交易行情，包含零股成交價、成交量、成交金額。
         可指定股票代號只查單一個股。
 

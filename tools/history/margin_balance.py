@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 
 MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
 MAX_RETRY_DAYS = 7
@@ -22,7 +22,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_margin_balance(date: str = "", stock_no: str = "", name: str = "",
-                           limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                           limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票融資融券餘額：預設最新交易日，也可指定過去日期，用於判斷槓桿水位與多空情緒。
         若指定日期非交易日，會自動往前尋找最近的交易日資料。
         未指定個股時附上全市場信用交易統計（融資、融券、融資金額）。上櫃股票請用 get_otc_margin_balance。

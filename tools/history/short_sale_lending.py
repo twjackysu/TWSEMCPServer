@@ -12,7 +12,7 @@ from utils import (
     SUMMARY_ROW_LABELS,
     Page,
 )
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 
 TWT93U_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U"
 TWTASU_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU"
@@ -25,7 +25,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_short_sale_lending_balance_history(date: str, stock_no: str = "", name: str = "",
-                                                limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                                limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢信用額度總量管制餘額表：融券賣出餘額與借券賣出餘額。
         與 get_margin_balance（融資融券）不同，此工具涵蓋借券賣出（證券出借）的餘額面。
 
@@ -93,7 +93,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_short_sale_lending_trades_history(date: str, stock_no: str = "", name: str = "",
-                                               limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                               limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢當日融券賣出與借券賣出成交量值。
         與 get_short_sale_lending_balance_history（餘額）互補，此工具是「當日實際成交」的量與金額。
 

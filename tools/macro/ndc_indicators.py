@@ -9,11 +9,10 @@ tests/contract/test_tdcc_macro_api.py fails if NDC ever re-points them.
 import csv
 import io
 import zipfile
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import bounded, handle_api_errors
 
 # data.gov.tw/dataset/6099 景氣指標及燈號 (zip of CSVs, monthly since 1982)
 NDC_BUSINESS_CYCLE_ZIP_URL = (
@@ -27,6 +26,7 @@ NDC_PMI_CSV_URL = (
 )
 
 # CSV files inside the 6099 zip, by the name the tool exposes.
+Table = Literal["signal", "signal_components", "leading", "coincident", "lagging"]  # CYCLE_TABLES
 CYCLE_TABLES = {
     "signal": "景氣指標與燈號.csv",
     "signal_components": "景氣對策信號構成項目.csv",
@@ -68,7 +68,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_business_cycle_indicators(months: int = 12, table: str = "signal") -> str:
+    def get_business_cycle_indicators(months: bounded(1, MAX_MONTHS) = 12, table: Table = "signal") -> str:
         """查詢國發會景氣對策信號（景氣燈號）與景氣指標，每月更新，資料自 1982 年起。
         燈號：紅燈(38-45分，熱絡)、黃紅燈(32-37)、綠燈(23-31，穩定)、黃藍燈(17-22)、藍燈(9-16，低迷)。
 
@@ -81,10 +81,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 signal_components＝燈號九項構成項目（M1B、股價指數、工業生產、出口…）；
                 leading／coincident／lagging＝領先／同時／落後指標構成項目
         """
-        filename = CYCLE_TABLES.get(table.strip().lower())
-        if filename is None:
-            raise ToolError(f"table 只能是 {', '.join(CYCLE_TABLES)}")
-        months = max(1, min(months, MAX_MONTHS))
+        filename = CYCLE_TABLES[table]
         body = _client.fetch_bytes(NDC_BUSINESS_CYCLE_ZIP_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)
         rows = read_zip_csv(body, filename)
         if len(rows) < 2:
@@ -93,7 +90,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_taiwan_pmi(months: int = 12) -> str:
+    def get_taiwan_pmi(months: bounded(1, MAX_MONTHS) = 12) -> str:
         """查詢國發會臺灣採購經理人指數：製造業 PMI 與非製造業 NMI，每月更新（2012 年起）。
         指數 50 以上代表擴張、50 以下代表緊縮，是景氣的領先參考指標。
 
@@ -102,7 +99,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             months: 回傳最近幾個月（預設 12，最多 60）
         """
-        months = max(1, min(months, MAX_MONTHS))
         body = _client.fetch_bytes(NDC_PMI_CSV_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)
         rows = list(csv.reader(io.StringIO(body.decode("utf-8-sig"))))
         if len(rows) < 2:

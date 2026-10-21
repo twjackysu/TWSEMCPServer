@@ -3,7 +3,7 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 
 TPEX_INDEX_URL = "https://www.tpex.org.tw/openapi/v1/tpex_index"
 
@@ -14,7 +14,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_index(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_otc_index(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢櫃買市場（上櫃）指數歷史行情，包含開高低收、漲跌幅。
 
         回傳：櫃買指數各期日期、開盤、最高、最低、收盤、漲跌

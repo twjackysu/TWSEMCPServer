@@ -141,10 +141,6 @@ def test_intraday_all_sessions_month_and_stock_code():
 
 def test_intraday_validation_and_listing():
     fn = _intraday_fn()
-    with pytest.raises(ToolError, match="interval 必須是"):
-        fn(interval=3)
-    with pytest.raises(ToolError, match="session 必須是"):
-        fn(session="morning")
     with pytest.raises(ToolError, match="只能查最近 30 個交易日：20261016～20261019"):
         fn(date="20250101")
     assert "CDF、MTX、QFF、TX" in fn(contract="", date="20261016")
@@ -188,5 +184,3 @@ def test_monthly_statistics_market_switch():
     fn = register_module_tools(trading_statistics, client)["get_monthly_trading_statistics"]
     assert fn(market="options").startswith("【選擇權市場月統計】") and "股價指數選擇權" in fn(market="options")
     assert fn().startswith("【期貨市場月統計】")
-    with pytest.raises(ToolError, match="market 必須是 futures、options"):
-        fn(market="stock")

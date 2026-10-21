@@ -1,7 +1,6 @@
 """services/market_snapshot.py 與 tools/analytics/screening.py 的單元測試（不打網路）。"""
 
 import pytest
-from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -64,10 +63,6 @@ def test_screener_pe_filter_drops_loss_makers_and_sorts_missing_last():
     assert "2317" not in text and text.index("2330") < text.index("6488")
     by_yield = fn(sort_by="yield")
     assert by_yield.index("2317") < by_yield.index("2330")
-    with pytest.raises(ToolError, match="sort_by 只能是"):
-        fn(sort_by="roe")
-    with pytest.raises(ToolError, match="market 只能是"):
-        fn(market="us")
 
 
 def test_screener_same_industry_uses_members_of_both_markets():

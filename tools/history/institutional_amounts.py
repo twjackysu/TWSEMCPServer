@@ -15,7 +15,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
-from utils.institutional import PERIODS, check_choice, week_start, yi
+from utils.institutional import PERIODS, Period, week_start, yi
 
 BFI82U_URL = "https://www.twse.com.tw/rwd/zh/fund/BFI82U"
 
@@ -30,7 +30,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_institutional_amounts_history(date: str = "", period: str = "day") -> str:
+    def get_market_institutional_amounts_history(date: str = "", period: Period = "day") -> str:
         """查詢上市市場「整體」三大法人（外資及陸資、投信、自營商）的買進、賣出與買賣超金額（市場層級總額，
         不是個股）：預設最新交易日，可查任意過去交易日，也可查整週或整月的累計金額。
         適合回答「外資今天／上週／這個月在上市市場總共買超或賣超多少錢」。
@@ -44,9 +44,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             date: 日期 YYYYMMDD（選填，留空＝最新交易日）。period 為 week／month 時指該日所在的週或月
             period: day（單日，預設）、week（該週合計）、month（該月合計，當月為月初至今）
         """
-        error = check_choice("period", period, PERIODS)
-        if error:
-            raise ToolError(error)
         date = date.strip()
         try:
             anchor = datetime.strptime(date, "%Y%m%d") if date else None

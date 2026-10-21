@@ -8,18 +8,18 @@ h=前一營業日淨值 ("未結出" before it is struck), i=資料日期, j=資
 numbers or strings depending on the issuer, so everything goes through _num.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import bounded, handle_api_errors
 
 MIS_ALL_ETF_URL = "https://mis.twse.com.tw/stock/data/all_etf.txt"
 # Issuers refresh the estimated NAV every ~15 s during trading hours.
 MIS_ETF_CACHE_TTL = 30
 MAX_LIST = 100
 
+SortBy = Literal["scale", "premium", "discount", "creation", "redemption"]  # SORTS
 SORTS = {
     "scale": ("規模", lambda r: r["scale"] or 0, True),
     "premium": ("溢價", lambda r: r["premium"] if r["premium"] is not None else float("-inf"), True),
@@ -79,7 +79,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_etf_daily_nav(code: str = "", sort_by: str = "scale", limit: int = 30) -> str:
+    def get_etf_daily_nav(code: str = "", sort_by: SortBy = "scale", limit: bounded(1, MAX_LIST) = 30) -> str:
         """查詢 ETF 當日已發行單位數（較前日增減＝淨申購／買回）、預估淨值、折溢價與規模，
         涵蓋所有投信、上市與上櫃（含債券 ETF、期貨 ETF）。盤中為投信即時預估淨值（約 15 秒更新），
         收盤後為當日最終數字。可用來檢查是否溢價過高、哪些 ETF 正大量申購或買回。
@@ -111,10 +111,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 lines.append(f"\n查無：{', '.join(missing)}")
             return "\n".join(lines)
 
-        if sort_by not in SORTS:
-            raise ToolError(f"sort_by 必須是 {'、'.join(SORTS)} 其中之一")
-        if limit < 1 or limit > MAX_LIST:
-            raise ToolError(f"limit 必須介於 1～{MAX_LIST}")
         label, key, reverse = SORTS[sort_by]
         ranked = sorted(rows, key=key, reverse=reverse)[:limit]
         lines = [f"【ETF {label}排行】資料日期 {latest[:4]}-{latest[4:6]}-{latest[6:]}（共 {len(rows)} 檔，列出前 {len(ranked)} 檔）\n"]

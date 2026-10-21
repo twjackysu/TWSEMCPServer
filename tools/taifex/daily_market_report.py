@@ -13,7 +13,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
-from toolkit import handle_api_errors
+from toolkit import Limit, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -139,7 +139,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_daily_options_market_report(contract: str = "TXO", start_date: str = "", end_date: str = "",
-                                        contract_month: str = "", call_put: str = "", limit: int = 30) -> str:
+                                        contract_month: str = "", call_put: str = "", limit: Limit = 30) -> str:
         """查詢選擇權每日交易行情：預設最新交易日，也可指定任意過去區間（最長一個月）。
         未指定 contract_month 時，每個交易日只列有成交的履約價，依成交量由大到小取前 limit 筆，並附上可用到期月份；
         指定 contract_month 時列出該到期月份的完整履約價序列。

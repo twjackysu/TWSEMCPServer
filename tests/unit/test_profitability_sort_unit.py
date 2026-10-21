@@ -42,11 +42,6 @@ def test_default_is_net_margin_descending(tool):
     assert _codes(tool()) == ["1101", "2330", "2002"]
 
 
-def test_unknown_sort_field_is_an_error_not_a_silent_fallback(tool):
-    with pytest.raises(ToolError, match="order_by 必須是"):
-        tool(order_by="本益比")
-
-
 def test_limit_and_offset_page_through_the_sorted_rows(tool):
     """改用 limit/offset 前是 page_size/page_number，而且超過 100 會被默默截成 100."""
     text = tool(limit=1, offset=1)

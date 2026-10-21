@@ -6,14 +6,15 @@ ids, read with parse_html_tables.
 """
 
 from datetime import timedelta
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from utils.date_helper import taipei_today
 from utils.mops import mops_legacy_post, parse_html_tables, to_roc_year
 
+Market = Literal["sii", "otc", "rotc", "pub"]  # MARKETS
 MARKETS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公開發行"}
 BUYBACK_PURPOSES = {"1": "轉讓股份予員工", "2": "股權轉換", "3": "維護公司信用及股東權益"}
 # Buyback data rows are 20 cells wide (the two-row header has 18 + 4 sub-headers).
@@ -34,8 +35,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_treasury_stock_buybacks(start_date: str = "", end_date: str = "", market: str = "sii",
-                                    code: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_treasury_stock_buybacks(start_date: str = "", end_date: str = "", market: Market = "sii",
+                                    code: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢公司買回自己公司股份（庫藏股）彙總：董事會決議日、買回目的、預定股數、價格區間、
         買回期間與執行結果（已買回股數、平均價格、執行率）。預設近 90 天內決議的案件。
 
@@ -50,9 +51,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        market = market.strip().lower()
-        if market not in MARKETS:
-            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
         today = taipei_today()
         start = start_date.strip() or f"{today - timedelta(days=DEFAULT_BUYBACK_DAYS):%Y%m%d}"
         end = end_date.strip() or f"{today:%Y%m%d}"

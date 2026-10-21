@@ -18,7 +18,7 @@ from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from utils.sitca import SITCA_CACHE_TTL, SITCA_HEADERS, available_months, query_rows
 
 FUND_BASIC_ENDPOINT = "/opendata/t187ap47_L"
@@ -113,7 +113,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_etf_info(code: str = "", issuer: str = "", category: str = "", keyword: str = "",
-                     limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                     limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢 ETF 基本資料，涵蓋所有投信、上市與上櫃（含債券 ETF、主動式 ETF）。
         指定 code 時列出單一 ETF 的完整資料：經理公司、成立／上市日、分類、追蹤指數、配息頻率、
         經理人、保管機構；上櫃 ETF 另有管理費、保管費與交易規則。

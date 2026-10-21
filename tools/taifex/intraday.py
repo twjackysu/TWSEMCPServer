@@ -17,7 +17,7 @@ import threading
 import zipfile
 import io
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Literal, Optional, Tuple
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -33,7 +33,8 @@ EXPECTED_HEADER = ["成交日期", "商品代號", "到期月份(週別)", "成�
 # A trading day's file never changes; the page listing refreshes once per evening.
 TICK_ZIP_CACHE_TTL = 6 * 3600
 TICK_PAGE_CACHE_TTL = 600
-INTERVALS = (1, 5, 15, 30, 60)
+Interval = Literal[1, 5, 15, 30, 60]
+Session = Literal["day", "night", "all"]  # SESSIONS
 SESSIONS = {"day": "日盤", "night": "夜盤", "all": "夜盤＋日盤"}
 DAY_START, DAY_END = 8 * 60 + 45, 13 * 60 + 45  # minutes since midnight
 NIGHT_START, NIGHT_END = 15 * 60, 5 * 60
@@ -176,7 +177,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     @time_budget(INTRADAY_BUDGET, "已下載的交易日會快取，稍後再試會較快")
-    def get_futures_intraday(contract: str = "TX", date: str = "", interval: int = 5, session: str = "day",
+    def get_futures_intraday(contract: str = "TX", date: str = "", interval: Interval = 5, session: Session = "day",
                              month: str = "") -> str:
         """查詢期貨「盤中走勢」：由期交所每筆成交資料彙總成分鐘 K 線，看一整天的多空拉鋸，
         而不只是收盤價。可查最近 30 個交易日（日盤 08:45–13:45、夜盤 15:00–次日 05:00）。
@@ -192,10 +193,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             session: day（日盤，預設）、night（夜盤）、all（夜盤＋日盤）
             month: 到期月份，例如 "202611"、"202610W4"（選填，留空＝當日成交量最大的月份，通常是近月）
         """
-        if interval not in INTERVALS:
-            raise ToolError(f"interval 必須是 {', '.join(map(str, INTERVALS))} 其中之一")
-        if session not in SESSIONS:
-            raise ToolError(f"session 必須是 {'、'.join(SESSIONS)} 其中之一")
         page = _client.fetch_bytes(TICK_PAGE_URL, headers=TAIFEX_HEADERS, timeout=60, cache_ttl=TICK_PAGE_CACHE_TTL)
         days = available_days(page.decode("utf-8", errors="replace"))
         if not days:

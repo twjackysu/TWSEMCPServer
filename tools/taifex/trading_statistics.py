@@ -1,14 +1,14 @@
 """TAIFEX annual and monthly trading volume statistics."""
 
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
 from utils.taifex import TAIFEX_HEADERS
 
 _ANNUAL_URL = "https://openapi.taifex.com.tw/v1/AnnualTradingVolume"
 # Futures and options files have identical columns (verified 2026-10-18).
+Market = Literal["futures", "options"]  # _MONTHLY_STATS_URLS
 _MONTHLY_STATS_URLS = {
     "futures": ("期貨", "https://openapi.taifex.com.tw/v1/MonthlyTradingStatisticsFutures"),
     "options": ("選擇權", "https://openapi.taifex.com.tw/v1/MonthlyTradingStatisticsOptions"),
@@ -59,7 +59,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_monthly_trading_statistics(market: str = "futures") -> str:
+    def get_monthly_trading_statistics(market: Market = "futures") -> str:
         """查詢期貨或選擇權市場上個月的交易人結構統計，依商品類別（股價指數、股票、商品、匯率）分類，
         顯示各類型交易人（散戶、自營商、投信、外資、期貨自營商）的買賣量與月底未平倉量。
 
@@ -68,8 +68,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             market: futures（期貨，預設）或 options（選擇權）
         """
-        if market not in _MONTHLY_STATS_URLS:
-            raise ToolError(f"market 必須是 {'、'.join(_MONTHLY_STATS_URLS)} 其中之一")
         kind, url = _MONTHLY_STATS_URLS[market]
         data = _client.fetch_json(url, headers=TAIFEX_HEADERS)
 
