@@ -42,7 +42,7 @@ def _raise(exc):
     return _fake
 
 
-# requests.request 本身就拋例外的故障（連 response 都拿不到）
+# 送出請求本身就拋例外的故障（連 response 都拿不到）
 TRANSPORT_FAILURES = [
     pytest.param(_raise(requests.exceptions.Timeout("timed out")), id="timeout"),
     pytest.param(_raise(requests.exceptions.ConnectionError("refused")), id="connection-error"),
@@ -63,7 +63,7 @@ def client():
 @pytest.mark.parametrize("fake_request", UPSTREAM_FAILURES)
 def test_fetch_company_data_propagates_failures(monkeypatch, client, fake_request):
     """故障必須往上拋，不能降級成 None（等同「查無此公司」）."""
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
     with pytest.raises(Exception):
         client.fetch_company_data(ENDPOINT, "2330")
 
@@ -71,7 +71,7 @@ def test_fetch_company_data_propagates_failures(monkeypatch, client, fake_reques
 @pytest.mark.parametrize("fake_request", UPSTREAM_FAILURES)
 def test_fetch_latest_market_data_propagates_failures(monkeypatch, client, fake_request):
     """同上，不能降級成 []（等同「今天沒有行情」）."""
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
     with pytest.raises(Exception):
         client.fetch_latest_market_data("/exchangeReport/MI_INDEX")
 
@@ -81,7 +81,7 @@ def test_tool_reports_failure_not_missing_data(monkeypatch, client, fake_request
     """工具層必須拋 ToolError（MCP isError=true）「查詢失敗」，而非回傳與查無資料無從分辨的正常文字."""
     mcp = _CapturingMCP()
     create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
 
     with pytest.raises(ToolError, match="^查詢失敗"):
         mcp.tools["probe_tool"]("2330")
@@ -98,7 +98,7 @@ def test_rate_limit_still_applies_after_a_failure(monkeypatch, fake_request):
     """
     interval = 0.05
     probe = TWSEAPIClient(request_interval=interval, cache_ttl=0)
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
 
     attempts = 4
     start = time.monotonic()
@@ -128,7 +128,7 @@ def test_missing_company_still_reads_as_missing(monkeypatch, client):
     """對照組：真的查無此公司時，訊息要與「查詢失敗」明確區分."""
     mcp = _CapturingMCP()
     create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
-    monkeypatch.setattr(requests, "request", lambda *a, **kw: _ListWithoutTarget())
+    monkeypatch.setattr(requests.Session, "request", lambda *a, **kw: _ListWithoutTarget())
 
     result = mcp.tools["probe_tool"]("9999")
     assert result.startswith("查無"), f"預期「查無」訊息，實際: {result!r}"

@@ -117,7 +117,7 @@ def test_same_site_requests_never_overlap(monkeypatch):
             active[0] -= 1
         return _Resp()
 
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
     client = TWSEAPIClient(request_interval=0, cache_ttl=0)
     urls = ["https://www.twse.com.tw/a", "https://openapi.twse.com.tw/v1/b", "https://mops.twse.com.tw/c"] * 2
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -127,7 +127,7 @@ def test_same_site_requests_never_overlap(monkeypatch):
 
 def test_same_site_requests_stay_spaced_across_threads(monkeypatch):
     sent = []
-    monkeypatch.setattr(requests, "request", lambda *a, **kw: sent.append(time.monotonic()) or _Resp())
+    monkeypatch.setattr(requests.Session, "request", lambda *a, **kw: sent.append(time.monotonic()) or _Resp())
     interval = 0.05
     client = TWSEAPIClient(request_interval=interval, cache_ttl=0)
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -144,7 +144,7 @@ def test_different_sites_do_not_wait_for_each_other(monkeypatch):
         barrier.wait()
         return _Resp()
 
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
     client = TWSEAPIClient(request_interval=0, cache_ttl=0)
     with ThreadPoolExecutor(max_workers=2) as pool:
         list(pool.map(client.fetch_bytes, ["https://www.twse.com.tw/x", "https://www.taifex.com.tw/y"]))
@@ -163,7 +163,7 @@ def _counting_request(calls, body: bytes):
 
 def test_concurrent_identical_cached_requests_hit_upstream_once(monkeypatch):
     calls = {"n": 0, "lock": threading.Lock()}
-    monkeypatch.setattr(requests, "request", _counting_request(calls, b'{"rows": [1]}'))
+    monkeypatch.setattr(requests.Session, "request", _counting_request(calls, b'{"rows": [1]}'))
     client = TWSEAPIClient(request_interval=0, cache_ttl=60)
     with ThreadPoolExecutor(max_workers=4) as pool:
         results = list(pool.map(lambda _: client.fetch_json("https://www.taifex.com.tw/x", cache_ttl=60), range(4)))
@@ -184,7 +184,7 @@ def test_concurrent_reads_of_one_openapi_list_hit_upstream_once(monkeypatch):
         time.sleep(0.05)
         return _ListResp()
 
-    monkeypatch.setattr(requests, "request", fake_request)
+    monkeypatch.setattr(requests.Session, "request", fake_request)
     client = TWSEAPIClient(request_interval=0, cache_ttl=60)
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(lambda _: client.fetch_company_data("/opendata/t187ap03_L", "2330"), range(4)))

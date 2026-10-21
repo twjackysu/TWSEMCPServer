@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from .types import TWSEDataItem
 from .config import APIConfig
+from .http_transport import new_site_session
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,8 @@ class TWSEAPIClient:
         self._site_locks: Dict[str, threading.Lock] = {}
         self._site_locks_guard = threading.Lock()
         self._last_request_at: Dict[str, float] = {}
+        # One pooled session per site (utils/http_transport.py), used only under that site's lock.
+        self._sessions: Dict[str, requests.Session] = {}
         self._flight_locks = [threading.Lock() for _ in range(_FLIGHT_STRIPES)]
         self._cache_guard = threading.Lock()
         self._cache: Dict[str, tuple[float, List[TWSEDataItem]]] = {}
@@ -103,18 +106,22 @@ class TWSEAPIClient:
     ) -> requests.Response:
         """Throttle, send GET/POST, stamp last-request time, and return the response.
 
+        Sent through the site's pooled session (TLS policy and retries: utils/http_transport.py).
         Pass ``session`` for flows that need cookies carried between requests (the TDCC
-        query page ties a one-time form token to a JSESSIONID cookie).
+        query page ties a one-time form token to a JSESSIONID cookie); that session is used as is.
         """
         site = throttle_key(url)
         # Held through the request, not just the wait: two threads that both waited out
-        # the interval would otherwise send back-to-back.
+        # the interval would otherwise send back-to-back. Retries happen inside it too.
         with self._site_lock(site):
             self._throttle(site)
             logger.info(f"Fetching {method} {url} params={params}")
+            own = session is None
+            if own:
+                session = self._sessions.get(site) or self._sessions.setdefault(
+                    site, new_site_session(site, verify=self.verify_ssl))
             try:
-                send = session.request if session is not None else requests.request
-                resp = send(
+                resp = session.request(
                     method,
                     url,
                     params=params,
@@ -133,6 +140,8 @@ class TWSEAPIClient:
                 # tools/company/financials.py) would then fire back-to-back with no spacing,
                 # exactly when TWSE is rate-limiting or down.
                 self._last_request_at[site] = time.monotonic()
+                if own:
+                    session.cookies.clear()  # keep calls stateless; only the pooled connections persist
         resp.raise_for_status()
         resp.encoding = "utf-8"
         return resp
