@@ -53,7 +53,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags、
-  #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限；下一步搜尋式工具清單、結構化輸出）
+  #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出；下一步搜尋式工具清單）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -294,8 +294,17 @@ def get_twse_institutional_investors_summary(
   變成一個詞，實測「外資 買超 排行 上市」排第一的是期貨月統計；regex `外資.*買超` 則正確找到三支三大法人
   tool。要 BM25 就得自訂 `BaseSearchTransform`，用中文 bigram 斷詞。先確認主要 client 能好好用
   `call_tool` 代理再上線。
-- 文字型 tool 設 `output_schema=None`，`tools/call` 不再把同一份文字在 `structuredContent` 多回一次；
-  screener、技術指標這類改回真的結構化資料（dataclass → output schema）。
+- ✅ 文字型 tool 設 `output_schema=None`（#109），`tools/call` 不再把同一份文字在 `structuredContent` 多回一次；
+  ✅ screener、技術指標這類改回真的結構化資料（#133）：`tools/analytics` 4 支（選股、同業比較、還原日K、技術指標）
+  `output_schema(Result)` ＋ `structured_reply(text, result)`（`toolkit/structured.py`）。
+  - `content` 仍是原本的文字，不改成 JSON：LLM client 讀的是 content，中文排版（「收盤高於 MA20」、名次
+    80/168）比英文欄位的 JSON 好讀也省 token。MCP 對這點只是 SHOULD（content 附上序列化的 JSON）。
+  - 文字由 dataclass 產生，兩邊不會不一致；欄位全部附說明（單位、西元／民國），由測試把關。
+  - 宣告了 schema，成功回覆就必須附結構化資料（client 會驗證），所以這 4 支的「查無」改成 `ToolError`
+    （`isError` 由 false 變 true，文字不變）。
+  - `ResponseLimitingMiddleware` 會把它限制的工具的 output schema 從 tools/list 拿掉，所以只套用到文字工具
+    （`RegisteredTools.text_tools`）；結構化工具自己限制大小：選股、同業比較的 `limit` 上限 500。
+  - 實測 17 組呼叫：文字與 main 逐字相同，結構化資料逐列對得上文字，client 端 schema 驗證全過。
 - ✅ `ResponseLimitingMiddleware` 當最後保險（#132）：`toolkit.response_limit` 換上中文截斷說明，`server.py` 預設
   500,000 bytes（`TWSE_MAX_RESPONSE_BYTES`，0 關閉）。實測：正常回應 2–48 KB、一次取整個市場 60–280 KB（上市全部
   1,383 檔 184 KB、TXO 全部履約價 280 KB），只有含權證的全量才到 1.7–5.6 MB（`get_warrant_basic_info(limit=100000)`

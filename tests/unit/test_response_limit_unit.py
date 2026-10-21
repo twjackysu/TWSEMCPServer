@@ -49,7 +49,19 @@ def _call(mcp, name, args):
 def test_server_caps_replies_by_default():
     caps = [m for m in server.mcp.middleware if isinstance(m, ResponseLimitingMiddleware)]
     assert [m.max_size for m in caps] == [ServerConfig.MAX_RESPONSE_BYTES] == [500_000]
-    assert caps[0].tools is None  # every tool
+    # every text tool; structured tools bound themselves (the cap would hide their output schema)
+    assert caps[0].tools == server.registered.text_tools
+    assert len(caps[0].tools) == 173 and "get_stock_screener" not in caps[0].tools
+
+
+def test_structured_tools_keep_their_output_schema_on_the_server():
+    async def listed():
+        async with Client(server.mcp) as client:
+            return {t.name: t.output_schema for t in await client.list_tools()}
+
+    schemas = asyncio.run(listed())
+    assert {name for name, s in schemas.items() if s} == server.registered.structured
+    assert schemas["get_stock_screener"]["properties"]["stocks"]["type"] == "array"
 
 
 def test_a_runaway_reply_is_cut_and_says_so():

@@ -4,8 +4,9 @@ import importlib
 import inspect
 import pkgutil
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, FrozenSet, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, FrozenSet, List, Optional, Set
 
 from mcp.types import ToolAnnotations
 
@@ -99,6 +100,19 @@ def show_only_sources(mcp: "FastMCP", sources: FrozenSet[str]) -> None:
     logger.info(f"Serving sources {sorted(sources)}; tools reading {sorted(hidden)} are hidden")
 
 
+@dataclass
+class RegisteredTools:
+    """What ``register_all_tools`` registered."""
+
+    tags: Dict[str, FrozenSet[str]] = field(default_factory=dict)  # every tool's source tags, by name
+    structured: Set[str] = field(default_factory=set)  # tools with an output schema (toolkit.structured)
+
+    @property
+    def text_tools(self) -> FrozenSet[str]:
+        """Tools that reply with text only."""
+        return frozenset(self.tags) - self.structured
+
+
 class ToolRegistrar:
     """The ``mcp`` every ``register_tools(mcp, client)`` receives: ``mcp.tool`` with server-wide defaults.
 
@@ -112,11 +126,12 @@ class ToolRegistrar:
     - ``tags``: the data source(s) of the registering module (``SOURCE_TAGS``).
 
     A keyword the tool passes itself always wins. ``registered``, when given, collects each tool's
-    name and final tags (``register_all_tools`` returns it, to tag the prompts).
+    name, final tags and whether it passed an output schema (``register_all_tools`` returns it: the
+    prompts take their tags from it, and the response cap leaves structured tools out).
     """
 
     def __init__(self, mcp: "FastMCP", tags: FrozenSet[str] = frozenset(),
-                 registered: Optional[Dict[str, FrozenSet[str]]] = None):
+                 registered: Optional[RegisteredTools] = None):
         self._mcp = mcp
         self._tags = tags
         self._registered = registered
@@ -135,7 +150,10 @@ class ToolRegistrar:
         if name is not None:  # mcp.tool("custom_name")
             kwargs = {"name": name, **kwargs}
         if self._registered is not None:
-            self._registered[kwargs.get("name") or fn.__name__] = frozenset(kwargs.get("tags") or ())
+            tool_name = kwargs.get("name") or fn.__name__
+            self._registered.tags[tool_name] = frozenset(kwargs.get("tags") or ())
+            if isinstance(kwargs.get("output_schema"), dict):
+                self._registered.structured.add(tool_name)
         return self._mcp.tool(fn, **kwargs)
 
 
@@ -156,7 +174,7 @@ def discover_tool_modules() -> List[str]:
     return sorted(modules)
 
 
-def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> Dict[str, FrozenSet[str]]:
+def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> RegisteredTools:
     """
     Automatically discover and register all MCP tools from submodules.
 
@@ -165,8 +183,9 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     server that silently lacks that module's tools.
 
     Modules register through a ``ToolRegistrar`` around ``mcp``, which applies the server-wide
-    tool defaults and the module's source tags. Returns every registered tool's tags by name
-    (``prompts.register_all_prompts`` tags each prompt with those of the tools it names).
+    tool defaults and the module's source tags. Returns what was registered: every tool's tags by
+    name (``prompts.register_all_prompts`` tags each prompt with those of the tools it names) and
+    which tools return structured data.
 
     Args:
         mcp: FastMCP instance to register tools with
@@ -175,7 +194,7 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     modules = discover_tool_modules()
     logger.info(f"Total modules to register: {len(modules)}")
 
-    registered: Dict[str, FrozenSet[str]] = {}
+    registered = RegisteredTools()
     for module_path in modules:
         logger.info(f"Registering tools from: {module_path}")
         module = importlib.import_module(module_path)
@@ -185,5 +204,5 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     return registered
 
 
-__all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'ToolRegistrar', 'discover_tool_modules', 'enabled_sources',
-           'register_all_tools', 'show_only_sources', 'source_tags']
+__all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'RegisteredTools', 'ToolRegistrar', 'discover_tool_modules',
+           'enabled_sources', 'register_all_tools', 'show_only_sources', 'source_tags']

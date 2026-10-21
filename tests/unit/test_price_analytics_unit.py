@@ -117,9 +117,57 @@ def test_month_argument_validation(start, end, message):
 
 
 def test_indicators_need_enough_history(monkeypatch):
+    """結構化工具沒有結果可回時是錯誤：宣告了 output schema，成功的回覆就必須附上結構化資料."""
     monkeypatch.setattr(price_tools, "fetch_daily_bars", lambda *_a: ("上市", "台積電", [_bar(date(2026, 9, 1), 1)] * 10))
     fn = register_module_tools(price_tools, OfflineClient({}))["get_technical_indicators"]
-    assert "僅 10 個交易日" in fn("2330")
+    with pytest.raises(ToolError, match="僅 10 個交易日"):
+        fn("2330")
+
+
+def _rising_bars(count):
+    start = date(2026, 1, 1).toordinal()
+    return [Bar(date.fromordinal(start + i), 100 + i, 101 + i, 99 + i, 100.5 + i, 1000 * (i + 1)) for i in range(count)]
+
+
+def test_indicators_reply_carries_each_day(monkeypatch):
+    bars = _rising_bars(70)
+    monkeypatch.setattr(price_tools, "fetch_daily_bars", lambda *_a: ("上市", "台積電", bars))
+    fn = register_module_tools(price_tools, OfflineClient({}))["get_technical_indicators"]
+    result = fn("2330", adjusted=False, days=3)
+    data = result.structured_content
+    assert (data["code"], data["market"], data["adjusted"], data["sample_days"]) == ("2330", "上市", False, 70)
+    assert data["sample_start"] == "2026-01-01" and [d["day"] for d in data["days"]] == [
+        "2026-03-09", "2026-03-10", "2026-03-11"]
+    last = data["days"][-1]
+    closes = [b.close for b in bars]
+    assert last["close"] == 169.5 and last["ma5"] == pytest.approx(sum(closes[-5:]) / 5)
+    assert last["ma60"] == pytest.approx(sum(closes[-60:]) / 60) and last["volume"] == 70_000
+    assert last["osc"] == pytest.approx(last["dif"] - last["macd"])
+    text = result.content[0].text
+    assert f"MA5: {last['ma5']:,.2f}（收盤高於）" in text and text.count("\n2026-03-") == 3
+
+
+def test_adjusted_history_reply_carries_bars_and_adjustments(monkeypatch):
+    bars = [_bar(date(2026, 6, 1), 100), _bar(date(2026, 7, 1), 100)]
+    monkeypatch.setattr(price_tools, "fetch_daily_bars", lambda *_a: ("上市", "台積電", bars))
+    monkeypatch.setattr(price_tools, "fetch_exright_events",
+                        lambda *_a: [ExRightEvent(date(2026, 6, 15), 100, 90, "息")])
+    fn = register_module_tools(price_tools, OfflineClient({}))["get_adjusted_price_history"]
+    result = fn(" 2330 ")
+    data = result.structured_content
+    assert data["code"] == "2330" and data["adjustments"] == [
+        {"day": "2026-06-15", "kind": "息", "close_before": 100.0, "reference": 90.0, "factor": 0.9}]
+    assert data["bars"][0] == {"day": "2026-06-01", "open": pytest.approx(90), "high": pytest.approx(90),
+                               "low": pytest.approx(90), "close": pytest.approx(90), "raw_close": 100, "volume": 1000}
+    assert data["bars"][1]["close"] == data["bars"][1]["raw_close"] == 100
+    assert "2026-06-15 息 前收 100 → 參考價 90（因子 0.900000）" in result.content[0].text
+
+
+def test_adjusted_history_without_bars_is_an_error(monkeypatch):
+    monkeypatch.setattr(price_tools, "fetch_daily_bars", lambda *_a: ("", "", []))
+    fn = register_module_tools(price_tools, OfflineClient({}))["get_adjusted_price_history"]
+    with pytest.raises(ToolError, match="查無 9999 在"):
+        fn("9999")
 
 
 def test_months_back_crosses_year():

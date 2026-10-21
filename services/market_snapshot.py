@@ -93,16 +93,22 @@ def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     return out, day
 
 
-def market_snapshot(client: TWSEAPIClient, markets: Tuple[str, ...] = (LISTED, OTC)) -> Tuple[Dict[str, StockSnapshot], str]:
-    """(code → snapshot, data-date label) for the latest day with valuation data per market."""
+def market_snapshot(client: TWSEAPIClient,
+                    markets: Tuple[str, ...] = (LISTED, OTC)) -> Tuple[Dict[str, StockSnapshot], Dict[str, str]]:
+    """(code → snapshot, market → data date YYYYMMDD or "") for the latest day with valuation data per market."""
     out: Dict[str, StockSnapshot] = {}
-    days = []
+    days: Dict[str, str] = {}
     for market, loader in ((LISTED, _listed), (OTC, _otc)):
         if market in markets:
             rows, day = loader(client)
             out.update(rows)
-            days.append(f"{market} {day or '?'}")
-    return out, "、".join(days)
+            days[market] = day
+    return out, days
+
+
+def data_date_label(days: Dict[str, str]) -> str:
+    """「上市 20261021、上櫃 20261021」: the data date of each market in a snapshot."""
+    return "、".join(f"{market} {day or '?'}" for market, day in days.items())
 
 
 def industry_of(client: TWSEAPIClient, code: str) -> Optional[str]:
