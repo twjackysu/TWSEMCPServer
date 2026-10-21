@@ -1,7 +1,7 @@
 """工具並發執行與 TWSEAPIClient 執行緒安全的單元測試（不打網路）。
 
-FastMCP 在 event loop 上直接呼叫同步函式，工具卡在 requests 或節流等待時整個 server
-都會停住。@handle_api_errors 因此把工具本體丟到 worker thread，失敗時拋 ToolError
+FastMCP 4 把同步工具丟到 worker thread 執行，工具卡在 requests 或節流等待時不會擋住整個
+server（FastMCP 2 曾在 event loop 上直接呼叫）；@handle_api_errors 把失敗轉成 ToolError
 （MCP isError=true）。工具並發後，client 的節流與快取必須 thread-safe：
 同一網站的請求仍一次一個、保持間隔；不同網站互不等待；相同請求只打一次上游。
 """
@@ -44,7 +44,7 @@ def _serve(mcp: FastMCP, calls):
 
 
 def test_blocking_tools_run_concurrently():
-    """三個同步工具要能同時執行：若在 event loop 上排隊，barrier 永遠湊不齊三方而逾時."""
+    """三個加了 @handle_api_errors 的同步工具要能同時執行：若在 event loop 上排隊，barrier 永遠湊不齊三方而逾時."""
     mcp = FastMCP("probe")
     barrier = threading.Barrier(3, timeout=5)
 
