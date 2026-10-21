@@ -86,7 +86,7 @@ class TestNdcBusinessCycle:
     def test_zip_contains_every_table(self):
         body = fetch_bytes_or_skip(NDC_BUSINESS_CYCLE_ZIP_URL, timeout=60)
         assert zipfile.is_zipfile(io.BytesIO(body)), f"下載內容不是 zip（連結可能已失效）: {body[:120]!r}"
-        for key, filename in CYCLE_TABLES.items():
+        for filename in CYCLE_TABLES.values():
             rows = read_zip_csv(body, filename)
             assert rows[0][0].strip() == "Date", f"{filename} 首欄已變更: {rows[0]}"
             assert len(rows[-1][0].strip()) == 6, f"{filename} 資料列的 Date 不再是 YYYYMM: {rows[-1]}"

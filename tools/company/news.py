@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期（格式 YYYYMMDD），預設為當月第一天
             end_date: 結束日期（格式 YYYYMMDD），預設為當月最後一天
         """
-        from datetime import datetime, date
+        from datetime import datetime
         import calendar
         
         # If no dates provided, use current month

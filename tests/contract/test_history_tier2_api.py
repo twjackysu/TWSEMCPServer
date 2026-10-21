@@ -3,7 +3,6 @@
 只驗證 tools 中有寫死用到的欄位索引/位置，足以偵測來源 API 結構異動。
 """
 
-import pytest
 from tests.helpers import fetch_or_skip
 from utils.constants import SUMMARY_ROW_LABELS
 

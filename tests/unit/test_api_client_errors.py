@@ -66,7 +66,7 @@ def client():
 def test_fetch_company_data_propagates_failures(monkeypatch, client, fake_request):
     """故障必須往上拋，不能降級成 None（等同「查無此公司」）."""
     monkeypatch.setattr(requests.Session, "request", fake_request)
-    with pytest.raises(Exception):
+    with pytest.raises((requests.RequestException, ValueError)):
         client.fetch_company_data(ENDPOINT, "2330")
 
 
@@ -74,7 +74,7 @@ def test_fetch_company_data_propagates_failures(monkeypatch, client, fake_reques
 def test_fetch_latest_market_data_propagates_failures(monkeypatch, client, fake_request):
     """同上，不能降級成 []（等同「今天沒有行情」）."""
     monkeypatch.setattr(requests.Session, "request", fake_request)
-    with pytest.raises(Exception):
+    with pytest.raises((requests.RequestException, ValueError)):
         client.fetch_latest_market_data("/exchangeReport/MI_INDEX")
 
 
@@ -106,7 +106,7 @@ def test_rate_limit_still_applies_after_a_failure(monkeypatch, fake_request):
     attempts = 4
     start = time.monotonic()
     for _ in range(attempts):
-        with pytest.raises(Exception):
+        with pytest.raises(requests.RequestException):
             probe.fetch_json("https://openapi.twse.com.tw/v1/probe")
     elapsed = time.monotonic() - start
 

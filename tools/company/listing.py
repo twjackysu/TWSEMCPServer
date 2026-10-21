@@ -54,7 +54,7 @@ def normalize_local_application(row: TWSEDataItem) -> TWSEDataItem:
     if all(ch.isdigit() for ch in str(row.get("ApplicationDate", ""))):
         return row
     fixed = dict(row)
-    for served, actual in zip(_LOCAL_SERVED_KEYS, _LOCAL_ACTUAL_KEYS):
+    for served, actual in zip(_LOCAL_SERVED_KEYS, _LOCAL_ACTUAL_KEYS, strict=True):
         fixed[actual] = row.get(served, "")
     fixed["ListingDate"] = ""  # 證期局核准上市契約日期: not in this layout
     return fixed

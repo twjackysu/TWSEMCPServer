@@ -47,8 +47,8 @@ def rsi(closes: Sequence[float], n: int = 14) -> Series:
     avg_gain = sum(gains[:n]) / n
     avg_loss = sum(losses[:n]) / n
 
-    def value(g, l):
-        return 100.0 if l == 0 else 100 - 100 / (1 + g / l)
+    def value(gain, loss):
+        return 100.0 if loss == 0 else 100 - 100 / (1 + gain / loss)
 
     out[n] = value(avg_gain, avg_loss)
     for i in range(n + 1, len(closes)):
@@ -77,13 +77,13 @@ def kd(highs: Sequence[float], lows: Sequence[float], closes: Sequence[float],
 def macd(closes: Sequence[float], fast: int = 12, slow: int = 26, signal: int = 9) -> Tuple[Series, Series, Series]:
     """Returns (DIF, MACD signal line, OSC histogram)."""
     fast_ema, slow_ema = ema(closes, fast), ema(closes, slow)
-    dif: Series = [f - s if f is not None and s is not None else None for f, s in zip(fast_ema, slow_ema)]
+    dif: Series = [f - s if f is not None and s is not None else None for f, s in zip(fast_ema, slow_ema, strict=True)]
     start = next((i for i, v in enumerate(dif) if v is not None), None)
     sig: Series = [None] * len(closes)
     if start is not None:
         tail = ema([v for v in dif[start:]], signal)
         sig[start:] = tail
-    osc: Series = [d - s if d is not None and s is not None else None for d, s in zip(dif, sig)]
+    osc: Series = [d - s if d is not None and s is not None else None for d, s in zip(dif, sig, strict=True)]
     return dif, sig, osc
 
 

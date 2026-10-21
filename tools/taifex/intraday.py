@@ -114,7 +114,10 @@ def summarize(ticks: List[Tick]) -> str:
     low = min(ticks, key=lambda t: t[3])
     total = sum(t[4] for t in ticks)
     vwap = sum(t[3] * t[4] for t in ticks) / total if total else 0
-    clock = lambda t: f"{t[2] // 10000:02d}:{t[2] // 100 % 100:02d}:{t[2] % 100:02d}"
+
+    def clock(t: Tick) -> str:
+        return f"{t[2] // 10000:02d}:{t[2] // 100 % 100:02d}:{t[2] % 100:02d}"
+
     swing = high[3] - low[3]
     return (
         f"開 {first[3]:g}（{clock(first)}）｜高 {high[3]:g}（{clock(high)}）｜低 {low[3]:g}（{clock(low)}）｜"

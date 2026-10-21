@@ -77,7 +77,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         else:
             lines.append("期間至今無除權息事件，還原價等於原始價")
         lines.append("")
-        for raw, adj in zip(bars, adjusted):
+        for raw, adj in zip(bars, adjusted, strict=True):
             lines.append(
                 f"{adj.day} | 開:{_fmt(adj.open)} 高:{_fmt(adj.high)} 低:{_fmt(adj.low)} 收:{_fmt(adj.close)} | "
                 f"原始收盤:{_fmt(raw.close)} | 量:{raw.volume:,.0f}"

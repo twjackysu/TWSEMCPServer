@@ -57,7 +57,7 @@ def format_monthly_table(rows: list, months: int, title: str) -> str:
     for r in reversed(shown):
         ym = r[0].strip()
         label = f"{ym[:4]}-{ym[4:]}" if len(ym) == 6 else ym
-        cells = [f"{h.strip()}:{v.strip() or '-'}" for h, v in zip(header[1:], r[1:])]
+        cells = [f"{h.strip()}:{v.strip() or '-'}" for h, v in zip(header[1:], r[1:], strict=False)]
         lines.append(f"{label} | " + " | ".join(cells))
     return "\n".join(lines)
 

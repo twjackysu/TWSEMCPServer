@@ -44,7 +44,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         lines = [f"【{title}】\n"]
         for row in data:
             # row: 日期,開盤指數,最高指數,最低指數,收盤指數
-            d, o, h, l, c = row
-            lines.append(f"{d} | 開:{o} 高:{h} 低:{l} 收:{c}")
+            day, open_, high, low, close = row
+            lines.append(f"{day} | 開:{open_} 高:{high} 低:{low} 收:{close}")
 
         return "\n".join(lines)

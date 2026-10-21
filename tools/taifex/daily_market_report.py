@@ -128,10 +128,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             date, month, session = r[0], r[2].strip(), r[17]
             if len(contracts) > 1:
                 month = f"{r[1].strip()} {month}"
-            o, h, l, c, change, pct = r[3], r[4], r[5], r[6], r[7], r[8]
+            o, h, low, c, change, pct = r[3], r[4], r[5], r[6], r[7], r[8]
             vol, settle, oi, bid, ask = r[9], r[10], r[11], r[12], r[13]
             lines.append(
-                f"{date} | {month} | {session} | 開:{o} 高:{h} 低:{l} 收:{c} | 漲跌:{change}({pct}) | "
+                f"{date} | {month} | {session} | 開:{o} 高:{h} 低:{low} 收:{c} | 漲跌:{change}({pct}) | "
                 f"量:{vol} | 結算:{settle} | 未平倉:{oi} | 最佳買/賣:{bid}/{ask}"
             )
         return "\n".join(lines)
@@ -197,9 +197,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         lines = [header]
         for r in shown:
             date, month, strike, cp, session = r[0], r[2].strip(), r[3], r[4], r[17]
-            o, h, l, c, vol, settle, oi, bid, ask = r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13]
+            o, h, low, c, vol, settle, oi, bid, ask = r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13]
             lines.append(
-                f"{date} | {month} {cp} 履約:{strike} | {session} | 開:{o} 高:{h} 低:{l} 收:{c} | "
+                f"{date} | {month} {cp} 履約:{strike} | {session} | 開:{o} 高:{h} 低:{low} 收:{c} | "
                 f"量:{vol} | 結算:{settle} | 未平倉:{oi} | 最佳買/賣:{bid}/{ask}"
             )
         return "\n".join(lines)
