@@ -2,7 +2,8 @@
 membership, for screening and peer comparison.
 
 Sources (latest trading day, each one request, cached):
-- listed valuation:  TWSE rwd BWIBBU_d        (收盤價, 殖利率, 股利年度, 本益比, 股價淨值比, 財報年/季)
+- listed valuation:  TWSE rwd BWIBBU_d        (收盤價, 殖利率, 股利年度, 本益比, 股價淨值比, 財報年/季;
+                     gateway: sources/twse/bwibbu_d.py)
 - listed prices:     TWSE rwd MI_INDEX ALLBUT0999 每日收盤行情 (gateway: sources/twse/mi_index.py)
 - OTC valuation:     TPEx afterTrading/peQryDate
 - OTC prices:        TPEx afterTrading/otc type=EW
@@ -21,9 +22,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
+from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 
-BWIBBU_D_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d"
 TPEX_PE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate"
 TPEX_QUOTES_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc"
 TPEX_PROFILE_URL = "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O"
@@ -68,13 +69,11 @@ def _num(value) -> Optional[float]:
 
 def _listed(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     out: Dict[str, StockSnapshot] = {}
-    val = client.fetch_json(BWIBBU_D_URL, params={"response": "json", "selectType": "ALL"}, cache_ttl=SNAPSHOT_CACHE_TTL)
-    day = str((val or {}).get("date") or "")
-    for r in (val or {}).get("data") or []:
-        # r: 證券代號,證券名稱,收盤價,殖利率(%),股利年度,本益比,股價淨值比,財報年/季
-        out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), LISTED, close=_num(r[2]),
-                                          dividend_yield=_num(r[3]), dividend_year=str(r[4]), pe=_num(r[5]),
-                                          pb=_num(r[6]), fiscal=str(r[7]))
+    report = valuation_ratios(client)
+    day = report.date
+    for v in report.valuations:
+        out[v.code] = StockSnapshot(v.code, v.name, LISTED, close=_float(v.close), dividend_yield=_float(v.dividend_yield),
+                                    dividend_year=v.dividend_year, pe=_float(v.pe), pb=_float(v.pb), fiscal=v.fiscal)
     table = stock_quotes(client, "ALLBUT0999", day)
     for q in table.quotes if table else []:
         s = out.setdefault(q.code, StockSnapshot(q.code, q.name, LISTED))

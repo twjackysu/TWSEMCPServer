@@ -53,7 +53,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── caching.py                # month_cache_ttl() (past months 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
 ├── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
-└── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
+├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
+└── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)

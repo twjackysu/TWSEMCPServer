@@ -2,9 +2,9 @@
 
 from tests.helpers import fetch_or_skip, gateway_or_skip, records_or_skip
 from utils.api_client import TWSEAPIClient
+from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 from services.market_snapshot import (
-    BWIBBU_D_URL,
     LISTED_PROFILE_ENDPOINT,
     TPEX_PE_URL,
     TPEX_PROFILE_URL,
@@ -38,7 +38,7 @@ def test_industry_member_lists_carry_names():
 
 def test_valuation_dates_can_drive_quote_requests():
     """snapshot 先取估值資料日，再用該日查行情，避免把兩個交易日的價格與本益比混在一起."""
-    val = fetch_or_skip(BWIBBU_D_URL, params={"response": "json", "selectType": "ALL"})
-    assert len(str(val.get("date", ""))) == 8, f"BWIBBU_d 不再回傳資料日: {val.get('date')!r}"
+    val = gateway_or_skip(valuation_ratios)
+    assert len(val.date) == 8, f"BWIBBU_d 不再回傳資料日: {val.date!r}"
     pe = fetch_or_skip(TPEX_PE_URL, params={"response": "json"})
     assert len(str(pe.get("date", ""))) == 8, f"peQryDate 不再回傳資料日: {pe.get('date')!r}"
