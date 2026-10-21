@@ -7,6 +7,7 @@ import logging
 from fastmcp.exceptions import ToolError
 
 from utils.constants import MSG_QUERY_FAILED
+from utils.errors import InvalidArgument
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,8 @@ def handle_api_errors(use_code_param: bool = False):
     ``isError=true``. Returning the message as an ordinary string would tell the client the
     call succeeded, and leaving the exception to FastMCP would give the client its English
     ``Error calling tool …`` text instead. A ``ToolError`` raised by the tool itself passes
-    through as is.
+    through as is, and ``utils.errors.InvalidArgument`` (a bad argument noticed in utils/, e.g. by
+    ``Page``) becomes a ``ToolError`` with its own message.
 
     The tool stays a plain function: FastMCP 4 runs sync tools in a worker thread, so one
     blocked on ``requests`` or on the client's throttle wait does not stall the server.
@@ -47,6 +49,9 @@ def handle_api_errors(use_code_param: bool = False):
                 return func(*args, **kwargs)
             except ToolError:
                 raise
+            except InvalidArgument as e:
+                # The caller's argument, raised from utils/ (which cannot import ToolError)
+                raise ToolError(str(e)) from e
             except Exception as e:
                 # Extract code parameter if it exists
                 code = None

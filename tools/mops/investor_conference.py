@@ -7,7 +7,7 @@ which returns an HTML table rather than JSON.
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, truncate, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, truncate, Page
 from toolkit import handle_api_errors
 from utils.mops import mops_legacy_post, parse_html_table, to_roc_year
 
@@ -80,25 +80,22 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not rows:
             return f"查無 {scope} 的法人說明會資料"
 
-        total = len(rows)
-        page = rows[offset:offset + limit]
-        if not page:
-            return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=f"{scope} 的法說會資料", count=total)
-        end = min(offset + limit, total)
-        header = f"【法人說明會 {scope}】（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        paged = Page(limit, offset).take(rows)
+        if paged.past_end:
+            return paged.out_of_range(f"{scope} 的法說會資料")
+        header = f"【法人說明會 {scope}】（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for r in page:
+        for r in paged.rows:
             co, name, day, time_, place, summary, file_zh, file_en, site = r[:9]
             lines.append(
                 f"{day} {time_} | {co} {name} | 地點:{truncate(place, 60)}\n"
                 f"  摘要:{truncate(summary, 200)}\n"
                 f"  簡報:{file_zh or '-'} / {file_en or '-'} | 網站:{site or '-'}"
             )
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
         return "\n".join(lines)

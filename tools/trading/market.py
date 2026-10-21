@@ -6,7 +6,7 @@ from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
     MSG_NO_MATCHING_DATA,
-    MSG_OFFSET_OUT_OF_RANGE,
+    Page,
     format_list_response,
     DEFAULT_DISPLAY_LIMIT,
 )
@@ -159,27 +159,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"   收盤價: {closing_price} | 漲跌: {change_str}\n\n"
             )
 
-        total = len(data)
-        page_data = data[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type="集中市場每日成交量前二十名證券資料", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range("集中市場每日成交量前二十名證券資料")
 
-        header = f"集中市場每日成交量前二十名證券 (日期: {date})（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        header = f"集中市場每日成交量前二十名證券 (日期: {date})（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）:\n\n"
 
-        result = header
-        for item in page_data:
-            result += formatter(item)
-
-        remaining = total - offset - limit
-        if remaining > 0:
-            result += f"... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
-
+        result = header + "".join(formatter(item) for item in paged.rows) + paged.more()
         return result.strip()
 
     @mcp.tool
@@ -344,40 +333,26 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not data:
             return MSG_NO_DATA.format(data_type="上市上櫃股票當日可借券賣出股數")
 
-        twse_data = [item for item in data if item.get("TWSECode")]
-        gretai_data = [item for item in data if item.get("GRETAICode")]
+        # 兩個市場共用同一個 offset：只有「兩邊都翻過尾端」才是真的越界；只有一邊沒資料時，
+        # 該區塊整段不印即可。
+        page = Page(limit, offset)
+        markets = [
+            ("上市股票", page.take([item for item in data if item.get("TWSECode")]), "TWSECode", "TWSEAvailableVolume"),
+            ("上櫃股票", page.take([item for item in data if item.get("GRETAICode")]), "GRETAICode", "GRETAIAvailableVolume"),
+        ]
+        if not any(paged.rows for _, paged, _, _ in markets):
+            return Page(limit, offset).take(data).out_of_range("上市上櫃股票當日可借券賣出股數資料")
 
-        total_twse = len(twse_data)
-        total_gretai = len(gretai_data)
-        # 兩個市場共用同一個 offset，所以要先切好頁再決定要印哪些區塊：只有「兩邊都翻過尾端」
-        # 才是真的越界；只有一邊沒資料時，該區塊整段不印即可。
-        page_twse = twse_data[offset:offset + limit]
-        page_gretai = gretai_data[offset:offset + limit]
-        if not page_twse and not page_gretai:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type="上市上櫃股票當日可借券賣出股數資料", count=len(data)
-            )
+        sections = []
+        for title, paged, code_field, volume_field in markets:
+            if not paged.rows:
+                continue
+            span = f"，{paged.span()}" if paged.span() else ""
+            section = f"【{title}】（共 {paged.total} 筆{span}）\n"
+            for item in paged.rows:
+                section += f"- 股票代號 {item.get(code_field, 'N/A')}: 可借券賣出股數 {item.get(volume_field, 'N/A')}\n"
+            if paged.more():
+                section += paged.more() + "\n"
+            sections.append(section)
 
-        result = f"共有 {len(data)} 筆上市上櫃股票當日可借券賣出股數資料：\n\n"
-
-        if page_twse:
-            result += f"【上市股票】（共 {total_twse} 筆，顯示第 {offset + 1}–{min(offset + limit, total_twse)} 筆）\n"
-            for item in page_twse:
-                stock_code = item.get("TWSECode", "N/A")
-                available_volume = item.get("TWSEAvailableVolume", "N/A")
-                result += f"- 股票代號 {stock_code}: 可借券賣出股數 {available_volume}\n"
-            remaining_twse = total_twse - offset - limit
-            if remaining_twse > 0:
-                result += f"... 還有 {remaining_twse} 筆，使用 offset={offset + limit} 查看更多\n"
-
-        if page_gretai:
-            result += f"\n【上櫃股票】（共 {total_gretai} 筆，顯示第 {offset + 1}–{min(offset + limit, total_gretai)} 筆）\n"
-            for item in page_gretai:
-                stock_code = item.get("GRETAICode", "N/A")
-                available_volume = item.get("GRETAIAvailableVolume", "N/A")
-                result += f"- 股票代號 {stock_code}: 可借券賣出股數 {available_volume}\n"
-            remaining_gretai = total_gretai - offset - limit
-            if remaining_gretai > 0:
-                result += f"... 還有 {remaining_gretai} 筆，使用 offset={offset + limit} 查看更多\n"
-
-        return result
+        return f"共有 {len(data)} 筆上市上櫃股票當日可借券賣出股數資料：\n\n" + "\n".join(sections)

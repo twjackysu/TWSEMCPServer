@@ -12,7 +12,7 @@ from datetime import timedelta
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, truncate, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, truncate, Page
 from toolkit import handle_api_errors
 from utils.mops import mops_post, to_roc_year
 from utils.date_helper import taipei_today
@@ -71,21 +71,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             return f"查無 {code} 在 {scope} 的重大訊息"
 
         rows = sorted(rows, key=lambda r: (r[2], r[3]), reverse=True)
-        total = len(rows)
-        page = rows[offset:offset + min(limit, MAX_DETAILED)]
-        if not page:
-            return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=f"{code} 的重大訊息", count=total)
+        # Each full text costs a MOPS request, so a page holds at most MAX_DETAILED.
+        paged = Page(min(limit, MAX_DETAILED), offset).take(rows)
+        if paged.past_end:
+            return paged.out_of_range(f"{code} 的重大訊息")
         name = result.get("companyAbbreviation") or rows[0][1]
+        span = f"，{paged.span('則')}" if paged.span("則") else ""
         lines = [f"【{name}({code}) 重大訊息 民國{roc_year}年{('（' + roc_day + '）') if roc_day else ''}】"
-                 f"（共 {total} 則，由新到舊顯示第 {offset + 1}–{offset + len(page)} 則，每頁最多 {MAX_DETAILED} 則含全文）\n"]
-        for r in page:
+                 f"（共 {paged.total} 則，由新到舊{span}，每頁最多 {MAX_DETAILED} 則含全文）\n"]
+        for r in paged.rows:
             lines.append(f"{r[2]} {r[3]} | {_one_line(r[4])}")
             detail = _detail(r[5] if len(r) > 5 else None)
             if detail:
                 lines.append(detail)
-        remaining = total - offset - len(page)
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 則，使用 offset={offset + len(page)} 查看更多")
+        if paged.more("則"):
+            lines.append("\n" + paged.more("則"))
         return "\n".join(lines)
 
     def _market(date: str, market: str, limit: int, offset: int) -> str:
@@ -114,17 +114,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         if market:
             rows = [r for r in rows if kind(r) == market]
-        total = len(rows)
-        page = rows[offset:offset + limit]
-        if not page:
-            return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=f"{served} 的重大訊息", count=total)
-        lines = [f"【查詢日 {served} 全市場重大訊息】（共 {total} 則，顯示第 {offset + 1}–{offset + len(page)} 則；"
-                 f"指定 code 可看各則全文）\n"]
-        for r in page:
+        paged = Page(limit, offset).take(rows)
+        if paged.past_end:
+            return paged.out_of_range(f"{served} 的重大訊息")
+        span = f"，{paged.span('則')}" if paged.span("則") else ""
+        lines = [f"【查詢日 {served} 全市場重大訊息】（共 {paged.total} 則{span}；指定 code 可看各則全文）\n"]
+        for r in paged.rows:
             lines.append(f"{r[0]} {r[1]} | {MARKET_LABELS.get(kind(r), kind(r))} {r[2]} {r[3]} | {_one_line(r[4])}")
-        remaining = total - offset - len(page)
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 則，使用 offset={offset + limit} 查看更多")
+        if paged.more("則"):
+            lines.append("\n" + paged.more("則"))
         return "\n".join(lines)
 
     @mcp.tool

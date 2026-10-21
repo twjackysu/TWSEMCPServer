@@ -45,3 +45,22 @@ def test_default_is_net_margin_descending(tool):
 def test_unknown_sort_field_is_an_error_not_a_silent_fallback(tool):
     with pytest.raises(ToolError, match="order_by 必須是"):
         tool(order_by="本益比")
+
+
+def test_limit_and_offset_page_through_the_sorted_rows(tool):
+    """改用 limit/offset 前是 page_size/page_number，而且超過 100 會被默默截成 100."""
+    text = tool(limit=1, offset=1)
+    assert _codes(text) == ["2330"]
+    assert "顯示第 2–2 筆" in text and "... 還有 1 筆，使用 offset=2 查看更多" in text
+    assert "offset=5 已超出範圍" in tool(offset=5)
+
+
+@pytest.mark.parametrize("args, message", [
+    ({"limit": 101}, "limit 必須介於 1～100（收到 101）"),
+    ({"limit": 0}, "limit 必須介於 1～100（收到 0）"),
+    ({"offset": -1}, "offset 不可為負數（收到 -1）"),
+])
+def test_bad_paging_arguments_are_errors_not_clamped(tool, args, message):
+    with pytest.raises(ToolError) as err:
+        tool(**args)
+    assert str(err.value) == message

@@ -8,7 +8,7 @@ from utils import (
     format_meaningful_fields_only,
     MSG_NO_DATA,
     MSG_NO_MATCHING_DATA,
-    MSG_OFFSET_OUT_OF_RANGE,
+    Page,
     DEFAULT_DISPLAY_LIMIT,
     format_list_response,
     truncate,
@@ -202,25 +202,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not sorted_companies:
                 return MSG_NO_MATCHING_DATA.format(data_type="上市公司獨立董監事兼任情形")
 
-        total = len(sorted_companies)
-        page_data = sorted_companies[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type="具有獨立董監事資料的上市公司", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(sorted_companies)
+        if paged.past_end:
+            return paged.out_of_range("具有獨立董監事資料的上市公司")
 
-        header = f"共有 {total} 家公司具有獨立董監事資料"
-        if total > limit or offset > 0:
-            header += f"（顯示第 {offset + 1}–{end} 筆）"
+        header = f"共有 {paged.total} 家公司具有獨立董監事資料"
+        if paged.span():
+            header += f"（{paged.span()}）"
         header += "：\n\n"
 
-        result = header + "".join(f"- {company_name} ({code})\n" for code, company_name in page_data)
-
-        remaining = total - offset - limit
-        if remaining > 0:
-            result += f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
-
+        result = header + "".join(f"- {company_name} ({code})\n" for code, company_name in paged.rows)
+        if paged.more():
+            result += "\n" + paged.more()
         return result
 
     @mcp.tool

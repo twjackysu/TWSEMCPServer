@@ -10,7 +10,7 @@ larger) and has 均價 and 次日參考價, while the website's afterTrading/otc
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE, format_list_response
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, format_list_response
 from toolkit import handle_api_errors
 from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
 
@@ -42,21 +42,17 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無名稱包含「{name}」的上櫃股票收盤行情"
 
-        total = len(data)
-        page_data = data[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type="上櫃市場收盤行情資料", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range("上櫃市場收盤行情資料")
 
-        header = f"【上櫃市場收盤行情 {page_data[0].get('Date', '')}】（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        header = f"【上櫃市場收盤行情 {paged.rows[0].get('Date', '')}】（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for item in page_data:
+        for item in paged.rows:
             lines.append(
                 f"{item.get('SecuritiesCompanyCode', '?')} {item.get('CompanyName', '?')} | "
                 f"收: {item.get('Close', '-')} | 漲跌: {str(item.get('Change', '-')).strip()} | "
@@ -65,9 +61,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"金額: {item.get('TransactionAmount', '-')} | 筆數: {item.get('TransactionNumber', '-')}"
             )
 
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
         return "\n".join(lines)
 
     @mcp.tool

@@ -5,8 +5,11 @@ tools/mops/financial_statements.py."""
 from typing import List, Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient
+from utils import TWSEAPIClient, Page
 from toolkit import CompanyToolSpec, create_company_tool, handle_api_errors
+
+# One summary row is two lines; more than this per reply is past what a model can use.
+MAX_PROFITABILITY_ROWS = 100
 
 # order_by names shown to callers → t187ap17_L column names. The full column names are
 # accepted too: the previous default was one, so earlier callers may still send it.
@@ -59,26 +62,24 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_company_profitability_analysis_summary(
-        page_size: int = 20,
-        page_number: int = 1,
         order_by: str = "稅後純益率(%)",
-        order_direction: Literal["asc", "desc"] = "desc"
+        order_direction: Literal["asc", "desc"] = "desc",
+        limit: int = 20,
+        offset: int = 0,
     ) -> str:
         """查詢上市公司營益分析查詢彙總表(全體公司彙總報表)。
 
         Args:
-            page_size: 每頁筆數（預設20，最大100）
-            page_number: 頁碼（預設1，從1開始）
             order_by: 排序欄位（預設 稅後純益率(%)）。可用欄位：公司代號、公司名稱、營業收入(百萬元)、毛利率(%)、營業利益率(%)、稅前純益率(%)、稅後純益率(%)、年度、季別
             order_direction: 排序方向，'asc' 為遞增，'desc' 為遞減（預設 'desc'）
+            limit: 回傳筆數上限（預設 20，最多 100）
+            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
         order_by = profitability_sort_field(order_by)
+        page = Page(limit, offset, max_limit=MAX_PROFITABILITY_ROWS)
         data = _client.fetch_data("/opendata/t187ap17_L")
         if not data:
             return "目前沒有營益分析查詢彙總表資料。"
-
-        page_size = min(max(1, page_size), 100)
-        page_number = max(1, page_number)
 
         def get_sort_key(item):
             value = item.get(order_by, "")
@@ -89,20 +90,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     return float('-inf')
             return str(value)
 
-        sorted_data = sorted(data, key=get_sort_key, reverse=(order_direction == "desc"))
+        paged = page.take(sorted(data, key=get_sort_key, reverse=(order_direction == "desc")))
+        if paged.past_end:
+            return paged.out_of_range("營益分析資料")
 
-        total_records = len(sorted_data)
-        start_index = (page_number - 1) * page_size
-        total_pages = (total_records + page_size - 1) // page_size
-
-        if start_index >= total_records:
-            return f"頁碼超出範圍。共有 {total_records} 筆資料，{total_pages} 頁。"
-
-        page_data = sorted_data[start_index:start_index + page_size]
         sort_indicator = "↑" if order_direction == "asc" else "↓"
-        result = f"共有 {total_records} 筆營益分析資料 (第 {page_number}/{total_pages} 頁，依 {order_by} {sort_indicator} 排序)：\n\n"
+        span = f"{paged.span()}，" if paged.span() else ""
+        result = f"共有 {paged.total} 筆營益分析資料 ({span}依 {order_by} {sort_indicator} 排序)：\n\n"
 
-        for item in page_data:
+        for item in paged.rows:
             year = item.get("年度", "N/A")
             quarter = item.get("季別", "N/A")
             code = item.get("公司代號", "N/A")
@@ -114,4 +110,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             result += f"- {code} {name} ({year}年Q{quarter}):\n"
             result += f"  營收: {revenue}百萬, 毛利率: {gross_margin}%, 營益率: {operating_margin}%, 稅後淨利率: {net_margin}%\n"
 
+        if paged.more():
+            result += "\n" + paged.more()
         return result

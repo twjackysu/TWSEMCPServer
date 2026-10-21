@@ -4,9 +4,9 @@ from typing import Any, List, Union, Sequence
 from .constants import (
     MSG_TOTAL_RECORDS,
     MSG_NO_MATCHING_DATA,
-    MSG_OFFSET_OUT_OF_RANGE,
     DEFAULT_DISPLAY_LIMIT,
 )
+from .pagination import Page
 from .types import TWSEDataItem, DataFormatter
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
@@ -145,35 +145,25 @@ def format_list_response(
         # 工具壞掉，所以這裡必須自己講清楚。
         return MSG_NO_MATCHING_DATA.format(data_type=data_type)
 
-    total = len(data)
-    if offset >= total:
-        # offset 已經翻過最後一筆。原本仍照常組表頭，輸出會變成「共有 2 筆…（顯示第
-        # 101–2 筆）」這種不可能的區間後面接零列資料，呼叫端無從分辨是自己翻過頭還是
-        # 工具壞掉。tools/history/margin_balance.py 與 bwibbu_all.py 兩支手寫分頁的工具
-        # 早就會講清楚（tests/unit/test_output_limits_unit.py 有斷言），這裡補上同樣的行為。
-        return MSG_OFFSET_OUT_OF_RANGE.format(offset=offset, data_type=data_type, count=total)
+    paged = Page(limit, offset).take(data)
+    if paged.past_end:
+        # offset 已經翻過最後一筆：照常組表頭會印出「（顯示第 101–2 筆）」這種不可能的區間後接
+        # 零列資料，呼叫端無從分辨是自己翻過頭還是工具壞掉。
+        return paged.out_of_range(data_type)
 
-    page_data = data[offset:offset + limit]
-    end = min(offset + limit, total)
-
-    header = MSG_TOTAL_RECORDS.format(count=total, data_type=data_type)
-    if total > limit or offset > 0:
-        header += f"（顯示第 {offset + 1}–{end} 筆）"
-    header += "\n\n"
-    result = header
+    header = MSG_TOTAL_RECORDS.format(count=paged.total, data_type=data_type)
+    if paged.span():
+        header += f"（{paged.span()}）"
+    result = header + "\n\n"
 
     if formatter is None:
         def default_formatter(item):
             return f"- {format_properties_with_values_multiline(item)}\n"
         formatter = default_formatter
 
-    for item in page_data:
-        result += formatter(item)
-
-    remaining = total - offset - limit
-    if remaining > 0:
-        result += f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多"
-
+    result += "".join(formatter(item) for item in paged.rows)
+    if paged.more():
+        result += "\n" + paged.more()
     return result
 
 

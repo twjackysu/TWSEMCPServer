@@ -119,6 +119,8 @@ The `client` is captured via closure. Tools are registered with `@mcp.tool` — 
 - `format_properties_with_values_multiline(data)` — single record dict → multiline string
 - `format_multiple_records(records, separator)` — multiple records with separators
 - `format_list_response(data, data_type, formatter, limit)` — paginated list with total count
+
+**Paging**: every `limit`/`offset` goes through `utils.Page` (`utils/pagination.py`): `paged = Page(limit, offset).take(rows)`, then `paged.past_end` / `paged.out_of_range(data_type)`, `paged.rows`, `paged.span()` ("顯示第 a–b 筆", empty when everything fits) and `paged.more()` ("... 還有 N 筆，使用 offset=X 查看更多"); pass a unit (`"則"`, `"名"`) where 筆 doesn't fit. `Page(..., max_limit=N)` caps a reply. A bad `limit`/`offset` raises `utils.errors.InvalidArgument`, which `handle_api_errors` reports as `ToolError` with the message as is — use it for any argument error noticed in `utils/` (which cannot import `ToolError`). `tests/unit/test_pagination_unit.py` fails if a tool slices `[offset:offset + limit]` itself.
 - `create_simple_list_formatter(name_field, code_field, *extra)` — factory for list formatters
 
 **Company Data Filtering**: `fetch_company_data()` filters by `公司代號`, `Code`, or `權證代號` field matching the `code` parameter.
@@ -165,7 +167,7 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description. FastMCP keeps only the text before the first Google-style section: `Args:` lines become the parameter descriptions and any other section (`Returns:`, `Note:`, …) is dropped, so say what the tool returns before `Args:` (`回傳：…`)
 5. Use `@handle_api_errors()` (`from toolkit import handle_api_errors`) for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
 6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data. If the tool is nothing more than that (or a plain list with an optional name filter), add a `CompanyToolSpec` / `ListToolSpec` to the module's spec list instead of writing a function
-7. Format output with utilities from `utils/formatters.py`
+7. Format output with utilities from `utils/formatters.py`; page lists with `limit`/`offset` through `utils.Page` (see Paging)
 8. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
    - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/contract/tool_field_dependencies.py`. The parametrized test in `tests/contract/test_api_schemas.py` will pick it up automatically.
    - **Non-TWSE-OpenAPI tools** (TAIFEX, OTC/TPEx, MIS, legacy `exchangeReport`, MOPS, TDCC, NDC, CBC): add a `test_hardcoded_fields_exist` method to the relevant `tests/contract/test_*.py` file.
