@@ -12,7 +12,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from .history import TPEX_WWW, date_params, first_table, resp_date
 
 PE_QRY_DATE_URL = f"{TPEX_WWW}/afterTrading/peQryDate"
@@ -34,7 +34,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_valuation(date: str = "", stock_no: str = "", name: str = "",
-                          limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                          limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃股票本益比、殖利率、股價淨值比：預設最新交易日，也可指定過去日期。
         與上市的 get_stock_valuation_ratios 對應。
 
@@ -68,7 +68,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_foreign_holdings(date: str = "", stock_no: str = "", name: str = "",
-                                 limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                 limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃股票僑外資及陸資持股比例：預設最新交易日，也可指定過去日期，依持股比率由高到低排行。
         與上市的 get_foreign_holdings 對應，適合追蹤外資在上櫃股的持股變化。
 

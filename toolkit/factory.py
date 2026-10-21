@@ -21,6 +21,7 @@ from utils import (
 from utils.types import DataFormatter, TWSEDataItem
 
 from .decorators import handle_api_errors
+from .params import Limit, Offset
 
 
 @dataclass(frozen=True)
@@ -108,10 +109,10 @@ def create_list_tool(
         return format_list_response(data, spec.label, spec.formatter, limit=limit, offset=offset)
 
     if spec.filter_field:
-        def tool_fn(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+        def tool_fn(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
             return _render(_client.fetch_data(spec.endpoint), name, limit, offset)
     else:
-        def tool_fn(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+        def tool_fn(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
             return _render(_client.fetch_data(spec.endpoint), "", limit, offset)
 
     description = spec.description

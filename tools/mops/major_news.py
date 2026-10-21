@@ -9,14 +9,15 @@ announcement's full text inline; MOPS lists subjects and serves the text per ann
 """
 
 from datetime import timedelta
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, truncate, Page
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from utils.mops import mops_post, to_roc_year
 from utils.date_helper import taipei_today
 
+Market = Literal["", "sii", "otc", "rotc", "pub"]  # "" (every market) or a key of MARKET_LABELS
 MARKET_LABELS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公發"}
 # Each full text costs one MOPS request, so a company page shows at most this many.
 MAX_DETAILED = 10
@@ -127,8 +128,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_major_news(code: str = "", date: str = "", year: str = "", market: str = "",
-                               limit: int = 50, offset: int = 0) -> str:
+    def get_company_major_news(code: str = "", date: str = "", year: str = "", market: Market = "",
+                               limit: Limit = 50, offset: Offset = 0) -> str:
         """查詢重大訊息（公開資訊觀測站），上市、上櫃、興櫃、公發公司皆可。
         指定 code：列出該公司某年度的重大訊息（由新到舊，每則附符合條款、事實發生日與說明全文）。
         不指定 code：列出某一天全市場的重大訊息主旨（預設最近一個有公告的日子）。
@@ -143,8 +144,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳則數上限（預設 50；指定 code 時每頁最多 10 則，因每則全文需另外查詢）
             offset: 跳過前 N 則（預設 0，搭配 limit 分頁）
         """
-        if market and market not in MARKET_LABELS:
-            raise ToolError(f"market 只能是 {', '.join(MARKET_LABELS)}")
         if code.strip():
             return _company(code.strip(), date.strip(), year.strip(), limit, offset)
         return _market(date.strip(), market, limit, offset)

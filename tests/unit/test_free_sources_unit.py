@@ -176,8 +176,6 @@ def test_index_and_day_trading_default_to_latest_day():
     assert "【20260929 證交所指數收盤行情" in tools["get_market_index_info"]()
     assert "20260929 上市個股當日沖銷交易" in tools["get_daily_day_trading_targets"]()
     assert all("date" not in p for p in seen)
-    with pytest.raises(ToolError, match="category 只能是"):
-        tools["get_market_index_info"](category="tech")
 
 
 def test_exright_filters_by_stock():
@@ -340,14 +338,6 @@ def test_tdcc_weekly_trend_unknown_code_and_cached_weeks():
     assert len(fn_site.posts) == posts_after_first, "已查過的週不應重送 POST"
 
 
-def test_tdcc_weeks_validation():
-    fn = _tdcc_fn(_FakeTdccSite(_TDCC_WEEKS))
-    with pytest.raises(ToolError, match="weeks 必須介於 1～13"):
-        fn("2330", weeks=0)
-    with pytest.raises(ToolError, match="weeks 必須介於 1～13"):
-        fn("2330", weeks=14)
-
-
 def test_tdcc_result_rows_ignore_reconciliation_row_and_page_change_raises():
     levels = tdcc.parse_result_rows(_result_page("t", 70.0, 41))
     assert sorted(levels, key=lambda k: (k == "total", int(k) if k != "total" else 0))[-2:] == ["15", "total"]
@@ -374,10 +364,8 @@ def test_business_cycle_newest_first_with_month_limit():
     assert "2026-06" not in text
 
 
-def test_business_cycle_table_validation_and_missing_file():
+def test_business_cycle_missing_file():
     fn = register_module_tools(ndc_indicators, OfflineClient({"icon=.zip": _ndc_zip()}))["get_business_cycle_indicators"]
-    with pytest.raises(ToolError, match="table 只能是"):
-        fn(table="gdp")
     with pytest.raises(ToolError, match="找不到 領先指標構成項目"):
         fn(table="leading")
 

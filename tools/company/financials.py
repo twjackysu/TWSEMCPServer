@@ -4,9 +4,8 @@ tools/mops/financial_statements.py."""
 
 from typing import List, Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, Page
-from toolkit import CompanyToolSpec, create_company_tool, handle_api_errors
+from toolkit import CompanyToolSpec, Offset, bounded, create_company_tool, handle_api_errors
 
 # One summary row is two lines; more than this per reply is past what a model can use.
 MAX_PROFITABILITY_ROWS = 100
@@ -25,16 +24,17 @@ PROFITABILITY_SORT_FIELDS = {
     "稅後純益率(%)": "稅後純益率(%)(稅後純益)/(營業收入)",
 }
 TEXT_SORT_FIELDS = {"公司代號", "公司名稱"}
+# order_by: a short name (a key above) or, as before #106 fixed the docstring, the column name itself.
+ProfitabilitySort = Literal[
+    "公司代號", "公司名稱", "年度", "季別", "營業收入(百萬元)", "毛利率(%)", "營業利益率(%)", "稅前純益率(%)", "稅後純益率(%)",
+    "毛利率(%)(營業毛利)/(營業收入)", "營業利益率(%)(營業利益)/(營業收入)", "稅前純益率(%)(稅前純益)/(營業收入)",
+    "稅後純益率(%)(稅後純益)/(營業收入)",
+]
 
 
 def profitability_sort_field(order_by: str) -> str:
-    """The t187ap17_L column for ``order_by``; an unknown name is an error, never a silent fallback."""
-    order_by = order_by.strip()
-    if order_by in PROFITABILITY_SORT_FIELDS:
-        return PROFITABILITY_SORT_FIELDS[order_by]
-    if order_by in PROFITABILITY_SORT_FIELDS.values():
-        return order_by
-    raise ToolError(f"order_by 必須是 {'、'.join(PROFITABILITY_SORT_FIELDS)} 其中之一，收到：{order_by}")
+    """The t187ap17_L column for ``order_by`` (a ``ProfitabilitySort`` value; the schema rejects others)."""
+    return PROFITABILITY_SORT_FIELDS.get(order_by, order_by)
 
 # Simple tools: fetch_company_data(endpoint, code) → format as properties.
 SIMPLE_FINANCIAL_TOOLS: List[CompanyToolSpec] = [
@@ -62,10 +62,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_company_profitability_analysis_summary(
-        order_by: str = "稅後純益率(%)",
+        order_by: ProfitabilitySort = "稅後純益率(%)",
         order_direction: Literal["asc", "desc"] = "desc",
-        limit: int = 20,
-        offset: int = 0,
+        limit: bounded(1, MAX_PROFITABILITY_ROWS) = 20,
+        offset: Offset = 0,
     ) -> str:
         """查詢上市公司營益分析查詢彙總表(全體公司彙總報表)。
 

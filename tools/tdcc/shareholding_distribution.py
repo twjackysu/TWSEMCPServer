@@ -21,9 +21,8 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import bounded, handle_api_errors
 from utils.deadline import time_budget
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
@@ -247,7 +246,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_shareholding_distribution(code: str, weeks: int = 1) -> str:
+    def get_shareholding_distribution(code: str, weeks: bounded(1, MAX_WEEKS) = 1) -> str:
         """查詢個股「集保戶股權分散表」，觀察籌碼集中度：預設最新一週的完整級距表；
         weeks > 1 時改為逐週趨勢（最多 13 週）：每週的總人數、千張大戶／400張以上／10張以下散戶的
         持股比例與人數，以及較前一週的增減，可看出大戶是在增持還是減持。
@@ -262,6 +261,4 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             weeks: 週數（預設 1＝最新一週的完整 17 級距表；2～13＝逐週趨勢，每多一週多一次查詢，較慢）
         """
         code = code.strip()
-        if weeks < 1 or weeks > MAX_WEEKS:
-            raise ToolError(f"weeks 必須介於 1～{MAX_WEEKS}")
         return _latest_week_table(code) if weeks == 1 else _weekly_trend(code, weeks)

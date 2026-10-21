@@ -10,7 +10,7 @@ from utils import (
     format_list_response,
     DEFAULT_DISPLAY_LIMIT,
 )
-from toolkit import ListToolSpec, create_list_tool, handle_api_errors
+from toolkit import Limit, ListToolSpec, Offset, create_list_tool, handle_api_errors
 
 
 # Simple list tools that follow: fetch → optional name filter → paginate.
@@ -124,7 +124,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_top_20_volume_stocks(name: str = "", limit: int = 20, offset: int = 0) -> str:
+    def get_top_20_volume_stocks(name: str = "", limit: Limit = 20, offset: Offset = 0) -> str:
         """查詢集中市場每日成交量前二十名證券。
 
         Args:
@@ -173,7 +173,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_after_hours_trading(code: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_after_hours_trading(code: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢集中市場盤後定價交易。
 
         Args:
@@ -254,7 +254,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_abnormal_accumulated_notice_stocks(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_abnormal_accumulated_notice_stocks(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢集中市場公布注意累計次數異常資訊。
 
         Args:
@@ -283,7 +283,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_today_notice_stocks(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_today_notice_stocks(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢集中市場當日公布注意股票。
 
         Args:
@@ -322,7 +322,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_daily_securities_lending_volume(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_daily_securities_lending_volume(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市上櫃股票當日可借券賣出股數。
 
         Args:

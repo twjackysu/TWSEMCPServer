@@ -5,12 +5,12 @@ Source: SITCA ETF zone etf_statement2 (utils/sitca.py), every issuer's domestic 
 older months have no 證券代號 (see utils/sitca.py).
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import bounded, handle_api_errors
 from utils.sitca import available_months, query_rows, to_number
 
 STATEMENT_PAGE = "etf_statement.aspx"
@@ -36,6 +36,7 @@ REQUIRED_COLUMNS = (
     COL_NATURAL, COL_LEGAL, COL_HOLDERS, COL_SUBSCRIBE, COL_REDEEM, COL_RI_COUNT, COL_RI_ACCOUNTS, COL_RI_AMOUNT,
 )
 
+SortBy = Literal["scale", "holders", "net_flow", "regular"]  # SORTS
 SORTS = {
     "scale": ("規模", COL_SCALE),
     "holders": ("受益人數", COL_HOLDERS),
@@ -115,8 +116,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_etf_monthly_stats(code: str = "", months: int = 6, period: str = "", sort_by: str = "scale",
-                              limit: int = 30) -> str:
+    def get_etf_monthly_stats(code: str = "", months: bounded(1, MAX_MONTHS) = 6, period: str = "",
+                              sort_by: SortBy = "scale", limit: bounded(1, MAX_LIST) = 30) -> str:
         """查詢 ETF 每月統計（投信投顧公會月報，涵蓋所有投信、上市與上櫃）：基金規模與市占、
         單位淨值、受益權單位數、受益人數（自然人／法人）、當月申購與買回金額、定期定額扣款
         筆數／戶數／金額。資料自 2007 年起，通常於次月中旬公布上月資料。
@@ -140,14 +141,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         code = code.strip().upper()
         if code:
-            if months < 1 or months > MAX_MONTHS:
-                raise ToolError(f"months 必須介於 1～{MAX_MONTHS}")
             return _history(code, all_months, start, months)
 
-        if sort_by not in SORTS:
-            raise ToolError(f"sort_by 必須是 {'、'.join(SORTS)} 其中之一")
-        if limit < 1 or limit > MAX_LIST:
-            raise ToolError(f"limit 必須介於 1～{MAX_LIST}")
         ym = all_months[start]
         rows = records(query_rows(_client, STATEMENT_RESULT, ym))
         if not rows:

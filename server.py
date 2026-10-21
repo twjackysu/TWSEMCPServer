@@ -12,6 +12,7 @@ from prompts.taifex_derivatives_prompt import taifex_derivatives_prompt
 from prompts.institutional_flow_prompt import institutional_flow_prompt
 from prompts.company_fundamental_healthcheck_prompt import company_fundamental_healthcheck_prompt
 from prompts.pre_trade_risk_scan_prompt import pre_trade_risk_scan_prompt
+from toolkit import ArgumentErrorsInChinese
 from tools import register_all_tools
 from utils.api_client import TWSEAPIClient
 
@@ -21,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
 mcp = FastMCP("TWSE Stock Trend Analysis 🚀")
+# FastMCP rejects arguments outside a tool's schema (toolkit/params.py); say why in Chinese.
+mcp.add_middleware(ArgumentErrorsInChinese())
 
 # Initialize API Client
 # This is the root of our Dependency Injection tree

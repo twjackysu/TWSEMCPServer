@@ -213,8 +213,6 @@ def test_dividend_tool_validates_arguments_and_maps_year_type():
     fn = tools["get_company_dividend"]
     assert "依董事會決議年度" in fn("2330", "2023", "2025", year_type="board")
     assert (seen["firstYear"], seen["lastYear"], seen["queryType"]) == ("112", "114", "1")
-    with pytest.raises(ToolError, match="year_type 只能是"):
-        fn("2330", "2023", year_type="x")
     fn("2330")
     this_year = date.today().year - 1911
     assert (seen["firstYear"], seen["lastYear"]) == (str(this_year - 1), str(this_year))
@@ -253,8 +251,6 @@ def test_conference_month_is_zero_padded_and_rows_sorted_by_date():
 def test_conference_argument_validation():
     tools = register_module_tools(investor_conference, OfflineClient({}))
     fn = tools["get_investor_conferences"]
-    with pytest.raises(ToolError, match="market 只能是"):
-        fn("2026", market="nyse")
     with pytest.raises(ToolError, match="month 必須是"):
         fn("2026", "13")
 
@@ -324,8 +320,6 @@ def test_market_news_walks_back_and_filters_market(monkeypatch):
     text = fn(market="otc")
     assert asked == ["30", "29", "28"] and "查詢日 20260928" in text
     assert "上櫃 6488 環球晶 | 主旨 換行" in text and "2330" not in text
-    with pytest.raises(ToolError, match="market 只能是"):
-        fn(market="nyse")
 
 
 # ---------- insiders ----------

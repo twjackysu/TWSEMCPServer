@@ -11,7 +11,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from .history import TPEX_WWW, first_table, to_tpex_date
 
 EX_DAILY_Q_URL = f"{TPEX_WWW}/bulletin/exDailyQ"
@@ -24,7 +24,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_exright(start_date: str = "", end_date: str = "", stock_no: str = "",
-                        limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                        limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃股票除權除息計算結果：預設今天與下一個交易日，也可指定任意過去區間。
         可用於還原權息、計算填權息。上市股票請用 get_exright_results_history。
 

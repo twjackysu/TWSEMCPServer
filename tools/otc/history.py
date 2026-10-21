@@ -12,8 +12,8 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import handle_api_errors
-from utils.institutional import SIDES, SORT_LABELS, check_choice, rank
+from toolkit import Limit, Offset, handle_api_errors
+from utils.institutional import SIDES, SORT_LABELS, Investor, Side, rank
 from sources.tpex.insti_daily import tpex_flows
 
 TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
@@ -100,8 +100,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_institutional(date: str = "", stock_no: str = "", name: str = "", category: str = "",
-                              sort_by: str = "total", side: str = "abs",
-                              limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                              sort_by: Investor = "total", side: Side = "abs",
+                              limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃個股三大法人買賣超（單位：股）：可查單一股票，或做排行（例如上櫃外資買超前 20 名）。
         預設最新交易日，可查任意過去交易日；預設排除權證與牛熊證。
         上市股票請改用 get_twse_institutional_investors_summary（排行）或
@@ -123,9 +123,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
-        if error:
-            raise ToolError(error)
         sect = OTC_SECTS.get(category.strip().lower())
         if sect is None:
             sect = category.strip().upper() if re.fullmatch(r"[0-9A-Za-z]{2}", category.strip()) else None
@@ -161,7 +158,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_margin_balance(date: str = "", stock_no: str = "", name: str = "",
-                               limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                               limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃股票融資融券餘額：預設最新交易日，也可回溯任意過去交易日。
         上市股票請改用 get_margin_balance。
 

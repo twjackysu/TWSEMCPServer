@@ -13,7 +13,7 @@ from utils import (
     format_list_response,
     truncate,
 )
-from toolkit import CompanyToolSpec, ListToolSpec, create_company_tool, create_list_tool, handle_api_errors
+from toolkit import CompanyToolSpec, Limit, ListToolSpec, Offset, create_company_tool, create_list_tool, handle_api_errors
 
 
 def _fmt_ownership_change(i):
@@ -144,7 +144,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_board_insufficient_shares(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_company_board_insufficient_shares(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市公司董事、監察人持股不足法定成數彙總表。
 
         Args:
@@ -177,7 +177,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_independent_directors(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_companies_with_independent_directors(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市公司獨立董監事兼任情形彙總表。
 
         Args:
@@ -218,7 +218,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_csr_reports_103(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_companies_with_csr_reports_103(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢民國103年應編製及申報企業社會責任報告書之公司。
 
         Args:
@@ -270,7 +270,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_shareholder_meeting_announcements(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_company_shareholder_meeting_announcements(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市公司股東會公告-召集股東常(臨時)會公告資料彙總表(95年度起適用)。
 
         Args:
@@ -328,7 +328,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_shareholder_meeting_dates(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_company_shareholder_meeting_dates(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市公司召開股東常(臨時)會日期、地點及採用電子投票情形等資料彙總表。
 
         Args:
@@ -365,7 +365,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_companies_with_business_scope_changes(name: str = "", limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+    def get_companies_with_business_scope_changes(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市公司經營權及營業範圍異(變)動專區-營業範圍重大變更公司。
 
         Args:

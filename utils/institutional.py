@@ -5,13 +5,18 @@ so that both markets take the same sort_by / side / category / period values.
 """
 
 from datetime import datetime, timedelta
-from typing import Callable, Dict, List, Optional, Sequence, TypeVar
+from typing import Callable, List, Literal, Sequence, TypeVar
 
 Row = TypeVar("Row")
 
 SORT_LABELS = {"total": "三大法人合計", "foreign": "外資", "trust": "投信", "dealer": "自營商"}
 SIDES = {"abs": "買賣超絕對值", "buy": "買超", "sell": "賣超"}
 PERIODS = {"day": "日", "week": "週", "month": "月"}
+# The values tools accept (their schema enums); tests/unit/test_literal_params_unit.py keeps each
+# equal to the keys of the mapping above it.
+Investor = Literal["total", "foreign", "trust", "dealer"]  # SORT_LABELS
+Side = Literal["abs", "buy", "sell"]                        # SIDES
+Period = Literal["day", "week", "month"]                    # PERIODS
 
 
 def to_int(value) -> int:
@@ -19,13 +24,6 @@ def to_int(value) -> int:
         return int(str(value).replace(",", "").strip())
     except ValueError:
         return 0
-
-
-def check_choice(name: str, value: str, choices: Dict[str, str]) -> Optional[str]:
-    """Error message when ``value`` is not one of ``choices``, else None."""
-    if value in choices:
-        return None
-    return f"{name} 必須是 {'、'.join(f'{k}（{v}）' for k, v in choices.items())} 其中之一"
 
 
 def rank(rows: Sequence[Row], value: Callable[[Row], int], side: str) -> List[Row]:

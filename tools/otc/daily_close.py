@@ -11,7 +11,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, format_list_response
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
 
 TPEX_DAILY_CLOSE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
@@ -68,7 +68,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_otc_daily(date: str = "", stock_no: str = "", name: str = "",
-                      limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                      limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上櫃（OTC）市場的單日收盤行情：預設最新交易日（含權證等全部證券），也可指定過去日期
         （清單為股票及 ETF；指定權證代號時會自動查詢全部證券）。
         可查單一個股或整個市場的快照。單一上櫃股票整月日K請用 get_otc_stock_history。

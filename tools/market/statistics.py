@@ -6,7 +6,7 @@ from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
 )
-from toolkit import handle_api_errors
+from toolkit import Limit, handle_api_errors
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
@@ -15,7 +15,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_real_time_trading_stats(limit: int = 20) -> str:
+    def get_real_time_trading_stats(limit: Limit = 20) -> str:
         """查詢每5秒委託成交統計。
 
         回傳最新的5秒交易統計，包含累計買賣委託單數、委託量、成交筆數、成交量、成交值。

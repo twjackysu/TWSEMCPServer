@@ -7,18 +7,19 @@ and its two parts, 投信, 自營商合計 and its two parts, 三大法人合計
 exactly; the website endpoint adds past dates, weekly / monthly totals and prod=0.
 """
 
-from typing import Optional
+from typing import Literal, Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
-from utils.institutional import PERIODS, check_choice, yi
+from utils.institutional import PERIODS, Period, yi
 from .history import TPEX_WWW, date_params, first_table, resp_date
 
 INSTI_SUMMARY_URL = f"{TPEX_WWW}/insti/summary"
 TPEX_PERIODS = {"day": "Daily", "week": "Weekly", "month": "Monthly"}
 SCOPES = {"stocks": ("1", "上櫃股票"), "all": ("0", "上櫃有價證券（含 ETF 等）")}
+Scope = Literal["stocks", "all"]  # SCOPES
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -27,7 +28,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_otc_institutional_summary(date: str = "", period: str = "day", scope: str = "stocks") -> str:
+    def get_otc_institutional_summary(date: str = "", period: Period = "day", scope: Scope = "stocks") -> str:
         """查詢上櫃市場「整體」三大法人（外資及陸資、投信、自營商）的買進、賣出與買賣超金額（市場層級總額，
         不是個股）：預設最新交易日，可查任意過去交易日，也可查整週或整月的累計金額。
         上櫃個股的法人買賣超請用 get_otc_institutional；上市市場請用 get_market_institutional_amounts_history。
@@ -40,10 +41,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             period: day（單日，預設）、week（該週合計）、month（該月合計，當月為月初至今）
             scope: stocks（上櫃股票，預設）或 all（上櫃全部有價證券，含 ETF 等）
         """
-        error = check_choice("period", period, PERIODS) or check_choice(
-            "scope", scope, {k: v[1] for k, v in SCOPES.items()})
-        if error:
-            raise ToolError(error)
         params = date_params(date)
         if params is None:
             raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\"")

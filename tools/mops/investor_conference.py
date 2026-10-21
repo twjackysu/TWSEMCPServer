@@ -4,13 +4,14 @@ The new MOPS front end forwards this page to the legacy mopsov site (action type
 which returns an HTML table rather than JSON.
 """
 
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, truncate, Page
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from utils.mops import mops_legacy_post, parse_html_table, to_roc_year
 
+Market = Literal["sii", "otc", "rotc", "pub"]  # MARKETS
 MARKETS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公開發行"}
 
 # Data rows of table#myTable have exactly these 12 cells, in this order:
@@ -39,8 +40,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_investor_conferences(year: str, month: str = "", code: str = "", market: str = "sii",
-                                 limit: int = 30, offset: int = 0) -> str:
+    def get_investor_conferences(year: str, month: str = "", code: str = "", market: Market = "sii",
+                                 limit: Limit = 30, offset: Offset = 0) -> str:
         """查詢法人說明會（法說會）公告：日期、地點、擇要訊息、簡報檔案（公開資訊觀測站）。
         可查某公司整年的法說會，或某月份全市場的法說會行事曆。
 
@@ -54,9 +55,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 30）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        market = market.strip().lower()
-        if market not in MARKETS:
-            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
         roc_year = to_roc_year(year)
         month_value = ""
         if month.strip():

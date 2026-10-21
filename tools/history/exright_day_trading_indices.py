@@ -7,11 +7,10 @@ The day-trading and index tools replace OpenAPI versions (/exchangeReport/TWTB4U
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, InvalidArgument, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
-from toolkit import handle_api_errors
+from toolkit import Limit, Offset, handle_api_errors
 from sources.twse.mi_index import index_quotes
 from sources.twse.twt49u import exright_results
 
@@ -27,6 +26,7 @@ def _is_return(name: str) -> bool:
 
 
 # 指數名稱 → 是否屬於該分類（沿用原 OpenAPI 版 get_market_index_info 的分類規則）
+IndexCategory = Literal["major", "sector", "esg", "leverage", "return", "thematic", "dividend", "all"]  # INDEX_CATEGORIES
 INDEX_CATEGORIES = {
     "major": lambda n: (_any("發行量加權", "寶島", "臺灣50", "中型", "小型", "未含", "公司治理", "高股息")(n)
                         and not _any("類指數", "報酬指數", "兩倍", "反向", "槓桿")(n)),
@@ -47,7 +47,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_exright_results_history(start_date: str, end_date: str, stock_no: str = "",
-                                    limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                    limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票「已除權息」的計算結果歷史：除權息前收盤價、參考價、權值+息值。
         與 get_dividend_rights_schedule（未來除權息預告）不同，這是實際除權息當日的結果，
         可用來還原權息股價、計算填權息。資料自民國 92 年起。
@@ -89,7 +89,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_daily_day_trading_targets(date: str = "", stock_no: str = "", name: str = "",
-                                      limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
+                                      limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票當日沖銷交易標的與統計：預設最新交易日，也可回溯任意過去交易日。
         含全市場當沖占比、每檔可當沖股票的「暫停先賣後買」註記、當沖成交股數與買賣金額。
         證交所於交易日晚間才公布當日量值（T+2 前仍可能修正），盤中查詢當天可能只有標的清單。
@@ -148,7 +148,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_index_info(date: str = "", category: str = "major", keyword: str = "") -> str:
+    def get_market_index_info(date: str = "", category: IndexCategory = "major", keyword: str = "") -> str:
         """查詢證交所指數收盤行情：預設最新交易日，也可回溯任意過去交易日，適合比較類股強弱。
         涵蓋加權指數、類股指數（半導體類、金融保險類…）、主題指數（臺灣50、高股息…）與報酬指數。
 
@@ -168,9 +168,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 - "all": 所有指數
             keyword: 指數名稱關鍵字（選填），例如 "半導體"；與 category 同時套用
         """
-        matcher = INDEX_CATEGORIES.get(category.strip().lower())
-        if matcher is None:
-            raise ToolError(f"category 只能是 {', '.join(INDEX_CATEGORIES)}")
+        matcher = INDEX_CATEGORIES[category]
         board = index_quotes(_client, date.strip())
         label = date or "最新交易日"
         if board is None:

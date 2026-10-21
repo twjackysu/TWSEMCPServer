@@ -6,7 +6,7 @@ listed companies; this covers OTC/emerging/public companies and quarterly divide
 
 import re
 from datetime import date
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
@@ -32,6 +32,7 @@ KEY_COLUMNS = [
 ]
 
 # queryType: 1 = 董事會決議（擬議）分配股利年度, 2 = 股利所屬年度
+YearType = Literal["dividend", "board"]  # YEAR_TYPES
 YEAR_TYPES = {"dividend": "2", "board": "1"}
 
 _TAG_RE = re.compile(r"<[^>]+>")
@@ -65,7 +66,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_company_dividend(code: str, start_year: str = "", end_year: str = "",
-                             year_type: str = "dividend") -> str:
+                             year_type: YearType = "dividend") -> str:
         """查詢公司股利分派（公開資訊觀測站）：預設近兩年，也可回溯多年評估配息穩定性。
         上市、上櫃、興櫃、公開發行公司皆可，季配息公司會列出每一季的股利。
 
@@ -80,9 +81,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 "board"＝依董事會決議年度
         """
         code = code.strip()
-        query_type = YEAR_TYPES.get(year_type.strip().lower())
-        if query_type is None:
-            raise ToolError("year_type 只能是 \"dividend\"（股利所屬年度）或 \"board\"（董事會決議年度）")
+        query_type = YEAR_TYPES[year_type]
         this_year = date.today().year - 1911
         if start_year.strip():
             first = to_roc_year(start_year)
