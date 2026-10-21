@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import inspect
 from typing import get_args
 
 import pydantic
@@ -126,6 +127,33 @@ def test_every_date_parameter_is_a_trading_date():
                 if prop.get("pattern") != expected:
                     wrong.append(f"{tool.name}.{name}: {prop.get('pattern')!r}")
     assert not wrong, wrong
+
+
+def _date_parameters():
+    async def run():
+        found = []
+        for tool in await server.mcp.list_tools():
+            for name, param in inspect.signature(tool.fn).parameters.items():
+                if name in ("date", "start_date", "end_date"):
+                    found.append((tool.name, name, param.annotation, param.default))
+        return found
+    return asyncio.run(run())
+
+
+def test_every_date_parameter_accepts_valid_dates():
+    """改成 TradingDate 之後，每支工具的每個日期參數都仍接受合法的西元日期（含閏日），可留空的也接受留空。"""
+    params = _date_parameters()
+    assert len(params) >= 56
+    rejected = []
+    for tool, name, annotation, default in params:
+        adapter = TypeAdapter(annotation)
+        values = ["20260930", "20240229", "20120502"] + ([""] if default == "" else [])
+        for value in values:
+            try:
+                assert adapter.validate_python(value) == value
+            except (pydantic.ValidationError, AssertionError) as e:
+                rejected.append(f"{tool}.{name}={value!r}: {e}")
+    assert not rejected, rejected
 
 
 @pytest.mark.parametrize("value,ok", [

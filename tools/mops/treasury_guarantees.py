@@ -11,7 +11,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from utils.date_helper import taipei_today
+from utils.date_helper import roc_date, taipei_today
 from utils.mops import mops_legacy_post, parse_html_tables, to_roc_year
 
 Market = Literal["sii", "otc", "rotc", "pub"]  # MARKETS
@@ -21,11 +21,6 @@ BUYBACK_PURPOSES = {"1": "轉讓股份予員工", "2": "股權轉換", "3": "維
 BUYBACK_ROW_WIDTH = 20
 DEFAULT_BUYBACK_DAYS = 90
 NO_DATA_TEXT = "查無資料"
-
-
-def _roc_compact(date: str) -> str:
-    """YYYYMMDD → ROC "YYYMMDD" as t35sc09 takes it."""
-    return f"{int(date[:4]) - 1911:03d}{date[4:]}"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -52,7 +47,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         today = taipei_today()
         start = start_date.strip() or f"{today - timedelta(days=DEFAULT_BUYBACK_DAYS):%Y%m%d}"
         end = end_date.strip() or f"{today:%Y%m%d}"
-        d1, d2 = _roc_compact(start), _roc_compact(end)
+        d1, d2 = roc_date(start, sep=""), roc_date(end, sep="")  # t35sc09 takes 1150901
 
         html = mops_legacy_post(_client, "ajax_t35sc09", {"TYPEK": market, "d1": d1, "d2": d2, "RD": "1"})
         rows = [r for table in parse_html_tables(html) for r in table

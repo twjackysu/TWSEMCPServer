@@ -12,6 +12,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, RequiredTradingDate, TradingDate, handle_api_errors
+from utils.date_helper import slash_date
 from utils.institutional import SIDES, SORT_LABELS, Investor, Side, rank
 from sources.tpex.insti_daily import tpex_flows
 
@@ -24,17 +25,12 @@ MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
 
 def date_params(date: str) -> dict:
     """``{"date": "YYYY/MM/DD"}`` for a YYYYMMDD date, ``{}`` for "" (latest day)."""
-    return {"date": to_tpex_date(date)} if date else {}
+    return {"date": slash_date(date)} if date else {}
 
 
 def resp_date(resp, fallback: str) -> str:
     """The trading date TPEx actually answered for (YYYYMMDD), for the output header."""
     return str(resp.get("date") or fallback or "最新交易日") if isinstance(resp, dict) else fallback
-
-
-def to_tpex_date(date: str) -> str:
-    """"YYYYMMDD" → "YYYY/MM/DD", the format TPEx's website endpoints take."""
-    return f"{date[:4]}/{date[4:6]}/{date[6:]}"
 
 
 def first_table(resp) -> dict:
@@ -69,7 +65,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             code: 上櫃股票代號，例如 "6488"
             date: 該月任一天，格式 YYYYMMDD，例如 "20260801"（會回傳 2026 年 8 月整月）
         """
-        tpex_date = to_tpex_date(date)
+        tpex_date = slash_date(date)
         resp = _client.fetch_json(
             TRADING_STOCK_URL, params={"code": code.strip(), "date": tpex_date, "response": "json"}
         )

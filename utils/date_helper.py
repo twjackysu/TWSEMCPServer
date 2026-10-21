@@ -16,6 +16,29 @@ def taipei_today() -> datetime:
     return datetime(now.year, now.month, now.day)
 
 
+# Tools take every date as a Gregorian (西元) YYYYMMDD string (toolkit.TradingDate validates it);
+# these turn such a string into what an upstream wants. Keep each upstream's exact form here, so a
+# request never changes because a tool started converting dates another way.
+
+def roc_year_of(ymd: str) -> int:
+    """'20260930' → 115."""
+    return int(ymd[:4]) - 1911
+
+
+def roc_date(ymd: str, sep: str = "/") -> str:
+    """'20260930' → '115/09/30' (sep "/", how MOPS prints 發言日期) or '1150930' (sep "", what MOPS
+    t35sc09 and the TWSE news list use). The compact form pads the year to three digits ('0991231'),
+    as those endpoints do; the separated form does not ('99/12/31')."""
+    if not sep:
+        return f"{roc_year_of(ymd):03d}{ymd[4:]}"
+    return f"{roc_year_of(ymd)}{sep}{ymd[4:6]}{sep}{ymd[6:]}"
+
+
+def slash_date(ymd: str) -> str:
+    """'20260930' → '2026/09/30', the form TPEx's website endpoints take."""
+    return f"{ymd[:4]}/{ymd[4:6]}/{ymd[6:]}"
+
+
 def parse_roc_date(text: str) -> Optional[date]:
     """'115/09/01' or '115年09月01日' → date(2026, 9, 1); None when it is not such a date."""
     parts = str(text).replace("年", "/").replace("月", "/").replace("日", "").strip().split("/")

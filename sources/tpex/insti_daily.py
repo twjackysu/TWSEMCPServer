@@ -14,6 +14,7 @@ a reordering fails there instead of showing one group's numbers under another's 
 from typing import Optional
 
 from utils.api_client import TWSEAPIClient
+from utils.date_helper import slash_date
 from utils.errors import UpstreamFormatError
 
 from ..caching import day_cache_ttl
@@ -29,7 +30,7 @@ def tpex_flows(client: TWSEAPIClient, sect: str = "EW", date: str = "") -> Optio
     """Every OTC security's 三大法人 flows on ``date`` (YYYYMMDD; "" = latest day); None when TPEx has none."""
     params = {"type": "Daily", "sect": sect, "response": "json"}
     if date:
-        params["date"] = f"{date[:4]}/{date[4:6]}/{date[6:]}"
+        params["date"] = slash_date(date)
     resp = client.fetch_json(INSTI_DAILY_URL, params=params, cache_ttl=day_cache_ttl(date))
     tables = resp.get("tables") if isinstance(resp, dict) else None
     if not isinstance(tables, list):

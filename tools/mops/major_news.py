@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 from utils import TWSEAPIClient, truncate, Page
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from utils.mops import mops_post, to_roc_year
-from utils.date_helper import taipei_today
+from utils.date_helper import roc_date, roc_year_of, taipei_today
 
 Market = Literal["", "sii", "otc", "rotc", "pub"]  # "" (every market) or a key of MARKET_LABELS
 MARKET_LABELS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公發"}
@@ -27,11 +27,6 @@ MAX_TEXT_CHARS = 1500
 def _one_line(text) -> str:
     """Subjects often contain line breaks; keep each announcement on one line."""
     return " ".join(str(text).split())
-
-
-def _roc_day(date: str) -> str:
-    """YYYYMMDD → ROC "YYY/MM/DD" as MOPS prints 發言日期."""
-    return f"{int(date[:4]) - 1911}/{date[4:6]}/{date[6:]}"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -53,8 +48,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         )
 
     def _company(code: str, date: str, year: str, limit: int, offset: int) -> str:
-        roc_day = _roc_day(date) if date else None
-        roc_year = to_roc_year(year) if year else (int(roc_day[:3]) if roc_day else taipei_today().year - 1911)
+        roc_day = roc_date(date) if date else None  # as MOPS prints 發言日期: 115/09/10
+        roc_year = to_roc_year(year) if year else (roc_year_of(date) if date else taipei_today().year - 1911)
         result = mops_post(_client, "t05st01", {
             "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
         })
@@ -93,7 +88,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         rows, served = [], ""
         for day in days:
-            result = mops_post(_client, "t05st02", {"year": str(int(day[:4]) - 1911), "month": day[4:6], "day": day[6:]})
+            result = mops_post(_client, "t05st02", {"year": str(roc_year_of(day)), "month": day[4:6], "day": day[6:]})
             rows = (result or {}).get("data") or []
             if rows:
                 served = day

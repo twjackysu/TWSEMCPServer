@@ -11,7 +11,8 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from .history import TPEX_WWW, first_table, to_tpex_date
+from utils.date_helper import slash_date
+from .history import TPEX_WWW, first_table
 
 EX_DAILY_Q_URL = f"{TPEX_WWW}/bulletin/exDailyQ"
 
@@ -39,8 +40,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         params = {"response": "json"}
         if start_date or end_date:
-            start = to_tpex_date(start_date or end_date)
-            end = to_tpex_date(end_date or start_date)
+            start = slash_date(start_date or end_date)
+            end = slash_date(end_date or start_date)
             params.update(startDate=start, endDate=end)
         resp = _client.fetch_json(EX_DAILY_Q_URL, params=params)
         served = str((resp or {}).get("date", "")).replace("~", "～")
