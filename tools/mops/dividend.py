@@ -8,6 +8,7 @@ import re
 from datetime import date
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.mops import mops_post, leaf_titles, to_roc_year
 
@@ -80,7 +81,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         code = code.strip()
         query_type = YEAR_TYPES.get(year_type.strip().lower())
         if query_type is None:
-            return "year_type 只能是 \"dividend\"（股利所屬年度）或 \"board\"（董事會決議年度）"
+            raise ToolError("year_type 只能是 \"dividend\"（股利所屬年度）或 \"board\"（董事會決議年度）")
         this_year = date.today().year - 1911
         if start_year.strip():
             first = to_roc_year(start_year)
@@ -89,9 +90,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             # 預設涵蓋最近一次決議：今年與去年（股利所屬年度常落後決議一年）
             first, last = this_year - 1, (to_roc_year(end_year) if end_year.strip() else this_year)
         if first > last:
-            return "起始年度不可晚於結束年度"
+            raise ToolError("起始年度不可晚於結束年度")
         if last - first + 1 > MAX_YEARS:
-            return f"查詢區間最多 {MAX_YEARS} 年，請縮小範圍"
+            raise ToolError(f"查詢區間最多 {MAX_YEARS} 年，請縮小範圍")
 
         result = mops_post(_client, "t05st09_2", {
             "companyId": code,

@@ -8,6 +8,7 @@ ALLBUT0999 excludes those (~1,300 rows), 0099P is ETFs only, and a two-digit ind
 import re
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
 from utils.institutional import SIDES, SORT_LABELS, check_choice, rank
 
@@ -106,10 +107,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
         if error:
-            return error
+            raise ToolError(error)
         category_type = select_type(category)
         if category_type is None:
-            return "category 必須留空，或是 stock、etf、all、產業代碼（例如 24）"
+            raise ToolError("category 必須留空，或是 stock、etf、all、產業代碼（例如 24）")
         resp = _client.fetch_json(T86_URL, params=_params(date, category_type))
 
         label = date.strip() or "最新交易日"

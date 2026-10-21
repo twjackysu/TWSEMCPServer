@@ -8,6 +8,7 @@ ids, read with parse_html_tables.
 from datetime import timedelta
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
 from utils.date_helper import taipei_today
 from utils.mops import mops_legacy_post, parse_html_tables, to_roc_year
@@ -50,13 +51,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         market = market.strip().lower()
         if market not in MARKETS:
-            return f"market 只能是 {', '.join(MARKETS)}"
+            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
         today = taipei_today()
         start = start_date.strip() or f"{today - timedelta(days=DEFAULT_BUYBACK_DAYS):%Y%m%d}"
         end = end_date.strip() or f"{today:%Y%m%d}"
         d1, d2 = _roc_compact(start), _roc_compact(end)
         if not d1 or not d2:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260101\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260101\"")
 
         html = mops_legacy_post(_client, "ajax_t35sc09", {"TYPEK": market, "d1": d1, "d2": d2, "RD": "1"})
         rows = [r for table in parse_html_tables(html) for r in table
@@ -101,11 +102,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             month: 月份 1～12（選填）
         """
         if bool(year.strip()) != bool(month.strip()):
-            return "請同時指定 year 與 month，或兩者都留空查詢最新月份"
+            raise ToolError("請同時指定 year 與 month，或兩者都留空查詢最新月份")
         if year.strip():
             m = int(month)
             if not 1 <= m <= 12:
-                return "month 必須是 1～12"
+                raise ToolError("month 必須是 1～12")
             form = {"co_id": code.strip(), "isnew": "false", "year": str(to_roc_year(year)), "month": f"{m:02d}"}
         else:
             form = {"co_id": code.strip(), "isnew": "true", "year": "", "month": ""}

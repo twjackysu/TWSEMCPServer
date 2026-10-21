@@ -10,6 +10,7 @@ exactly; the website endpoint adds past dates, weekly / monthly totals and prod=
 from typing import Optional
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.institutional import PERIODS, check_choice, yi
 from .history import TPEX_WWW, date_params, first_table, resp_date
@@ -41,10 +42,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         error = check_choice("period", period, PERIODS) or check_choice(
             "scope", scope, {k: v[1] for k, v in SCOPES.items()})
         if error:
-            return error
+            raise ToolError(error)
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20261016\"")
         prod, scope_label = SCOPES[scope]
         resp = _client.fetch_json(
             INSTI_SUMMARY_URL,

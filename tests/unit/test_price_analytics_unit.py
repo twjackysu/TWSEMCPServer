@@ -6,6 +6,7 @@
 from datetime import date
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -105,7 +106,8 @@ def test_exright_events_for_both_markets():
 ])
 def test_month_argument_validation(start, end, message):
     fn = register_module_tools(price_tools, OfflineClient({}))["get_adjusted_price_history"]
-    assert message in fn("2330", start, end)
+    with pytest.raises(ToolError, match=message):
+        fn("2330", start, end)
 
 
 def test_indicators_need_enough_history(monkeypatch):

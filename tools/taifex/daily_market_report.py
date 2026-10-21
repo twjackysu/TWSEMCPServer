@@ -11,6 +11,7 @@ which is how available contract codes are listed.
 from collections import defaultdict
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, cap_rows
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
@@ -71,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def _list_contracts(url: str, kind: str, start_date: str, end_date: str) -> str:
         parsed, label, error = fetch_period(_download(url, ALL_CONTRACTS), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
         if error:
-            return error
+            raise ToolError(error)
         if parsed is None:
             return f"查無 {label} 的{kind}行情資料"
         contracts = sorted({r[1].strip() for r in parsed[1]})
@@ -109,7 +110,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         for code in contracts:
             parsed, label, error = fetch_period(_download(FUT_DATA_DOWN_URL, code), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
             if error:
-                return error
+                raise ToolError(error)
             if parsed is not None:
                 all_rows.extend(parsed[1])
         if not all_rows:
@@ -159,7 +160,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         parsed, label, error = fetch_period(_download(OPT_DATA_DOWN_URL, contract), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
         if error:
-            return error
+            raise ToolError(error)
         if parsed is None:
             return f"查無契約 {contract} 在 {label} 的選擇權行情資料，請確認契約代碼（留空 contract 可列出可用代碼）"
 

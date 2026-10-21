@@ -15,6 +15,7 @@ and cash). Daily full portfolios (PCF) exist only on each issuer's website and a
 from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.sitca import (
     HOLDINGS_MONTHLY_PAGE,
@@ -85,13 +86,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         code = code.strip().upper()
         if not code:
-            return "請提供 ETF 代號，例如 0050"
+            raise ToolError("請提供 ETF 代號，例如 0050")
         page = HOLDINGS_QUARTERLY_PAGE if quarterly else HOLDINGS_MONTHLY_PAGE
         months = holdings_months(_client, page)
         period = period.strip()
         if period and period not in months:
             kind = "季末月" if quarterly else "月份"
-            return f"period 必須是{kind} YYYYMM，可查 {months[-1]}～{months[0]}"
+            raise ToolError(f"period 必須是{kind} YYYYMM，可查 {months[-1]}～{months[0]}")
         ym = period or months[0]
 
         # The ETF zone gives the fund name and SITCA class the holdings pages are keyed by.

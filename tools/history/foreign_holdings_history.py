@@ -7,6 +7,7 @@ ratios, limits and share counts, and it could neither pick a date nor look up on
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, format_list_response
 
 MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
@@ -47,7 +48,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
         if sort_by not in SORT_OPTIONS:
-            return f"sort_by 只能是 {', '.join(SORT_OPTIONS)}"
+            raise ToolError(f"sort_by 只能是 {', '.join(SORT_OPTIONS)}")
         params = {"response": "json", "selectType": "ALLBUT0999"}
         if date:
             params["date"] = date

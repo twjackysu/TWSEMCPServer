@@ -2,6 +2,7 @@
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.taifex import TAIFEX_HEADERS
 
@@ -67,7 +68,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             market: futures（期貨，預設）或 options（選擇權）
         """
         if market not in _MONTHLY_STATS_URLS:
-            return f"market 必須是 {'、'.join(_MONTHLY_STATS_URLS)} 其中之一"
+            raise ToolError(f"market 必須是 {'、'.join(_MONTHLY_STATS_URLS)} 其中之一")
         kind, url = _MONTHLY_STATS_URLS[market]
         data = _client.fetch_json(url, headers=TAIFEX_HEADERS)
 

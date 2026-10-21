@@ -101,8 +101,10 @@ def test_statement_tool_sends_roc_year_and_rejects_bad_season():
     fn = tools["get_company_cash_flow_statement"]
     assert "營業收入合計" in fn("2330", "2025", 4)
     assert (seen["year"], seen["season"], seen["dataType"]) == ("114", "4", "2")
-    assert "請同時指定 year 與 season" in fn("2330", "2025", 5)
-    assert "請同時指定 year 與 season" in fn("2330", "2025")
+    with pytest.raises(ToolError, match="請同時指定 year 與 season"):
+        fn("2330", "2025", 5)
+    with pytest.raises(ToolError, match="請同時指定 year 與 season"):
+        fn("2330", "2025")
 
 
 def test_statement_tool_defaults_to_latest_quarter():
@@ -211,12 +213,15 @@ def test_dividend_tool_validates_arguments_and_maps_year_type():
     fn = tools["get_company_dividend"]
     assert "依董事會決議年度" in fn("2330", "2023", "2025", year_type="board")
     assert (seen["firstYear"], seen["lastYear"], seen["queryType"]) == ("112", "114", "1")
-    assert "year_type 只能是" in fn("2330", "2023", year_type="x")
+    with pytest.raises(ToolError, match="year_type 只能是"):
+        fn("2330", "2023", year_type="x")
     fn("2330")
     this_year = date.today().year - 1911
     assert (seen["firstYear"], seen["lastYear"]) == (str(this_year - 1), str(this_year))
-    assert "不可晚於" in fn("2330", "2025", "2023")
-    assert "最多 10 年" in fn("2330", "2010", "2025")
+    with pytest.raises(ToolError, match="不可晚於"):
+        fn("2330", "2025", "2023")
+    with pytest.raises(ToolError, match="最多 10 年"):
+        fn("2330", "2010", "2025")
 
 
 # ---------- investor conferences ----------
@@ -248,8 +253,10 @@ def test_conference_month_is_zero_padded_and_rows_sorted_by_date():
 def test_conference_argument_validation():
     tools = register_module_tools(investor_conference, OfflineClient({}))
     fn = tools["get_investor_conferences"]
-    assert "market 只能是" in fn("2026", market="nyse")
-    assert "month 必須是" in fn("2026", "13")
+    with pytest.raises(ToolError, match="market 只能是"):
+        fn("2026", market="nyse")
+    with pytest.raises(ToolError, match="month 必須是"):
+        fn("2026", "13")
 
 
 def test_conference_unexpected_page_is_an_error_not_no_data():
@@ -317,7 +324,8 @@ def test_market_news_walks_back_and_filters_market(monkeypatch):
     text = fn(market="otc")
     assert asked == ["30", "29", "28"] and "查詢日 20260928" in text
     assert "上櫃 6488 環球晶 | 主旨 換行" in text and "2330" not in text
-    assert "market 只能是" in fn(market="nyse")
+    with pytest.raises(ToolError, match="market 只能是"):
+        fn(market="nyse")
 
 
 # ---------- insiders ----------
@@ -360,7 +368,8 @@ def test_buybacks_decode_purpose_and_filter_code():
         "get_treasury_stock_buybacks"]
     text = fn("20260901", "20260930", code="1437")
     assert "共有 1 筆" in text and "目的:轉讓股份予員工" in text and "是否執行完畢:Y" in text
-    assert "日期格式錯誤" in fn("2026-09-01")
+    with pytest.raises(ToolError, match="日期格式錯誤"):
+        fn("2026-09-01")
 
 
 def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():
@@ -371,4 +380,5 @@ def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():
     with pytest.raises(ToolError, match="^查詢失敗"):
         fn("1")
     assert "查無 2" in fn("2")
-    assert "同時指定" in fn("2", year="2026")
+    with pytest.raises(ToolError, match="同時指定"):
+        fn("2", year="2026")

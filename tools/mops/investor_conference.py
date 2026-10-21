@@ -6,6 +6,7 @@ which returns an HTML table rather than JSON.
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, truncate, MSG_OFFSET_OUT_OF_RANGE
 from utils.mops import mops_legacy_post, parse_html_table, to_roc_year
 
@@ -54,13 +55,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         market = market.strip().lower()
         if market not in MARKETS:
-            return f"market 只能是 {', '.join(MARKETS)}"
+            raise ToolError(f"market 只能是 {', '.join(MARKETS)}")
         roc_year = to_roc_year(year)
         month_value = ""
         if month.strip():
             m = int(month)
             if not 1 <= m <= 12:
-                return "month 必須是 1～12"
+                raise ToolError("month 必須是 1～12")
             # 舊站只認補零的月份：month=9 回「查無資料」，month=09 才有資料
             month_value = f"{m:02d}"
 

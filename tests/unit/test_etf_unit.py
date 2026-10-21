@@ -94,8 +94,10 @@ def test_daily_nav_code_lookup_and_rankings():
     assert fn(sort_by="discount").splitlines()[2].startswith("1. 00679B")
     assert fn(sort_by="redemption").splitlines()[2].startswith("1. 00679B")
     assert fn(sort_by="scale", limit=1).count("\n1. ") == 1 and "2. " not in fn(sort_by="scale", limit=1)
-    assert "sort_by 必須是" in fn(sort_by="volume")
-    assert "limit 必須介於" in fn(limit=0)
+    with pytest.raises(ToolError, match="sort_by 必須是"):
+        fn(sort_by="volume")
+    with pytest.raises(ToolError, match="limit 必須介於"):
+        fn(limit=0)
     assert "查無 ETF 代號 ZZZ" in fn(code="ZZZ")
 
 
@@ -216,8 +218,10 @@ def test_monthly_stats_period_and_validation():
     fn = register_module_tools(monthly_stats, OfflineClient(_stats_routes(seen)))["get_etf_monthly_stats"]
     text = fn(code="0050", months=1, period="202607")
     assert "2026-07 | 規模 2,000.0 億" in text and "2026-08" not in text
-    assert "period 必須是 YYYYMM 且介於 202605～202608" in fn(code="0050", period="202001")
-    assert "months 必須介於 1～24" in fn(code="0050", months=25)
+    with pytest.raises(ToolError, match="period 必須是 YYYYMM 且介於 202605～202608"):
+        fn(code="0050", period="202001")
+    with pytest.raises(ToolError, match="months 必須介於 1～24"):
+        fn(code="0050", months=25)
     assert "查無 ETF 代號 9999" in fn(code="9999")
 
 
@@ -227,7 +231,8 @@ def test_monthly_stats_ranking_and_column_guard():
     assert lines[0] == "【ETF 淨申購金額排行】2026-08（共 2 檔，列出前 2 檔）"
     assert lines[2].startswith("1. 00878 簡稱00878 | 規模 1,000.0 億")
     assert fn(sort_by="scale").splitlines()[2].startswith("1. 0050")
-    assert "sort_by 必須是" in fn(sort_by="nav")
+    with pytest.raises(ToolError, match="sort_by 必須是"):
+        fn(sort_by="nav")
     with pytest.raises(ValueError, match="欄位已變更"):
         monthly_stats.records([["序號", "證券代號"], ["1", "0050"]])
 
@@ -362,9 +367,11 @@ def test_etf_holdings_quarterly_ranks_by_weight_and_messages():
     assert lines[3].startswith("1. 台積電") and lines[4].startswith("2. 聯發科")
 
     assert "基金投資明細中沒有 0050" in fn("0050")  # 該月明細裡沒有這檔（如反向型）
-    assert "period 必須是季末月 YYYYMM，可查 202606～202606" in fn("0050", period="202605", quarterly=True)
+    with pytest.raises(ToolError, match="period 必須是季末月 YYYYMM，可查 202606～202606"):
+        fn("0050", period="202605", quarterly=True)
     assert "查無 ETF 代號 9999" in fn("9999")
-    assert "請提供 ETF 代號" in fn(" ")
+    with pytest.raises(ToolError, match="請提供 ETF 代號"):
+        fn(" ")
 
 
 def test_etf_holdings_column_guard():

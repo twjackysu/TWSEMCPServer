@@ -53,8 +53,10 @@ def test_otc_history_sends_slash_date_and_rejects_bad_dates():
     text = tools["get_otc_stock_history"]("6488", "20260801")
     assert seen["date"] == "2026/08/01"
     assert "開:870.00 高:930.00 低:843.00 收:866.00" in text
-    assert "日期格式錯誤" in tools["get_otc_stock_history"]("6488", "2026-08-01")
-    assert "日期格式錯誤" in tools["get_otc_margin_balance"]("20261301")
+    with pytest.raises(ToolError, match="日期格式錯誤"):
+        tools["get_otc_stock_history"]("6488", "2026-08-01")
+    with pytest.raises(ToolError, match="日期格式錯誤"):
+        tools["get_otc_margin_balance"]("20261301")
 
 
 def test_otc_defaults_to_latest_day_and_reports_its_date():
@@ -168,7 +170,8 @@ def test_index_and_day_trading_default_to_latest_day():
     assert "【20260929 證交所指數收盤行情" in tools["get_market_index_info"]()
     assert "20260929 上市個股當日沖銷交易" in tools["get_daily_day_trading_targets"]()
     assert all("date" not in p for p in seen)
-    assert "category 只能是" in tools["get_market_index_info"](category="tech")
+    with pytest.raises(ToolError, match="category 只能是"):
+        tools["get_market_index_info"](category="tech")
 
 
 def test_exright_filters_by_stock():
@@ -303,8 +306,10 @@ def test_tdcc_weekly_trend_unknown_code_and_cached_weeks():
 
 def test_tdcc_weeks_validation():
     fn = _tdcc_fn(_FakeTdccSite(_TDCC_WEEKS))
-    assert "weeks 必須介於 1～13" in fn("2330", weeks=0)
-    assert "weeks 必須介於 1～13" in fn("2330", weeks=14)
+    with pytest.raises(ToolError, match="weeks 必須介於 1～13"):
+        fn("2330", weeks=0)
+    with pytest.raises(ToolError, match="weeks 必須介於 1～13"):
+        fn("2330", weeks=14)
 
 
 def test_tdcc_result_rows_ignore_reconciliation_row_and_page_change_raises():
@@ -335,7 +340,8 @@ def test_business_cycle_newest_first_with_month_limit():
 
 def test_business_cycle_table_validation_and_missing_file():
     fn = register_module_tools(ndc_indicators, OfflineClient({"icon=.zip": _ndc_zip()}))["get_business_cycle_indicators"]
-    assert "table 只能是" in fn(table="gdp")
+    with pytest.raises(ToolError, match="table 只能是"):
+        fn(table="gdp")
     with pytest.raises(ToolError, match="找不到 領先指標構成項目"):
         fn(table="leading")
 
@@ -416,4 +422,5 @@ def test_otc_valuation_shows_dividend_year_and_fiscal_quarter():
     rows = [["6488", "環球晶          ", "45.87", "7.7", 114, "0.81", "4.67", "115Q2"]]
     fn = register_module_tools(otc_valuation_holdings, OfflineClient({"/afterTrading/peQryDate": {"date": "20260929", "tables": [{"data": rows}]}}))["get_otc_valuation"]
     assert "6488 環球晶 | 本益比: 45.87 | 殖利率: 0.81%（每股股利 7.7，股利年度 114）| 股價淨值比: 4.67（財報 115Q2）" in fn()
-    assert "日期格式錯誤" in fn("2026-09-29")
+    with pytest.raises(ToolError, match="日期格式錯誤"):
+        fn("2026-09-29")

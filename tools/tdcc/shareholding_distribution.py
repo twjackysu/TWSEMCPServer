@@ -21,6 +21,7 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
@@ -245,5 +246,5 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         code = code.strip()
         if weeks < 1 or weeks > MAX_WEEKS:
-            return f"weeks 必須介於 1～{MAX_WEEKS}"
+            raise ToolError(f"weeks 必須介於 1～{MAX_WEEKS}")
         return _latest_week_table(code) if weeks == 1 else _weekly_trend(code, weeks)

@@ -8,6 +8,7 @@ older months have no 證券代號 (see utils/sitca.py).
 from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors
 from utils.sitca import available_months, query_rows, to_number
 
@@ -133,19 +134,19 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         all_months = available_months(_client, STATEMENT_PAGE)
         period = period.strip()
         if period and period not in all_months:
-            return f"period 必須是 YYYYMM 且介於 {all_months[-1]}～{all_months[0]}"
+            raise ToolError(f"period 必須是 YYYYMM 且介於 {all_months[-1]}～{all_months[0]}")
         start = all_months.index(period) if period else 0
 
         code = code.strip().upper()
         if code:
             if months < 1 or months > MAX_MONTHS:
-                return f"months 必須介於 1～{MAX_MONTHS}"
+                raise ToolError(f"months 必須介於 1～{MAX_MONTHS}")
             return _history(code, all_months, start, months)
 
         if sort_by not in SORTS:
-            return f"sort_by 必須是 {'、'.join(SORTS)} 其中之一"
+            raise ToolError(f"sort_by 必須是 {'、'.join(SORTS)} 其中之一")
         if limit < 1 or limit > MAX_LIST:
-            return f"limit 必須介於 1～{MAX_LIST}"
+            raise ToolError(f"limit 必須介於 1～{MAX_LIST}")
         ym = all_months[start]
         rows = records(query_rows(_client, STATEMENT_RESULT, ym))
         if not rows:

@@ -10,6 +10,7 @@ openapi counterpart among our tools; it mirrors get_foreign_holdings for listed 
 
 from typing import Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, handle_api_errors, format_list_response, DEFAULT_DISPLAY_LIMIT
 from .history import TPEX_WWW, date_params, first_table, resp_date
 
@@ -47,7 +48,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         resp = _client.fetch_json(PE_QRY_DATE_URL, params={**params, "response": "json"})
         rows = first_table(resp).get("data") or []
         if not rows:
@@ -81,7 +82,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         params = date_params(date)
         if params is None:
-            return "日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\""
+            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         resp = _client.fetch_json(QFII_URL, params={**params, "response": "json"})
         rows = first_table(resp).get("data") or []
         if not rows:
