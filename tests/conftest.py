@@ -3,6 +3,8 @@
 import pytest
 import logging
 import time
+from urllib.parse import urlsplit
+
 import requests
 from utils.config import TestConfig, APIConfig
 
@@ -37,16 +39,23 @@ def pytest_configure(config):
     )
 
 
+LOCAL_HOSTS = ("127.0.0.1", "localhost")
+
+
 @pytest.fixture(autouse=True)
 def block_network_in_offline_tests(request, monkeypatch):
-    """offline 測試一碰到真實 HTTP 就失敗，而不是悄悄連上外部 API."""
+    """offline 測試一碰到外部 HTTP 就失敗，而不是悄悄連上外部 API；本機測試伺服器（127.0.0.1）可以."""
     if not request.node.get_closest_marker("offline"):
         return
 
-    def _refuse(self, method, url, *args, **kwargs):
+    send = requests.Session.request
+
+    def _local_only(self, method, url, *args, **kwargs):
+        if urlsplit(url).hostname in LOCAL_HOSTS:
+            return send(self, method, url, *args, **kwargs)
         raise AssertionError(f"offline 測試不得發出真實 HTTP 請求: {method} {url}")
 
-    monkeypatch.setattr(requests.Session, "request", _refuse)
+    monkeypatch.setattr(requests.Session, "request", _local_only)
 
 
 @pytest.fixture(autouse=True)

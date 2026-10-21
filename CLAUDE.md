@@ -123,7 +123,7 @@ All configuration in `utils/config.py` reads from environment variables with sen
 - `TWSE_API_BASE_URL` (default: `https://openapi.twse.com.tw/v1`)
 - `TWSE_REQUEST_INTERVAL` (default: `0.5` seconds)
 - `TWSE_API_TIMEOUT` (default: `30.0` seconds)
-- `TWSE_VERIFY_SSL` (default: `false` — required for TWSE API compatibility)
+- `TWSE_VERIFY_SSL` (default: `true`) — TLS verification for every upstream. All hosts verify (checked 2026-10-21, Python 3.13); `cpx.cbc.gov.tw` fails only Python 3.13's `VERIFY_X509_STRICT`, so `utils/http_transport.py` verifies it without that flag. `false` turns verification off everywhere (escape hatch for a TLS-intercepting proxy)
 - `TWSE_CACHE_TTL` (default: `60` seconds — in-memory cache for `fetch_data` OpenAPI list responses; `0` disables every cache, including the one below)
 - `TWSE_RESPONSE_CACHE_MAX_ENTRIES` (default: `256`) — bound on the per-call response cache that `fetch_json` / `fetch_bytes` use when a tool passes `cache_ttl=` (TAIFEX download pages 300s, MOPS 600s, TDCC/CBC 1h, NDC 6h). It stores raw bytes, so callers can't mutate each other's data; only successful responses are cached
 - `DISPLAY_LIMIT` (default: `50`)

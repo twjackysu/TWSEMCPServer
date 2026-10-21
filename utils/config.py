@@ -34,10 +34,12 @@ class APIConfig:
         '30.0'
     ))
     
-    # SSL verification (set to False for TWSE API due to certificate issues)
+    # TLS certificate verification for every upstream (on by default; every host verifies,
+    # see utils/http_transport.py). Setting it to false turns verification off everywhere — an
+    # escape hatch for e.g. a TLS-intercepting corporate proxy, not something any upstream needs.
     VERIFY_SSL: Final[bool] = os.getenv(
         'TWSE_VERIFY_SSL',
-        'false'
+        'true'
     ).lower() in ('true', '1', 'yes')
 
     # TTL (seconds) for the in-memory OpenAPI list-response cache in TWSEAPIClient.fetch_data.
