@@ -76,7 +76,7 @@ def test_latest_day_walk_back_stops_at_its_budget(clock):
         return None
 
     with pytest.raises(DeadlineExceeded, match="超過 60 秒仍未完成（已送出 3 個請求）；可改指定日期"):
-        taifex.fetch_period(fetch, "", "", 31, "20260101")
+        taifex.fetch_period(fetch, "", "", 31)
     assert len(calls) == 3 < taifex.LATEST_LOOKBACK_DAYS
 
 
@@ -85,7 +85,7 @@ def test_a_period_query_has_no_walk_back_budget(clock):
         assert deadline._current.get() is None
         return ["h"], [["r"]]
 
-    assert taifex.fetch_period(fetch, "20261001", "20261002", 31, "20260101")[0] == (["h"], [["r"]])
+    assert taifex.fetch_period(fetch, "20261001", "20261002", 31)[0] == (["h"], [["r"]])
 
 
 # ---------- 與 TWSEAPIClient 的整合（127.0.0.1） ----------
@@ -157,5 +157,5 @@ def test_budget_error_reaches_the_client_as_query_failed(monkeypatch):
 
 def test_walk_back_label_is_unchanged_when_data_is_found(clock):
     today = taifex.taipei_today()
-    parsed, label, error = taifex.fetch_period(lambda s, e: (["h"], [["r"]]), "", "", 31, "20260101")
+    parsed, label, error = taifex.fetch_period(lambda s, e: (["h"], [["r"]]), "", "", 31)
     assert (label, error) == (f"{today:%Y%m%d}（最新交易日）", None) and isinstance(today, datetime)

@@ -47,27 +47,15 @@ def parse_date_range(
     start_date: str,
     end_date: str,
     max_span_days: int,
-    example: str,
 ) -> Tuple[Optional[datetime], Optional[datetime], Optional[str]]:
-    """Parse and validate the YYYYMMDD start/end pair every download tool takes.
+    """Check the start/end pair every download tool takes, as one range.
 
-    All of these tools reject a range on the same three grounds (unparseable date,
-    reversed order, span over the client-side cap), so the checks live here instead of
-    once per module. Returns (start_dt, end_dt, None) when the range is usable, or
-    (None, None, message) carrying the Chinese message the tool should return verbatim.
-
-    ``example`` is echoed in the format-error message so it matches the calling tool's
-    own docstring example.
+    Each date's format is checked before the tool runs (``toolkit.TradingDate``); what is
+    left are the rules across the two, the same for every tool: start not after end, and
+    a span within the tool's cap. Returns (start_dt, end_dt, None) when the range is usable,
+    or (None, None, message) carrying the Chinese message the tool should raise.
     """
-    try:
-        start_dt = parse_yyyymmdd(start_date)
-        end_dt = parse_yyyymmdd(end_date)
-    except ValueError:
-        return None, None, (
-            f"日期格式錯誤，請使用 YYYYMMDD 格式（例如 {example}），"
-            f"收到：start_date={start_date}, end_date={end_date}"
-        )
-
+    start_dt, end_dt = parse_yyyymmdd(start_date), parse_yyyymmdd(end_date)
     if start_dt > end_dt:
         return None, None, f"起始日期 {start_date} 不可晚於結束日期 {end_date}"
 
@@ -117,7 +105,6 @@ def fetch_period(
     start_date: str,
     end_date: str,
     max_span_days: int,
-    example: str,
     is_complete: Optional[Callable[[ParsedCsv], bool]] = None,
 ) -> Tuple[Optional[ParsedCsv], str, Optional[str]]:
     """Run ``fetch`` for the requested period, or for the latest trading day when both
@@ -140,7 +127,7 @@ def fetch_period(
         return None, "最新交易日", None
 
     start_date, end_date = start_date or end_date, end_date or start_date
-    start_dt, end_dt, error = parse_date_range(start_date, end_date, max_span_days, example)
+    start_dt, end_dt, error = parse_date_range(start_date, end_date, max_span_days)
     if error:
         return None, "", error
     label = start_date if start_date == end_date else f"{start_date}～{end_date}"

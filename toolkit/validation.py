@@ -33,6 +33,12 @@ def describe(error: Dict[str, Any]) -> str:
     if kind in ("less_than_equal", "less_than"):
         bound = ctx.get("le", ctx.get("lt"))
         return f"{name} 不可大於 {bound}（收到 {received!r}）" if kind == "less_than_equal" else f"{name} 必須小於 {bound}（收到 {received!r}）"
+    if kind == "string_pattern_mismatch":
+        if r"\d{8}" in str(ctx.get("pattern", "")):  # toolkit.params.TradingDate
+            return f"{name} 日期格式錯誤，請使用西元 YYYYMMDD，例如 \"20260930\"（收到 {received!r}）"
+        return f"{name} 格式不符（收到 {received!r}）"
+    if kind == "value_error":  # an AfterValidator's ValueError, e.g. a date that does not exist
+        return f"{name} {ctx.get('error')}（收到 {received!r}）"
     if kind.startswith("int_"):
         return f"{name} 必須是整數（收到 {received!r}）"
     if kind.startswith("bool_"):

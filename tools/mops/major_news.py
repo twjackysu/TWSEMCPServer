@@ -11,9 +11,8 @@ announcement's full text inline; MOPS lists subjects and serves the text per ann
 from datetime import timedelta
 from typing import Literal, Optional
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, truncate, Page
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from utils.mops import mops_post, to_roc_year
 from utils.date_helper import taipei_today
 
@@ -30,10 +29,8 @@ def _one_line(text) -> str:
     return " ".join(str(text).split())
 
 
-def _roc_day(date: str) -> Optional[str]:
-    """YYYYMMDD → ROC "YYY/MM/DD" as MOPS prints 發言日期, or None if malformed."""
-    if len(date) != 8 or not date.isdigit():
-        return None
+def _roc_day(date: str) -> str:
+    """YYYYMMDD → ROC "YYY/MM/DD" as MOPS prints 發言日期."""
     return f"{int(date[:4]) - 1911}/{date[4:6]}/{date[6:]}"
 
 
@@ -57,8 +54,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _company(code: str, date: str, year: str, limit: int, offset: int) -> str:
         roc_day = _roc_day(date) if date else None
-        if date and roc_day is None:
-            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
         roc_year = to_roc_year(year) if year else (int(roc_day[:3]) if roc_day else taipei_today().year - 1911)
         result = mops_post(_client, "t05st01", {
             "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
@@ -91,8 +86,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _market(date: str, market: str, limit: int, offset: int) -> str:
         if date:
-            if _roc_day(date) is None:
-                raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260929\"")
             days = [date]
         else:
             today = taipei_today()
@@ -128,7 +121,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_company_major_news(code: str = "", date: str = "", year: str = "", market: Market = "",
+    def get_company_major_news(code: str = "", date: TradingDate = "", year: str = "", market: Market = "",
                                limit: Limit = 50, offset: Offset = 0) -> str:
         """查詢重大訊息（公開資訊觀測站），上市、上櫃、興櫃、公發公司皆可。
         指定 code：列出該公司某年度的重大訊息（由新到舊，每則附符合條款、事實發生日與說明全文）。

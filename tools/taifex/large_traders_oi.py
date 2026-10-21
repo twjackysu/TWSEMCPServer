@@ -13,7 +13,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -57,7 +57,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_large_traders_futures_oi(contract: str = "TX", start_date: str = "", end_date: str = "") -> str:
+    def get_large_traders_futures_oi(contract: str = "TX", start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢期貨大額交易人（前五大、前十大）未沖銷部位，觀察大戶持倉方向：預設最新交易日，
         也可回溯任意區間（最長一個月）。前五大、前十大部位集中度越高，代表市場籌碼越集中。
         常用契約：TX（臺股期貨，含 MTX 折算）、MTX、TE、TF。
@@ -70,7 +70,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
         parsed, label, error = fetch_period(
-            _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"
+            _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS
         )
         if error:
             raise ToolError(error)
@@ -102,7 +102,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_large_traders_options_oi(contract: str = "TXO", call_put: str = "",
-                                     start_date: str = "", end_date: str = "") -> str:
+                                     start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢選擇權大額交易人（前五大、前十大）未沖銷部位，觀察大戶選擇權布局：預設最新交易日，
         也可回溯任意區間（最長一個月）。常用契約：TXO（臺指選擇權）。
 
@@ -115,7 +115,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
         parsed, label, error = fetch_period(
-            _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS, "20260601"
+            _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS
         )
         if error:
             raise ToolError(error)

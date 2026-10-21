@@ -9,8 +9,8 @@ The day-trading and index tools replace OpenAPI versions (/exchangeReport/TWTB4U
 from datetime import datetime
 from typing import Literal, Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, InvalidArgument, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
-from toolkit import Limit, Offset, handle_api_errors
+from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
+from toolkit import Limit, Offset, RequiredTradingDate, TradingDate, handle_api_errors
 from sources.twse.mi_index import index_quotes
 from sources.twse.twt49u import exright_results
 
@@ -46,7 +46,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_exright_results_history(start_date: str, end_date: str, stock_no: str = "",
+    def get_exright_results_history(start_date: RequiredTradingDate, end_date: RequiredTradingDate, stock_no: str = "",
                                     limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票「已除權息」的計算結果歷史：除權息前收盤價、參考價、權值+息值。
         與 get_dividend_rights_schedule（未來除權息預告）不同，這是實際除權息當日的結果，
@@ -62,12 +62,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        try:
-            start, end = (datetime.strptime(d.strip(), "%Y%m%d").date() for d in (start_date, end_date))
-        except ValueError:
-            raise InvalidArgument(
-                f"日期格式錯誤，請使用 YYYYMMDD，例如 \"20260101\"（收到：{start_date}、{end_date}）"
-            ) from None
+        start, end = (datetime.strptime(d, "%Y%m%d").date() for d in (start_date, end_date))
 
         report = exright_results(_client, start, end)
         if not report.found:
@@ -88,7 +83,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_daily_day_trading_targets(date: str = "", stock_no: str = "", name: str = "",
+    def get_daily_day_trading_targets(date: TradingDate = "", stock_no: str = "", name: str = "",
                                       limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票當日沖銷交易標的與統計：預設最新交易日，也可回溯任意過去交易日。
         含全市場當沖占比、每檔可當沖股票的「暫停先賣後買」註記、當沖成交股數與買賣金額。
@@ -148,7 +143,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_index_info(date: str = "", category: IndexCategory = "major", keyword: str = "") -> str:
+    def get_market_index_info(date: TradingDate = "", category: IndexCategory = "major", keyword: str = "") -> str:
         """查詢證交所指數收盤行情：預設最新交易日，也可回溯任意過去交易日，適合比較類股強弱。
         涵蓋加權指數、類股指數（半導體類、金融保險類…）、主題指數（臺灣50、高股息…）與報酬指數。
 

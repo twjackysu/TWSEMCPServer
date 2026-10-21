@@ -8,7 +8,7 @@ ratios, limits and share counts, and it could neither pick a date nor look up on
 from typing import Literal, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, format_list_response
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 
 MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
 
@@ -31,7 +31,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_foreign_holdings(date: str = "", stock_no: str = "", name: str = "", sort_by: SortBy = "code",
+    def get_foreign_holdings(date: TradingDate = "", stock_no: str = "", name: str = "", sort_by: SortBy = "code",
                              limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票外資及陸資持股比率：預設最新交易日，也可指定任意過去日期，適合追蹤外資持股變化。
         sort_by="ratio" 可依外資持股比率由高到低排行（例如 limit=20 即外資持股前 20 名）。

@@ -8,7 +8,7 @@ latest close and this month's average, which on 2026-09-29 equalled this endpoin
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, roc_to_ad
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 STOCK_DAY_AVG_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG"
 
@@ -19,7 +19,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_stock_monthly_average(stock_no: str, date: str = "") -> str:
+    def get_stock_monthly_average(stock_no: str, date: TradingDate = "") -> str:
         """查詢上市個股當月每日收盤價及月平均收盤價：預設本月，也可查任意過去月份，適合評估月線趨勢。
 
         回傳：該月份每個交易日的收盤價，以及月平均收盤價

@@ -10,7 +10,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -32,7 +32,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_put_call_ratio(start_date: str = "", end_date: str = "") -> str:
+    def get_put_call_ratio(start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢台指選擇權 Put/Call Ratio，衡量市場恐慌與樂觀程度的情緒指標：預設近 30 天，
         也可指定任意過去區間。PCR > 1.5 通常視為過度悲觀，< 0.5 通常視為過度樂觀。
 
@@ -48,7 +48,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             label = "近 30 天"
         else:
             start_date, end_date = start_date or end_date, end_date or start_date
-            start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS, "20260501")
+            start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS)
             if error:
                 raise ToolError(error)
             label = f"{start_date}～{end_date}"

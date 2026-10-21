@@ -10,7 +10,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -42,7 +42,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_futures_institutional(start_date: str = "", end_date: str = "") -> str:
+    def get_futures_institutional(start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢三大法人（自營商、投信、外資及陸資）期貨與選擇權分計交易：預設最新交易日，
         也可回溯任意區間（最長 92 天，約近 3 年內）。外資期貨淨未平倉是台股最常引用的籌碼指標之一；
         期貨與選擇權並列，方便比較兩者布局是否一致。期貨+選擇權合計請用 get_institutional_general。
@@ -53,7 +53,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
+        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS)
         if error:
             raise ToolError(error)
         if parsed is None:

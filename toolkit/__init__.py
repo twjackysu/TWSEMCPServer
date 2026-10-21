@@ -6,7 +6,7 @@ everything that knows about MCP tools — the error boundary and the tool specs/
 
 from .decorators import handle_api_errors
 from .factory import CompanyToolSpec, ListToolSpec, create_company_tool, create_list_tool
-from .params import Limit, Offset, bounded
+from .params import Limit, Offset, RequiredTradingDate, TradingDate, bounded
 from .validation import ArgumentErrorsInChinese
 
 __all__ = [
@@ -14,6 +14,8 @@ __all__ = [
     "Limit",
     "Offset",
     "bounded",
+    "TradingDate",
+    "RequiredTradingDate",
     "ArgumentErrorsInChinese",
     "CompanyToolSpec",
     "ListToolSpec",

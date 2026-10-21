@@ -246,7 +246,10 @@ def get_twse_institutional_investors_summary(
 
 ### Phase 2：共用核心
 - `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
-- `TradingDate` 取代 13 份日期驗證（驗證失敗丟 `InvalidArgument`）；`Page` 取代手刻分頁已在 #115 完成。
+- ✅ `TradingDate` 取代日期驗證（#126）。做成參數型別而不是 Value Object：`toolkit.TradingDate`／`RequiredTradingDate`
+  （西元 YYYYMMDD 的 pattern ＋ 日期必須存在），所有 56 個日期參數都用它，FastMCP 在工具執行前驗證，中文訊息由
+  `ArgumentErrorsInChinese` 產生。刪掉 11 個模組的手寫檢查與 `parse_date_range` 的格式分支（`example` 參數一併拿掉）。
+  字串原樣交給工具：轉成民國（`115/09/30`、`1150930`）或 TPEx `2026/09/30` 的程式不變。`Page` 取代手刻分頁已在 #115 完成。
 - ✅ 列舉參數改 `Literal`、範圍改 `Field`（#125）：23 個列舉、所有 `limit`／`offset`（`toolkit.Limit`／`Offset`）
   與 `months`／`weeks`／`limit` 上限（`toolkit.bounded`）；刪掉 19 個模組裡的手寫檢查與 `check_choice`。
   FastMCP 依 schema 擋下錯誤值，回的是 pydantic 英文訊息；`toolkit.validation.ArgumentErrorsInChinese`

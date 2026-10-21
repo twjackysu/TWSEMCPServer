@@ -7,7 +7,7 @@ served the current month, whose rows on 2026-09-29 were identical to this endpoi
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 MI_5MINS_HIST_URL = "https://www.twse.com.tw/rwd/zh/TAIEX/MI_5MINS_HIST"
 
@@ -18,7 +18,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_taiex_index_history(date: str = "") -> str:
+    def get_taiex_index_history(date: TradingDate = "") -> str:
         """查詢發行量加權股價指數（大盤）每日開高低收：預設本月，也可查任意過去月份。
         與個股的 get_stock_history 對應，但查的是大盤指數本身，適合大盤走勢/K線分析。
 

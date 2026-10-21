@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 FMSRFK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMSRFK"
 FMNPTK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMNPTK"
@@ -21,7 +21,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_stock_monthly_trading(stock_no: str, date: str = "") -> str:
+    def get_stock_monthly_trading(stock_no: str, date: TradingDate = "") -> str:
         """查詢上市個股月成交資訊（每月一筆：最高價、最低價、加權平均價、成交量值、週轉率）。
         預設今年至今每個月，也可查過去年度的全部 12 個月。
 

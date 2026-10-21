@@ -13,7 +13,7 @@ from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, cap_rows
-from toolkit import Limit, handle_api_errors
+from toolkit import Limit, TradingDate, handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,
@@ -71,7 +71,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         return fetch
 
     def _list_contracts(url: str, kind: str, start_date: str, end_date: str) -> str:
-        parsed, label, error = fetch_period(_download(url, ALL_CONTRACTS), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
+        parsed, label, error = fetch_period(_download(url, ALL_CONTRACTS), start_date, end_date, MAX_SPAN_DAYS, is_complete=has_regular_session)
         if error:
             raise ToolError(error)
         if parsed is None:
@@ -81,7 +81,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_daily_futures_market_report(contract: str = "TX", start_date: str = "", end_date: str = "") -> str:
+    def get_daily_futures_market_report(contract: str = "TX", start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢期貨每日交易行情（開高低收、漲跌、成交量、結算價、未平倉量、最後最佳買賣價）：
         預設最新交易日，也可指定任意過去區間（最長一個月，資料可回溯至 2020 年以前）。
         常用契約代碼：TX（臺股期貨）、MTX（小型臺指）、TE（電子期貨）、TF（金融期貨）。
@@ -109,7 +109,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         all_rows, label = [], ""
         for code in contracts:
-            parsed, label, error = fetch_period(_download(FUT_DATA_DOWN_URL, code), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
+            parsed, label, error = fetch_period(_download(FUT_DATA_DOWN_URL, code), start_date, end_date, MAX_SPAN_DAYS, is_complete=has_regular_session)
             if error:
                 raise ToolError(error)
             if parsed is not None:
@@ -138,7 +138,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_daily_options_market_report(contract: str = "TXO", start_date: str = "", end_date: str = "",
+    def get_daily_options_market_report(contract: str = "TXO", start_date: TradingDate = "", end_date: TradingDate = "",
                                         contract_month: str = "", call_put: str = "", limit: Limit = 30) -> str:
         """查詢選擇權每日交易行情：預設最新交易日，也可指定任意過去區間（最長一個月）。
         未指定 contract_month 時，每個交易日只列有成交的履約價，依成交量由大到小取前 limit 筆，並附上可用到期月份；
@@ -159,7 +159,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not contract:
             return _list_contracts(OPT_DATA_DOWN_URL, "選擇權", start_date, end_date)
 
-        parsed, label, error = fetch_period(_download(OPT_DATA_DOWN_URL, contract), start_date, end_date, MAX_SPAN_DAYS, "20260601", is_complete=has_regular_session)
+        parsed, label, error = fetch_period(_download(OPT_DATA_DOWN_URL, contract), start_date, end_date, MAX_SPAN_DAYS, is_complete=has_regular_session)
         if error:
             raise ToolError(error)
         if parsed is None:

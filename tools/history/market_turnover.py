@@ -3,7 +3,7 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 FMTQIK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK"
 
@@ -14,7 +14,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_market_turnover_history(date: str = "") -> str:
+    def get_market_turnover_history(date: TradingDate = "") -> str:
         """查詢台灣上市市場每日成交量值與發行量加權股價指數。
         回傳指定月份每一個交易日的市場成交股數、成交金額、成交筆數、加權指數收盤與漲跌點數。
         與 get_daily_market_trading_info（openapi 版）不同：openapi 版只回傳最近約 12 個交易日的

@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from utils.date_helper import taipei_today
 from utils.mops import mops_legacy_post, parse_html_tables, to_roc_year
 
@@ -23,10 +23,8 @@ DEFAULT_BUYBACK_DAYS = 90
 NO_DATA_TEXT = "查無資料"
 
 
-def _roc_compact(date: str) -> Optional[str]:
-    """YYYYMMDD → ROC "YYYMMDD" as t35sc09 takes it, or None."""
-    if len(date) != 8 or not date.isdigit():
-        return None
+def _roc_compact(date: str) -> str:
+    """YYYYMMDD → ROC "YYYMMDD" as t35sc09 takes it."""
     return f"{int(date[:4]) - 1911:03d}{date[4:]}"
 
 
@@ -35,7 +33,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_treasury_stock_buybacks(start_date: str = "", end_date: str = "", market: Market = "sii",
+    def get_treasury_stock_buybacks(start_date: TradingDate = "", end_date: TradingDate = "", market: Market = "sii",
                                     code: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢公司買回自己公司股份（庫藏股）彙總：董事會決議日、買回目的、預定股數、價格區間、
         買回期間與執行結果（已買回股數、平均價格、執行率）。預設近 90 天內決議的案件。
@@ -55,8 +53,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         start = start_date.strip() or f"{today - timedelta(days=DEFAULT_BUYBACK_DAYS):%Y%m%d}"
         end = end_date.strip() or f"{today:%Y%m%d}"
         d1, d2 = _roc_compact(start), _roc_compact(end)
-        if not d1 or not d2:
-            raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260101\"")
 
         html = mops_legacy_post(_client, "ajax_t35sc09", {"TYPEK": market, "d1": d1, "d2": d2, "RD": "1"})
         rows = [r for table in parse_html_tables(html) for r in table

@@ -12,7 +12,7 @@ from typing import List, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
-from toolkit import Limit, Offset, handle_api_errors
+from toolkit import Limit, Offset, TradingDate, handle_api_errors
 from utils.institutional import SIDES, SORT_LABELS, Investor, Side, rank
 from sources.institutional import Trades
 from sources.twse.t86 import t86_flows
@@ -40,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_institutional_investors_summary(date: str = "", category: str = "", sort_by: Investor = "total",
+    def get_twse_institutional_investors_summary(date: TradingDate = "", category: str = "", sort_by: Investor = "total",
                                                  side: Side = "abs", limit: Limit = DEFAULT_DISPLAY_LIMIT,
                                                  offset: Offset = 0) -> str:
         """查詢上市「個股」三大法人買賣超排行（單位：股）：例如外資買超前 20 名、投信賣超最多的股票。
@@ -103,7 +103,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_institutional_investors_by_stock(stock_no: str, date: str = "") -> str:
+    def get_twse_institutional_investors_by_stock(stock_no: str, date: TradingDate = "") -> str:
         """查詢單一上市股票（或 ETF、權證）某一天的三大法人買賣超完整明細（單位：股）：
         預設最新交易日，可查任意過去交易日。
         要找「哪些股票被法人買超／賣超最多」請用 get_twse_institutional_investors_summary；

@@ -22,7 +22,7 @@ from typing import Dict, List, Literal, Optional, Tuple
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 from utils.deadline import time_budget
 from utils.taifex import TAIFEX_DOWNLOAD_BASE, TAIFEX_HEADERS, is_stock_code, stock_futures_contracts
 
@@ -177,7 +177,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     @time_budget(INTRADAY_BUDGET, "已下載的交易日會快取，稍後再試會較快")
-    def get_futures_intraday(contract: str = "TX", date: str = "", interval: Interval = 5, session: Session = "day",
+    def get_futures_intraday(contract: str = "TX", date: TradingDate = "", interval: Interval = 5, session: Session = "day",
                              month: str = "") -> str:
         """查詢期貨「盤中走勢」：由期交所每筆成交資料彙總成分鐘 K 線，看一整天的多空拉鋸，
         而不只是收盤價。可查最近 30 個交易日（日盤 08:45–13:45、夜盤 15:00–次日 05:00）。

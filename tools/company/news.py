@@ -3,7 +3,7 @@
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_multiple_records
-from toolkit import handle_api_errors
+from toolkit import TradingDate, handle_api_errors
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -12,7 +12,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_twse_news(start_date: str = "", end_date: str = "") -> str:
+    def get_twse_news(start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢證交所新聞。
 
         Args:
