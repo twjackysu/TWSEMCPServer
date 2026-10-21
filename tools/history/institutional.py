@@ -9,7 +9,7 @@ import re
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
 from toolkit import handle_api_errors
 from utils.institutional import SIDES, SORT_LABELS, check_choice, rank
 
@@ -132,29 +132,24 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not active:
             return f"查無 {label} {SORT_LABELS[sort_by]}{SIDES[side]}的個股"
 
-        total = len(active)
-        page_data = active[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{label} {SORT_LABELS[sort_by]}{SIDES[side]}個股", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(active)
+        if paged.past_end:
+            return paged.out_of_range(f"{label} {SORT_LABELS[sort_by]}{SIDES[side]}個股")
 
-        header = f"【{title}】依{SORT_LABELS[sort_by]}{SIDES[side]}排序，單位：股（共 {total} 支"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 名"
+        header = f"【{title}】依{SORT_LABELS[sort_by]}{SIDES[side]}排序，單位：股（共 {paged.total} 支"
+        if paged.span("名"):
+            header += f"，{paged.span('名')}"
         header += "）\n"
 
         lines = [header]
-        for row in page_data:
+        for row in paged.rows:
             lines.append(
                 f"{row[IDX_CODE]} {row[IDX_NAME].strip()} | 外資: {net_by(row, 'foreign'):,} | "
                 f"投信: {_fmt(row[IDX_IT_NET])} | 自營: {_fmt(row[IDX_DL_NET])} | 合計: {_fmt(row[IDX_TOTAL_NET])}"
             )
 
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
 
         return "\n".join(lines)
 

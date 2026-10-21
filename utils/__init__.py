@@ -26,6 +26,8 @@ from .formatters import (
     cap_rows,
 )
 from .date_helper import roc_to_ad, ad_to_roc
+from .errors import InvalidArgument
+from .pagination import Page, Paged
 
 __all__ = [
     "TWSEAPIClient",
@@ -54,4 +56,7 @@ __all__ = [
     "cap_rows",
     "roc_to_ad",
     "ad_to_roc",
+    "InvalidArgument",
+    "Page",
+    "Paged",
 ]

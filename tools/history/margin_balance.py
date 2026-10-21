@@ -8,7 +8,7 @@ endpoint's per-stock table, without the market-wide 信用交易統計 table.
 from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
 from toolkit import handle_api_errors
 
 MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
@@ -83,16 +83,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {actual_date} 的融資融券資料"
 
-        total = len(data)
-        page = data[offset:offset + limit]
-        if not page:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{actual_date} 的融資融券資料", count=total
-            )
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range(f"{actual_date} 的融資融券資料")
 
         date_note = f"（原查詢 {date}，實際資料日 {actual_date}）" if date and actual_date != date else ""
-        page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""
-        lines = [f"【融資融券餘額 - {actual_date}】{date_note}（共 {total} 筆{page_note}）\n"]
+        span = f"，{paged.span()}" if paged.span() else ""
+        lines = [f"【融資融券餘額 - {actual_date}】{date_note}（共 {paged.total} 筆{span}）\n"]
 
         summary_rows = tables[0].get("data") or []
         if summary_rows and not stock_no and not name:
@@ -105,11 +102,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if fields:
             lines.append("欄位: " + " | ".join(fields) + "\n")
 
-        for row in page:
+        for row in paged.rows:
             lines.append(" | ".join(str(cell) for cell in row))
 
-        remaining = total - offset - len(page)
-        if remaining > 0:
-            lines.append(f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
 
         return "\n".join(lines)

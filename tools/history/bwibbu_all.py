@@ -7,7 +7,7 @@ values as this endpoint, which also has 股利年度 and 財報年/季.
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
 from toolkit import handle_api_errors
 
 # rwd/zh/afterTrading/BWIBBU_d honours the `date` parameter and echoes it back.
@@ -71,17 +71,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {served_date} 的估值資料"
 
-        total = len(data)
-        page = data[offset:offset + limit]
-        if not page:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{served_date} 的估值資料", count=total
-            )
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range(f"{served_date} 的估值資料")
 
         title = resp.get("title") or f"全市場估值資料 - {served_date}"
-        page_note = f"，顯示第 {offset + 1}–{offset + len(page)} 筆" if total > len(page) else ""
-        lines = [f"【{title}】（共 {total} 筆{page_note}）\n"]
-        for row in page:
+        span = f"，{paged.span()}" if paged.span() else ""
+        lines = [f"【{title}】（共 {paged.total} 筆{span}）\n"]
+        for row in paged.rows:
             code = row[COL_CODE].strip()
             sname = row[COL_NAME].strip()
             close = row[COL_CLOSE] or "-"
@@ -95,7 +92,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"股價淨值比: {pb}（財報 {fiscal}）"
             )
 
-        remaining = total - offset - len(page)
-        if remaining > 0:
-            lines.append(f"\n... 還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
         return "\n".join(lines)

@@ -9,7 +9,7 @@ import re
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
 from toolkit import handle_api_errors
 
 MI_INDEX_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
@@ -71,21 +71,17 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {date} 的收盤行情"
 
-        total = len(data)
-        page_data = data[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{date} 的收盤行情資料", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range(f"{date} 的收盤行情資料")
 
-        header = f"【{date} 全市場每日收盤行情】（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        header = f"【{date} 全市場每日收盤行情】（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for row in page_data:
+        for row in paged.rows:
             # row: 證券代號,證券名稱,成交股數,成交筆數,成交金額,開盤價,最高價,最低價,收盤價,漲跌(+/-),漲跌價差,最後揭示買價,最後揭示買量,最後揭示賣價,最後揭示賣量,本益比
             code, sname, volume, tx, value, o, h, l, c, direction, change, _bp, _bv, _ap, _av, pe = row
             # 漲跌價差不帶正負號，正負號在 HTML 的「漲跌(+/-)」欄；平盤該欄為空白
@@ -96,8 +92,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"量:{volume} 金額:{value} 筆數:{tx} | 本益比:{pe}"
             )
 
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
 
         return "\n".join(lines)

@@ -10,7 +10,7 @@ from utils import (
     TWSEAPIClient,
     DEFAULT_DISPLAY_LIMIT,
     SUMMARY_ROW_LABELS,
-    MSG_OFFSET_OUT_OF_RANGE,
+    Page,
 )
 from toolkit import handle_api_errors
 
@@ -62,22 +62,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {date} 的信用額度總量管制餘額資料"
 
-        total = len(data)
-        page_data = data[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{date} 的信用額度總量管制餘額資料", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(data)
+        if paged.past_end:
+            return paged.out_of_range(f"{date} 的信用額度總量管制餘額資料")
 
         title = resp.get("title", f"{date} 信用額度總量管制餘額表")
-        header = f"【{title}】（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        header = f"【{title}】（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for row in page_data:
+        for row in paged.rows:
             # row: 代號,名稱,前日餘額,賣出,買進,現券,今日餘額,次一營業日限額,
             #      前日餘額,當日賣出,當日還券,當日調整,當日餘額,次一營業日可限額,備註
             code, sname = row[0], row[1]
@@ -89,9 +85,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 f"  借券: 前日{sl_prev} 當日賣出{sl_sell} 當日還券{sl_return} 調整{sl_adjust} 當日{sl_today} 次日可限額{sl_limit}"
             )
 
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
 
         return "\n".join(lines)
 
@@ -143,30 +138,25 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if not parsed:
                 return f"查無名稱包含「{name}」的股票在 {date} 的融券借券賣出成交量值資料"
 
-        total = len(parsed)
-        page_data = parsed[offset:offset + limit]
-        if not page_data:
-            return MSG_OFFSET_OUT_OF_RANGE.format(
-                offset=offset, data_type=f"{date} 的融券借券賣出成交量值資料", count=total
-            )
-        end = min(offset + limit, total)
+        paged = Page(limit, offset).take(parsed)
+        if paged.past_end:
+            return paged.out_of_range(f"{date} 的融券借券賣出成交量值資料")
 
         title = resp.get("title", f"{date} 當日融券賣出與借券賣出成交量值")
-        header = f"【{title}】（共 {total} 筆"
-        if total > limit or offset > 0:
-            header += f"，顯示第 {offset + 1}–{end} 筆"
+        header = f"【{title}】（共 {paged.total} 筆"
+        if paged.span():
+            header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for code, sname, row in page_data:
+        for code, sname, row in paged.rows:
             # row: 證券名稱(含代號),融券賣出數量,融券賣出金額,借券賣出數量,借券賣出金額
             ss_vol, ss_val, sl_vol, sl_val = row[1], row[2], row[3], row[4]
             lines.append(
                 f"{code} {sname} | 融券賣出: 量{ss_vol} 金額{ss_val} | 借券賣出: 量{sl_vol} 金額{sl_val}"
             )
 
-        remaining = total - offset - limit
-        if remaining > 0:
-            lines.append(f"\n...還有 {remaining} 筆，使用 offset={offset + limit} 查看更多")
+        if paged.more():
+            lines.append("\n" + paged.more())
 
         return "\n".join(lines)
