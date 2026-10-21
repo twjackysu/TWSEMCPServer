@@ -91,8 +91,12 @@ def test_listed_detection_parses_name_and_skips_untraded_days():
 
 
 def test_exright_events_for_both_markets():
-    listed = {"stat": "OK", "data": [["115年06月11日", "2330", "台積電", "2,255.00", "2,248.99", "6.0", "息"],
-                                     ["115年06月11日", "2317", "鴻海", "1", "1", "0", "息"]]}
+    fields = ["資料日期", "股票代號", "股票名稱", "除權息前收盤價", "除權息參考價", "權值+息值", "權/息", "漲停價格", "跌停價格",
+              "開盤競價基準", "減除股利參考價", "詳細資料", "最近一次申報資料 季別/日期", "最近一次申報每股 (單位)淨值",
+              "最近一次申報每股 (單位)盈餘"]
+    tail = ["--"] * 4 + ["", "", "", ""]
+    listed = {"stat": "OK", "fields": fields, "data": [["115年06月11日", "2330", "台積電", "2,255.00", "2,248.99", "6.0", "息"] + tail,
+                                                       ["115年06月11日", "2317", "鴻海", "1", "1", "0", "息"] + tail]}
     otc = {"tables": [{"data": [["115/07/01", "4116", "明基醫  ", "38.50", "36.50", "0", "2", "2", "除息"]]}]}
     client = OfflineClient({"/exRight/TWT49U": listed, "/bulletin/exDailyQ": otc})
     ev = fetch_exright_events(client, "上市", "2330", date(2026, 1, 1), date(2026, 12, 31))

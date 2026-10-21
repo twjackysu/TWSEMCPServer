@@ -7,7 +7,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response
 from toolkit import handle_api_errors
-from utils.market_snapshot import LISTED, OTC, StockSnapshot, industry_members, industry_of, market_snapshot
+from services.market_snapshot import LISTED, OTC, StockSnapshot, industry_members, industry_of, market_snapshot
 
 MARKETS = {"all": (LISTED, OTC), "listed": (LISTED,), "otc": (OTC,)}
 # sort key → (attribute, descending)

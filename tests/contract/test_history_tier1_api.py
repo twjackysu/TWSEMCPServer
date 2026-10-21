@@ -4,7 +4,8 @@
 """
 
 import pytest
-from tests.helpers import fetch_or_skip
+from sources.twse.mi_index import stock_quotes
+from tests.helpers import fetch_or_skip, gateway_or_skip
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 FIXED_STOCK = "2330"     # 台積電
@@ -40,32 +41,22 @@ class TestMarketInstitutionalAmountsAPI:
         assert data and all(len(r) >= 4 for r in data), f"{params} row 結構已變更（tool 讀 row[0]~row[3]）: {data[:1]}"
 
 
-class TestAllStocksDailyCloseAPI:
-    """全市場每日收盤行情 - MI_INDEX
-    Tool get_stock_daily_trading 從 tables 中找標題含「每日收盤行情」的 table，
-    使用該 table 的 row[0]~row[15]：代號、名稱、量、筆數、金額、開高低收、漲跌、
-    漲跌價差、買賣揭示、本益比。
+class TestMiIndexQuotesGateway:
+    """全市場每日收盤行情 - MI_INDEX（sources/twse/mi_index.py stock_quotes）
+    get_stock_daily_trading、services/market_snapshot（選股、同業比較）都只透過這個 gateway 讀行情表；
+    真實回應要能建出 QuoteTable，欄位改名時 gateway 丟 UpstreamFormatError。
     """
 
-    def test_stock_table_exists_with_16_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX",
-            params={"response": "json", "date": FIXED_DATE, "type": "ALLBUT0999"},
-        )
-        assert result.get("stat") == "OK"
-        tables = result.get("tables", [])
-        stock_table = next(
-            (t for t in tables if "每日收盤行情" in (t.get("title") or "")), None
-        )
-        assert stock_table is not None, "找不到標題含「每日收盤行情」的 table，tables 結構可能已變更"
-        data = stock_table.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) >= 16, f"欄位數不足 16，row 結構可能已變更: {data[0]}"
-        fields = stock_table.get("fields", [])
-        # tool 以 row[3] 顯示成交筆數，並從 row[9]（HTML）取漲跌正負號套到 row[10] 的漲跌價差上
-        assert fields[3] == "成交筆數" and fields[9] == "漲跌(+/-)" and fields[10] == "漲跌價差", (
-            f"成交筆數／漲跌欄位位置已變更: {fields}"
-        )
+    def test_fixed_day_parses_into_typed_quotes(self):
+        table = gateway_or_skip(stock_quotes, "ALLBUT0999", FIXED_DATE)
+        assert table is not None and table.date == FIXED_DATE, "固定歷史交易日應有每日收盤行情"
+        assert table.group.startswith("全部"), f"行情表標題格式已變更: {table.title!r}"
+        tsmc = next((q for q in table.quotes if q.code == "2330"), None)
+        assert tsmc and tsmc.name == "台積電"
+        assert None not in (tsmc.open, tsmc.high, tsmc.low, tsmc.close, tsmc.volume, tsmc.value, tsmc.transactions)
+        assert tsmc.low <= tsmc.close <= tsmc.high
+        directions = {q.direction for q in table.quotes}
+        assert directions <= {"+", "-", "", "X"} and directions & {"+", "-"}, f"漲跌(+/-) 欄格式已變更: {directions}"
 
 
 class TestMarketTurnoverHistoryAPI:
