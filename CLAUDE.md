@@ -36,6 +36,8 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 
 ## Code Architecture
 
+Refactoring roadmap: `docs/improvement-plan.md` (phases, progress, and a FastMCP 4 mapping). The server runs on FastMCP 4: reach for its own mechanisms first (`@mcp.tool` `annotations` / `tags` / `timeout` / `output_schema`, middleware, transforms such as `Visibility`) before writing an equivalent ourselves.
+
 ### High-Level Structure
 
 ```
