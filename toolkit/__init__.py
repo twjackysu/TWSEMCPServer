@@ -8,6 +8,7 @@ from .decorators import handle_api_errors
 from .factory import CompanyToolSpec, ListToolSpec, create_company_tool, create_list_tool
 from .params import Limit, Offset, RequiredTradingDate, TradingDate, bounded
 from .response_limit import response_limit
+from .structured import output_schema, structured_reply
 from .validation import ArgumentErrorsInChinese
 
 __all__ = [
@@ -19,6 +20,8 @@ __all__ = [
     "RequiredTradingDate",
     "ArgumentErrorsInChinese",
     "response_limit",
+    "output_schema",
+    "structured_reply",
     "CompanyToolSpec",
     "ListToolSpec",
     "create_company_tool",

@@ -28,12 +28,14 @@ def test_every_tool_module_registers():
     assert len(registered) > 100
 
 
-def test_text_tools_have_no_output_schema():
-    """全部工具都回傳文字；任何一個帶 output schema，就會在每次呼叫時把回應文字重複送一次."""
+def test_only_structured_tools_have_an_output_schema():
+    """文字工具帶 output schema 會在每次呼叫時把回應文字重複送一次；有 schema 的只能是宣告了結構化輸出的工具."""
     mcp = FastMCP("probe")
-    tools.register_all_tools(mcp, OfflineClient({}))
-    with_schema = [t.name for t in asyncio.run(mcp.list_tools()) if t.output_schema is not None]
-    assert with_schema == []
+    registered = tools.register_all_tools(mcp, OfflineClient({}))
+    with_schema = {t.name for t in asyncio.run(mcp.list_tools()) if t.output_schema is not None}
+    assert with_schema == registered.structured == {
+        "get_stock_screener", "get_industry_peers", "get_adjusted_price_history", "get_technical_indicators"}
+    assert registered.text_tools == set(registered.tags) - with_schema
 
 
 def _registrar_probe():
@@ -171,12 +173,12 @@ def test_register_all_tools_returns_every_tool_s_tags():
     """prompts 依這份對照表算出自己的 tags：必須和真正註冊的工具一模一樣."""
     mcp = FastMCP("probe")
     returned = tools.register_all_tools(mcp, OfflineClient({}))
-    assert returned == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
+    assert returned.tags == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
 
 
-def test_registrar_records_the_final_name_and_tags():
+def test_registrar_records_the_final_name_tags_and_output_schema():
     mcp = FastMCP("probe")
-    registered = {}
+    registered = tools.RegisteredTools()
     registrar = tools.ToolRegistrar(mcp, tags=frozenset({"twse"}), registered=registered)
 
     @registrar.tool
@@ -191,8 +193,15 @@ def test_registrar_records_the_final_name_and_tags():
     def keyword() -> str:
         return "x"
 
-    assert registered == {"bare": {"twse"}, "positional_name": {"twse"}, "keyword_name": {"tpex"}}
-    assert registered == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
+    @registrar.tool(output_schema={"type": "object", "properties": {"x": {"type": "string"}}})
+    def structured() -> dict:
+        return {"x": "y"}
+
+    assert registered.tags == {"bare": {"twse"}, "positional_name": {"twse"}, "keyword_name": {"tpex"},
+                               "structured": {"twse"}}
+    assert registered.tags == {t.name: t.tags for t in asyncio.run(mcp.list_tools())}
+    assert registered.structured == {"structured"}
+    assert registered.text_tools == {"bare", "positional_name", "keyword_name"}
 
 
 def test_annotations_and_tags_reach_the_client():

@@ -31,21 +31,22 @@ SERVER_INSTRUCTIONS = f"""台灣證券市場資料：{'、'.join(name for tag, n
 mcp = FastMCP("TWSE Stock Trend Analysis 🚀", instructions=SERVER_INSTRUCTIONS)
 # FastMCP rejects arguments outside a tool's schema (toolkit/params.py); say why in Chinese.
 mcp.add_middleware(ArgumentErrorsInChinese())
-# Last resort against a runaway reply (e.g. limit=100000 on 44,717 warrants): cut it past
-# TWSE_MAX_RESPONSE_BYTES (0 = off) and say so. Tools still limit their own rows.
-if ServerConfig.MAX_RESPONSE_BYTES:
-    mcp.add_middleware(response_limit(ServerConfig.MAX_RESPONSE_BYTES))
 
 # Initialize API Client
 # This is the root of our Dependency Injection tree
 api_client = TWSEAPIClient()
 
 # Pass dependencies to tool registration
-tool_tags = register_all_tools(mcp, api_client)
+registered = register_all_tools(mcp, api_client)
 # Every prompts/ module's prompt, tagged with the sources of the tools it names.
-register_all_prompts(mcp, tool_tags)
+register_all_prompts(mcp, registered.tags)
 # Hide tools (and prompts) of the sources this deployment does not serve (FastMCP Visibility on tags).
 show_only_sources(mcp, SERVED_SOURCES)
+# Last resort against a runaway reply (e.g. limit=100000 on 44,717 warrants): cut it past
+# TWSE_MAX_RESPONSE_BYTES (0 = off) and say so. Tools still limit their own rows. Structured tools
+# are left out: the cap would hide their output schema, so they bound their own size.
+if ServerConfig.MAX_RESPONSE_BYTES:
+    mcp.add_middleware(response_limit(ServerConfig.MAX_RESPONSE_BYTES, tools=registered.text_tools))
 
 if __name__ == "__main__":
     import os

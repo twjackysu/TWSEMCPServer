@@ -1,11 +1,12 @@
 """services/market_snapshot.py 與 tools/analytics/screening.py 的單元測試（不打網路）。"""
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tools.analytics import screening
-from services.market_snapshot import StockSnapshot, market_snapshot
+from services.market_snapshot import StockSnapshot, data_date_label, market_snapshot
 
 pytestmark = pytest.mark.offline
 
@@ -49,34 +50,79 @@ def _routes(seen):
 
 def test_quotes_are_fetched_for_the_valuation_date():
     seen = {}
-    snap, as_of = market_snapshot(OfflineClient(_routes(seen)))
+    snap, days = market_snapshot(OfflineClient(_routes(seen)))
     assert seen == {"listed_quotes_date": "20260929", "otc_quotes_date": "2026/09/29"}
-    assert as_of == "上市 20260929、上櫃 20260929"
+    assert days == {"上市": "20260929", "上櫃": "20260929"}
+    assert data_date_label(days) == "上市 20260929、上櫃 20260929"
     assert snap["2330"].change == -5.0 and snap["2317"].change == 2.0 and snap["6488"].change == -3.0
     assert snap["2317"].pe is None  # "-"＝虧損無本益比
     assert snap["2330"].change_pct == pytest.approx(-5 / 2480 * 100)
 
 
+def _text(result):
+    return result.content[0].text
+
+
 def test_screener_pe_filter_drops_loss_makers_and_sorts_missing_last():
     fn = register_module_tools(screening, OfflineClient(_routes({})))["get_stock_screener"]
-    text = fn(pe_max=50, sort_by="pe")
+    result = fn(pe_max=50, sort_by="pe")
+    text = _text(result)
     assert "2317" not in text and text.index("2330") < text.index("6488")
+    data = result.structured_content
+    assert [s["code"] for s in data["stocks"]] == ["2330", "6488"] and data["total"] == 2
+    assert data["listed_date"] == data["otc_date"] == "2026-09-29"
+    assert data["stocks"][0] == {
+        "code": "2330", "name": "台積電", "market": "上市", "close": 2475.0, "change": -5.0,
+        "change_pct": pytest.approx(-5 / 2480 * 100), "pe": 28.69, "pb": 9.98, "dividend_yield": 0.89,
+        "dividend_year": "114", "fiscal": "115/2", "volume": 1000.0}
     by_yield = fn(sort_by="yield")
-    assert by_yield.index("2317") < by_yield.index("2330")
+    assert _text(by_yield).index("2317") < _text(by_yield).index("2330")
+    assert [s["code"] for s in by_yield.structured_content["stocks"]] == ["2317", "2330", "6488"]
+
+
+def test_screener_pages_the_structured_rows_like_the_text():
+    fn = register_module_tools(screening, OfflineClient(_routes({})))["get_stock_screener"]
+    page = fn(sort_by="yield", limit=1, offset=1)
+    assert page.structured_content["total"] == 3 and page.structured_content["offset"] == 1
+    assert [s["code"] for s in page.structured_content["stocks"]] == ["2330"]
+    assert "2330" in _text(page) and "2317" not in _text(page)
+    past_end = fn(offset=5)
+    assert past_end.structured_content["stocks"] == [] and "offset=5 已超出範圍" in _text(past_end)
+    none = fn(pe_min=1000)
+    assert none.structured_content["total"] == 0 and "查無符合條件" in _text(none)
 
 
 def test_screener_same_industry_uses_members_of_both_markets():
     fn = register_module_tools(screening, OfflineClient(_routes({})))["get_stock_screener"]
-    text = fn(same_industry_as="2330")
+    result = fn(same_industry_as="2330")
+    text = _text(result)
     assert "產業 24 半導體業" in text and "2330" in text and "6488" in text and "2317" not in text
+    assert (result.structured_content["industry"], result.structured_content["industry_name"]) == ("24", "半導體業")
+
+
+def test_screener_unknown_same_industry_stock_is_an_error():
+    fn = register_module_tools(screening, OfflineClient(_routes({})))["get_stock_screener"]
+    with pytest.raises(ToolError, match="查無 9999 的產業別"):
+        fn(same_industry_as="9999")
 
 
 def test_peers_report_median_rank_and_always_show_target():
     fn = register_module_tools(screening, OfflineClient(_routes({})))["get_industry_peers"]
-    text = fn("6488", limit=1)
+    result = fn("6488", limit=1)
+    text = _text(result)
     assert "上市+上櫃共 2 家" in text
     assert "本益比由低到高 2/2" in text and "▶ 6488" in text
     assert "中位數：本益比 37.28" in text
+    data = result.structured_content
+    assert data["peer_count"] == 2 and data["median_pe"] == pytest.approx(37.28)
+    assert data["pe_rank"] == {"position": 2, "of": 2} and data["pb_rank"] == {"position": 1, "of": 2}
+    assert [s["code"] for s in data["peers"]] == ["2330", "6488"] and data["not_shown"] == 1
+
+
+def test_peers_of_an_unknown_stock_is_an_error():
+    fn = register_module_tools(screening, OfflineClient(_routes({})))["get_industry_peers"]
+    with pytest.raises(ToolError, match="查無 9999 的產業別"):
+        fn("9999")
 
 
 def test_sort_rows_puts_missing_values_last():
