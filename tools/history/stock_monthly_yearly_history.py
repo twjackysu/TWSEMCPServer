@@ -8,7 +8,8 @@ that month / year; these endpoints return the whole year / all years.
 from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 FMSRFK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMSRFK"
 FMNPTK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMNPTK"

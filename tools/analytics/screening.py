@@ -5,7 +5,8 @@ from statistics import median
 from typing import List, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, format_list_response
+from utils import TWSEAPIClient, format_list_response
+from toolkit import handle_api_errors
 from utils.market_snapshot import LISTED, OTC, StockSnapshot, industry_members, industry_of, market_snapshot
 
 MARKETS = {"all": (LISTED, OTC), "listed": (LISTED,), "otc": (OTC,)}

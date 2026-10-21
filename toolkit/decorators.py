@@ -6,7 +6,7 @@ import logging
 
 from fastmcp.exceptions import ToolError
 
-from .constants import MSG_QUERY_FAILED
+from utils.constants import MSG_QUERY_FAILED
 
 logger = logging.getLogger(__name__)
 

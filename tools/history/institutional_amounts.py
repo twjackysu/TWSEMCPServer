@@ -13,7 +13,8 @@ from typing import Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.institutional import PERIODS, check_choice, week_start, yi
 
 BFI82U_URL = "https://www.twse.com.tw/rwd/zh/fund/BFI82U"

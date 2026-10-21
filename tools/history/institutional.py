@@ -9,7 +9,8 @@ import re
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from toolkit import handle_api_errors
 from utils.institutional import SIDES, SORT_LABELS, check_choice, rank
 
 T86_URL = "https://www.twse.com.tw/rwd/zh/fund/T86"

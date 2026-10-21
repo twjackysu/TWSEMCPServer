@@ -7,7 +7,8 @@ which returns an HTML table rather than JSON.
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, truncate, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, truncate, MSG_OFFSET_OUT_OF_RANGE
+from toolkit import handle_api_errors
 from utils.mops import mops_legacy_post, parse_html_table, to_roc_year
 
 MARKETS = {"sii": "上市", "otc": "上櫃", "rotc": "興櫃", "pub": "公開發行"}

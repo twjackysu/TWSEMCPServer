@@ -8,7 +8,8 @@ endpoint's per-stock table, without the market-wide 信用交易統計 table.
 from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from toolkit import handle_api_errors
 
 MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
 MAX_RETRY_DAYS = 7

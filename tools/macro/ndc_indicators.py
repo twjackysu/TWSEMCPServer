@@ -12,7 +12,8 @@ import zipfile
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 # data.gov.tw/dataset/6099 景氣指標及燈號 (zip of CSVs, monthly since 1982)
 NDC_BUSINESS_CYCLE_ZIP_URL = (

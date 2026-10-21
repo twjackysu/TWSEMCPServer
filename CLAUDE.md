@@ -42,7 +42,10 @@ Refactoring roadmap: `docs/improvement-plan.md` (phases, progress, and a FastMCP
 
 ```
 server.py                     # Thin entrypoint: FastMCP init, prompt registration, tool registration
-utils/
+toolkit/                      # MCP-side building blocks for tool modules (only depends on utils/)
+├── decorators.py             # @handle_api_errors — the tool error boundary (exception → ToolError)
+└── factory.py                # CompanyToolSpec / ListToolSpec + create_company_tool / create_list_tool
+utils/                        # Data side: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)
 ├── mops.py                   # MOPS helpers: mops_post (JSON API), mops_legacy_post (HTML), titles/HTML-table parsing
@@ -53,9 +56,8 @@ utils/
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
 ├── date_helper.py            # roc_to_ad() / ad_to_roc() for TWSE legacy ROC dates; taipei_today()
-├── decorators.py             # @handle_api_errors
 ├── formatters.py             # Data → string formatting functions
-├── tool_factory.py           # create_company_tool() for dynamically named tools
+├── http_transport.py         # Per-site pooled sessions, TLS policy, UpstreamRetry
 └── types.py                  # TWSEDataItem TypedDict, DataFormatter Protocol
 tools/
 ├── __init__.py               # register_all_tools() - auto-discovers and registers all tool modules
@@ -102,11 +104,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 ```
 The `client` is captured via closure. Tools are registered with `@mcp.tool` — the function docstring becomes the MCP tool description. The `mcp` a module receives is a `ToolRegistrar` (`tools/__init__.py`) that forwards `mcp.tool` to FastMCP with server-wide defaults: a tool returning `str` gets `output_schema=None`, otherwise FastMCP 4 adds a `{"result": string}` output schema and sends every reply twice (`content` and `structuredContent`). Arguments a tool passes itself win. Put any future all-tools default (annotations, tags) there rather than on each decorator.
 
+**Layering**: dependencies point down only — `tools/` → `toolkit/` → `utils/`. `utils/` must not import `fastmcp`, `mcp`, `toolkit` or `tools` (even transitively), and `toolkit/` must not import `tools`; `tests/unit/test_layering_unit.py` enforces this and that each package imports on its own (no circular imports). The Dockerfile copies each top-level package by name; the same test fails if a new package is missing there.
+
+**Tool specs**: tools that need no custom code are declared as data and registered in a loop — `CompanyToolSpec(endpoint, name, description)` with `create_company_tool(mcp, spec, client)` for one company's row by stock code, `ListToolSpec(endpoint=, name=, summary=, label=, empty_data_type=, formatter=, filter_field=, name_hint=, normalize=)` with `create_list_tool(mcp, spec, client)` for fetch → optional `name` filter → paginate. `ListToolSpec.description` builds the Args section (`name` when `filter_field` is set, then `limit`/`offset`), so don't hand-write it.
+
 **Auto-Discovery**: `tools/__init__.py` scans direct modules (`tools/broker.py`, `tools/other.py`) and subpackage modules (`tools/company/*.py`, etc.) automatically. No manual registration needed in `server.py` when adding new tool modules.
 
 **API Client**: `TWSEAPIClient` has instance methods (`fetch_data`, `fetch_company_data`, `fetch_latest_market_data`) and class-method wrappers (`get_data`, `get_company_data`, `get_latest_market_data`) for backward compatibility. Instance methods are preferred. Includes built-in rate limiting: 0.5s between requests to the same site (`throttle_key` — the last three host labels, so every `*.twse.com.tw` host shares one clock), one request at a time per site, different sites in parallel; the client is thread-safe and concurrent identical requests (same `fetch_data` endpoint, or same cached `fetch_json`/`fetch_bytes` call) reach upstream once. For non-OpenAPI sources (legacy TWSE, MIS, TPEx, TAIFEX), use `fetch_json(url, params)` / `get_json(url, params)` which accepts full URLs with query parameters and returns raw JSON (pass `json_body=` to send a JSON POST instead of a GET), and `fetch_bytes(url, data=, method=)` for CSV/zip/HTML bodies.
 
-**Decorators**: Tool functions use decorators from `utils/decorators.py`:
+**Decorators**: Tool functions use decorators from `toolkit/decorators.py` (`from toolkit import handle_api_errors`):
 - `@handle_api_errors(use_code_param=True)` — required on every tool. Turns any exception into `ToolError(MSG_QUERY_FAILED)`, which MCP returns with `isError=true` and our Chinese message (left alone, FastMCP would report its English `Error calling tool …`; a middleware cannot do this translation, it only ever sees FastMCP's already-wrapped `ToolError`). Raise `ToolError` yourself for a bad argument (it passes through unchanged); never return failures as ordinary text. Keep tools plain sync functions: FastMCP 4 runs them in a worker thread (`run_in_thread=True`), so a blocking request never stalls the server; tools therefore run concurrently, and modules that keep state across calls must lock it.
 
 **Formatters**: `utils/formatters.py` provides:
@@ -157,8 +163,8 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 2. Add tool function in the appropriate module under `tools/` (or create a new module)
 3. Ensure the module has `register_tools(mcp, client)` — it will be auto-discovered
 4. Use `@mcp.tool` decorator; the docstring becomes the MCP tool description. FastMCP keeps only the text before the first Google-style section: `Args:` lines become the parameter descriptions and any other section (`Returns:`, `Note:`, …) is dropped, so say what the tool returns before `Args:` (`回傳：…`)
-5. Use `@handle_api_errors()` for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
-6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data
+5. Use `@handle_api_errors()` (`from toolkit import handle_api_errors`) for standardized error handling; check for empty/None results explicitly and return `MSG_NO_DATA.format(data_type=...)`
+6. Use `client.fetch_company_data(endpoint, code)` for company-specific lookups, `client.fetch_data(endpoint)` for general data. If the tool is nothing more than that (or a plain list with an optional name filter), add a `CompanyToolSpec` / `ListToolSpec` to the module's spec list instead of writing a function
 7. Format output with utilities from `utils/formatters.py`
 8. **API field tests** — only required when the tool hardcodes field names with `.get("field")`:
    - **TWSE OpenAPI tools** (`fetch_data` / `fetch_company_data`): add the endpoint and its hardcoded fields to `tests/contract/tool_field_dependencies.py`. The parametrized test in `tests/contract/test_api_schemas.py` will pick it up automatically.

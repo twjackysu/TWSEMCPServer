@@ -5,8 +5,8 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
-    handle_api_errors,
 )
+from toolkit import handle_api_errors
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market statistics tools with the MCP instance."""
