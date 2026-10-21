@@ -7,7 +7,8 @@ back to 1993. CBC refreshes the file about monthly, so the latest weeks may be m
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 CBC_FX_URL = "https://cpx.cbc.gov.tw/API/DataAPI/Get"
 CBC_FX_FILE = "BP01D01"

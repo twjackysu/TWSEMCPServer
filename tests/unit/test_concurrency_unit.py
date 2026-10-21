@@ -16,7 +16,7 @@ import requests
 from fastmcp import Client, FastMCP
 
 from utils.api_client import TWSEAPIClient, throttle_key
-from utils.decorators import handle_api_errors
+from toolkit import handle_api_errors
 
 pytestmark = pytest.mark.offline
 

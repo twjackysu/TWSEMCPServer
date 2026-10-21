@@ -3,7 +3,8 @@
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.taifex import TAIFEX_HEADERS
 
 _ANNUAL_URL = "https://openapi.taifex.com.tw/v1/AnnualTradingVolume"

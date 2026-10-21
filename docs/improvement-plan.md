@@ -24,8 +24,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 
 **P1 的 PR 順序**（每項一個 PR）：
 1. ✅ P1-7 傳輸層（上一行）。
-2. P1-9 + P1-11：`tool_factory` 移出 `utils/`（基礎層不 import fastmcp、解掉循環 import）；
-   `SIMPLE_LIST_TOOLS` 等 8 欄位置 tuple 改成 dataclass。
+2. ✅ P1-9 + P1-11（#114）：`decorators.py`、`tool_factory.py` 移到新的 `toolkit/`，`utils/` 不再 import
+   fastmcp、循環 import 解掉（`test_layering_unit.py` 把關）；7 份位置 tuple 改成 `CompanyToolSpec` /
+   `ListToolSpec`。`tools/list` 與 main 逐字相同。
 3. P1-8：分頁統一成一個 `Page`，取代 13 份手刻分頁；profitability 的 `page_size/page_number` 改成
    `limit/offset`（breaking，記 changelog）。
 4. P1-6 / P1-10（Phase 3 起點）：被重複解析的 STOCK_DAY、MI_INDEX、TWT49U、BWIBBU_d 各收成一個
@@ -86,9 +87,9 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
    Python 3.13 下都能驗證，包括 TWSE；只有 `cpx.cbc.gov.tw` 過不了 3.13 的 `VERIFY_X509_STRICT`。）
 8. **分頁兩種寫法**：多數 `limit/offset`，profitability 用 `page_size/page_number`。
 9. **依賴方向反**：`utils/tool_factory.py` import `fastmcp`（基礎層依賴呈現層）；`utils/__init__` ↔
-   `tool_factory` 循環 import。
+   `tool_factory` 循環 import。（已修，#114：移到 `toolkit/`）
 10. **測試只能比對字串**：邏輯和呈現綁死，unit test 寫 `assert "外資:120（不含自營商 100…" in text`。
-11. **`SIMPLE_LIST_TOOLS` 用 8 欄位置 tuple**，欄位順序靠註解記。
+11. **`SIMPLE_LIST_TOOLS` 用 8 欄位置 tuple**，欄位順序靠註解記。（已修，#114：`CompanyToolSpec` / `ListToolSpec`）
 
 ### P2：產品與維運
 

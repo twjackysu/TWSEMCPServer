@@ -2,14 +2,11 @@
 analysis, etc.). The statements themselves (損益表/資產負債表/現金流量表) live in
 tools/mops/financial_statements.py."""
 
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import (
-    TWSEAPIClient,
-    handle_api_errors,
-    create_company_tool,
-)
+from utils import TWSEAPIClient
+from toolkit import CompanyToolSpec, create_company_tool, handle_api_errors
 
 # order_by names shown to callers → t187ap17_L column names. The full column names are
 # accepted too: the previous default was one, so earlier callers may still send it.
@@ -37,15 +34,15 @@ def profitability_sort_field(order_by: str) -> str:
     raise ToolError(f"order_by 必須是 {'、'.join(PROFITABILITY_SORT_FIELDS)} 其中之一，收到：{order_by}")
 
 # Simple tools: fetch_company_data(endpoint, code) → format as properties.
-SIMPLE_FINANCIAL_TOOLS = [
-    ("/opendata/t187ap15_L", "get_company_quarterly_earnings_forecast_achievement",
-     "根據股票代號查詢上市公司截至各季綜合損益財測達成情形(簡式)。"),
-    ("/opendata/t187ap16_L", "get_company_quarterly_audit_variance",
-     "根據股票代號查詢上市公司當季綜合損益經會計師查核(核閱)數與當季預測數差異達百分之十以上者(簡式)。"),
-    ("/opendata/t187ap17_L", "get_company_profitability_analysis",
-     "根據股票代號查詢上市公司營益分析。"),
-    ("/opendata/t187ap31_L", "get_company_financial_reports_supervisor_acknowledgment",
-     "根據股票代號查詢上市公司財務報告經監察人承認情形。"),
+SIMPLE_FINANCIAL_TOOLS: List[CompanyToolSpec] = [
+    CompanyToolSpec("/opendata/t187ap15_L", "get_company_quarterly_earnings_forecast_achievement",
+                    "根據股票代號查詢上市公司截至各季綜合損益財測達成情形(簡式)。"),
+    CompanyToolSpec("/opendata/t187ap16_L", "get_company_quarterly_audit_variance",
+                    "根據股票代號查詢上市公司當季綜合損益經會計師查核(核閱)數與當季預測數差異達百分之十以上者(簡式)。"),
+    CompanyToolSpec("/opendata/t187ap17_L", "get_company_profitability_analysis",
+                    "根據股票代號查詢上市公司營益分析。"),
+    CompanyToolSpec("/opendata/t187ap31_L", "get_company_financial_reports_supervisor_acknowledgment",
+                    "根據股票代號查詢上市公司財務報告經監察人承認情形。"),
 ]
 
 
@@ -54,8 +51,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     _client = client or TWSEAPIClient.get_instance()
 
-    for endpoint, name, doc in SIMPLE_FINANCIAL_TOOLS:
-        create_company_tool(mcp, endpoint, name, doc, client)
+    for spec in SIMPLE_FINANCIAL_TOOLS:
+        create_company_tool(mcp, spec, client)
 
     # --- Tool with custom sorting/pagination ---
 

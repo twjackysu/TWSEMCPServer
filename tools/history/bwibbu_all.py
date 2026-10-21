@@ -7,7 +7,8 @@ values as this endpoint, which also has 股利年度 and 財報年/季.
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE
+from toolkit import handle_api_errors
 
 # rwd/zh/afterTrading/BWIBBU_d honours the `date` parameter and echoes it back.
 # The older /exchangeReport/BWIBBU_ALL silently ignores `date` entirely — every

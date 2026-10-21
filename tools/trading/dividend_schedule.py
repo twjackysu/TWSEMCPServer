@@ -2,7 +2,8 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, format_multiple_records, format_properties_with_values_multiline
+from utils import TWSEAPIClient, format_multiple_records, format_properties_with_values_multiline
+from toolkit import handle_api_errors
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:

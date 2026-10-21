@@ -7,7 +7,8 @@ latest close and this month's average, which on 2026-09-29 equalled this endpoin
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, roc_to_ad
+from utils import TWSEAPIClient, roc_to_ad
+from toolkit import handle_api_errors
 
 STOCK_DAY_AVG_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG"
 

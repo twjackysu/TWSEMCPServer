@@ -1,10 +1,9 @@
 """Company basic information tools."""
 
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
-    handle_api_errors,
     has_meaningful_data,
     format_meaningful_fields_only,
     MSG_NO_DATA,
@@ -12,10 +11,9 @@ from utils import (
     MSG_OFFSET_OUT_OF_RANGE,
     DEFAULT_DISPLAY_LIMIT,
     format_list_response,
-    create_company_tool,
-    create_list_tool,
     truncate,
 )
+from toolkit import CompanyToolSpec, ListToolSpec, create_company_tool, create_list_tool, handle_api_errors
 
 
 def _fmt_ownership_change(i):
@@ -45,91 +43,89 @@ def _fmt_proposal_exercise(i):
     return result
 
 
-def _list_doc(summary: str, name_label: str, has_name: bool = True) -> str:
-    lines = [summary, "", "        Args:"]
-    if has_name:
-        lines.append(f"            name: {name_label}（選填）")
-    lines.append("            limit: 回傳筆數上限（預設 50）")
-    lines.append("            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）")
-    return "\n".join(lines)
-
+_COMPANY_NAME_HINT = "公司名稱關鍵字（選填）"
 
 # Simple list tools: fetch → optional name filter → paginate.
-# (endpoint, name, summary, label, empty_data_type, filter_field, name_label, formatter)
-SIMPLE_LIST_TOOLS = [
-    (
-        "/announcement/punish", "get_market_disposal_stocks",
-        "查詢集中市場公布處置股票。", "集中市場公布處置股票", "集中市場公布處置股票",
-        "Name", "股票名稱關鍵字",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('DispositionMeasures', 'N/A')} - {i.get('ReasonsOfDisposition', 'N/A')}\n",
+SIMPLE_LIST_TOOLS: List[ListToolSpec] = [
+    ListToolSpec(
+        endpoint="/announcement/punish", name="get_market_disposal_stocks",
+        summary="查詢集中市場公布處置股票。",
+        label="集中市場公布處置股票", empty_data_type="集中市場公布處置股票",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('DispositionMeasures', 'N/A')} - {i.get('ReasonsOfDisposition', 'N/A')}\n",
     ),
-    (
-        "/opendata/t187ap24_L", "get_companies_with_ownership_changes",
-        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動公司。", "上市公司經營權異動資料", "上市公司經營權異動",
-        "公司名稱", "公司名稱關鍵字", _fmt_ownership_change,
+    ListToolSpec(
+        endpoint="/opendata/t187ap24_L", name="get_companies_with_ownership_changes",
+        summary="查詢上市公司經營權及營業範圍異(變)動專區-經營權異動公司。",
+        label="上市公司經營權異動資料", empty_data_type="上市公司經營權異動",
+        filter_field="公司名稱", name_hint=_COMPANY_NAME_HINT,
+        formatter=_fmt_ownership_change,
     ),
-    (
-        "/opendata/t187ap26_L", "get_companies_ownership_changes_business_scope",
-        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。",
-        "經營權異動且營業範圍重大變更停止買賣公司資料", "經營權異動且營業範圍重大變更停止買賣公司",
-        None, None,
-        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('停止買賣開始日', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/opendata/t187ap26_L", name="get_companies_ownership_changes_business_scope",
+        summary="查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更停止買賣公司。",
+        label="經營權異動且營業範圍重大變更停止買賣公司資料",
+        empty_data_type="經營權異動且營業範圍重大變更停止買賣公司",
+        formatter=lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('停止買賣開始日', 'N/A')}\n",
     ),
-    (
-        "/opendata/t187ap27_L", "get_companies_ownership_changes_business_scope_trading",
-        "查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。",
-        "經營權異動且營業範圍重大變更列為變更交易公司資料", "經營權異動且營業範圍重大變更列為變更交易公司",
-        None, None,
-        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('變更交易開始日', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/opendata/t187ap27_L", name="get_companies_ownership_changes_business_scope_trading",
+        summary="查詢上市公司經營權及營業範圍異(變)動專區-經營權異動且營業範圍重大變更列為變更交易公司。",
+        label="經營權異動且營業範圍重大變更列為變更交易公司資料",
+        empty_data_type="經營權異動且營業範圍重大變更列為變更交易公司",
+        formatter=lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('變更交易開始日', 'N/A')}\n",
     ),
-    (
-        "/opendata/t187ap33_L", "get_company_ceo_dual_role",
-        "查詢上市公司董事長是否兼任總經理。", "上市公司董事長兼任總經理資料", "上市公司董事長兼任總經理",
-        "公司名稱", "公司名稱關鍵字",
-        lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('董事長是否兼任總經理', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/opendata/t187ap33_L", name="get_company_ceo_dual_role",
+        summary="查詢上市公司董事長是否兼任總經理。",
+        label="上市公司董事長兼任總經理資料", empty_data_type="上市公司董事長兼任總經理",
+        filter_field="公司名稱", name_hint=_COMPANY_NAME_HINT,
+        formatter=lambda i: f"- {i.get('公司名稱', 'N/A')} ({i.get('公司代號', 'N/A')}): {i.get('董事長是否兼任總經理', 'N/A')}\n",
     ),
-    (
-        "/opendata/t187ap34_L", "get_companies_cumulative_voting",
-        "查詢上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表。",
-        "上市公司採累積投票制選任董監事資料", "上市公司採累積投票制選任董監事",
-        "公司名稱", "公司名稱關鍵字", _fmt_cumulative_voting,
+    ListToolSpec(
+        endpoint="/opendata/t187ap34_L", name="get_companies_cumulative_voting",
+        summary="查詢上市公司採累積投票制、全額連記法、候選人提名制選任董監事及當選資料彙總表。",
+        label="上市公司採累積投票制選任董監事資料", empty_data_type="上市公司採累積投票制選任董監事",
+        filter_field="公司名稱", name_hint=_COMPANY_NAME_HINT,
+        formatter=_fmt_cumulative_voting,
     ),
-    (
-        "/opendata/t187ap35_L", "get_company_shareholder_proposal_exercise",
-        "查詢上市公司股東行使提案權情形彙總表。", "上市公司股東行使提案權資料", "上市公司股東行使提案權",
-        "公司名稱", "公司名稱關鍵字", _fmt_proposal_exercise,
+    ListToolSpec(
+        endpoint="/opendata/t187ap35_L", name="get_company_shareholder_proposal_exercise",
+        summary="查詢上市公司股東行使提案權情形彙總表。",
+        label="上市公司股東行使提案權資料", empty_data_type="上市公司股東行使提案權",
+        filter_field="公司名稱", name_hint=_COMPANY_NAME_HINT,
+        formatter=_fmt_proposal_exercise,
     ),
 ]
 
-# Simple tools: (endpoint, function_name, mcp_description)
-# All follow the same pattern: fetch_company_data(endpoint, code) → format as properties.
-SIMPLE_BASIC_INFO_TOOLS = [
-    ("/opendata/t187ap03_L", "get_company_profile",
-     "根據股票代號查詢上市公司基本資料。"),
-    ("/opendata/t187ap02_L", "get_company_major_shareholders",
-     "根據股票代號查詢上市公司持股逾10%大股東名單。"),
-    ("/opendata/t187ap14_L", "get_company_eps_statistics",
-     "根據股票代號查詢上市公司各產業EPS統計資訊。"),
-    ("/opendata/t187ap12_L", "get_company_daily_insider_trades_preannounced",
-     "根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股轉讓日報表。"),
-    ("/opendata/t187ap13_L", "get_company_daily_insider_trades_untransferred",
-     "根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股未轉讓日報表。"),
-    ("/opendata/t187ap22_L", "get_company_sec_regulatory_penalties",
-     "根據股票代號查詢上市公司金管會證券期貨局裁罰案件專區。"),
-    ("/opendata/t187ap29_A_L", "get_company_director_compensation",
-     "根據股票代號查詢上市公司董事酬金相關資訊。"),
-    ("/opendata/t187ap29_B_L", "get_company_supervisor_compensation",
-     "根據股票代號查詢上市公司監察人酬金相關資訊。"),
-    ("/opendata/t187ap29_C_L", "get_company_consolidated_director_compensation",
-     "根據股票代號查詢上市公司合併報表董事酬金相關資訊。"),
-    ("/opendata/t187ap29_D_L", "get_company_consolidated_supervisor_compensation",
-     "根據股票代號查詢上市公司合併報表監察人酬金相關資訊。"),
-    ("/opendata/t187ap23_L", "get_company_information_disclosure_violations",
-     "根據股票代號查詢上市公司違反資訊申報、重大訊息及說明記者會規定專區。"),
-    ("/opendata/t187ap03_P", "get_public_company_profile",
-     "根據股票代號查詢公開發行公司基本資料。"),
-    ("/opendata/t187ap32_L", "get_company_governance_regulations",
-     "根據股票代號查詢上市公司公司治理之相關規程規則。"),
+# Simple tools: fetch_company_data(endpoint, code) → format as properties.
+SIMPLE_BASIC_INFO_TOOLS: List[CompanyToolSpec] = [
+    CompanyToolSpec("/opendata/t187ap03_L", "get_company_profile",
+                    "根據股票代號查詢上市公司基本資料。"),
+    CompanyToolSpec("/opendata/t187ap02_L", "get_company_major_shareholders",
+                    "根據股票代號查詢上市公司持股逾10%大股東名單。"),
+    CompanyToolSpec("/opendata/t187ap14_L", "get_company_eps_statistics",
+                    "根據股票代號查詢上市公司各產業EPS統計資訊。"),
+    CompanyToolSpec("/opendata/t187ap12_L", "get_company_daily_insider_trades_preannounced",
+                    "根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股轉讓日報表。"),
+    CompanyToolSpec("/opendata/t187ap13_L", "get_company_daily_insider_trades_untransferred",
+                    "根據股票代號查詢上市公司每日內部人持股轉讓事前申報表-持股未轉讓日報表。"),
+    CompanyToolSpec("/opendata/t187ap22_L", "get_company_sec_regulatory_penalties",
+                    "根據股票代號查詢上市公司金管會證券期貨局裁罰案件專區。"),
+    CompanyToolSpec("/opendata/t187ap29_A_L", "get_company_director_compensation",
+                    "根據股票代號查詢上市公司董事酬金相關資訊。"),
+    CompanyToolSpec("/opendata/t187ap29_B_L", "get_company_supervisor_compensation",
+                    "根據股票代號查詢上市公司監察人酬金相關資訊。"),
+    CompanyToolSpec("/opendata/t187ap29_C_L", "get_company_consolidated_director_compensation",
+                    "根據股票代號查詢上市公司合併報表董事酬金相關資訊。"),
+    CompanyToolSpec("/opendata/t187ap29_D_L", "get_company_consolidated_supervisor_compensation",
+                    "根據股票代號查詢上市公司合併報表監察人酬金相關資訊。"),
+    CompanyToolSpec("/opendata/t187ap23_L", "get_company_information_disclosure_violations",
+                    "根據股票代號查詢上市公司違反資訊申報、重大訊息及說明記者會規定專區。"),
+    CompanyToolSpec("/opendata/t187ap03_P", "get_public_company_profile",
+                    "根據股票代號查詢公開發行公司基本資料。"),
+    CompanyToolSpec("/opendata/t187ap32_L", "get_company_governance_regulations",
+                    "根據股票代號查詢上市公司公司治理之相關規程規則。"),
 ]
 
 
@@ -138,15 +134,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     _client = client or TWSEAPIClient.get_instance()
 
-    for endpoint, name, doc in SIMPLE_BASIC_INFO_TOOLS:
-        create_company_tool(mcp, endpoint, name, doc, client)
+    for spec in SIMPLE_BASIC_INFO_TOOLS:
+        create_company_tool(mcp, spec, client)
 
-    for endpoint, name, summary, label, empty_type, filter_field, name_label, formatter in SIMPLE_LIST_TOOLS:
-        create_list_tool(
-            mcp, endpoint, name,
-            _list_doc(summary, name_label, has_name=filter_field is not None),
-            label, empty_type, formatter, filter_field=filter_field, client=client,
-        )
+    for spec in SIMPLE_LIST_TOOLS:
+        create_list_tool(mcp, spec, client)
 
     # --- Complex tools with custom logic ---
 

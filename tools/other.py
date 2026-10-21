@@ -5,10 +5,10 @@ from typing import Optional
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
-    handle_api_errors,
     format_list_response,
     create_simple_list_formatter,
 )
+from toolkit import handle_api_errors
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register other tools with the MCP instance."""

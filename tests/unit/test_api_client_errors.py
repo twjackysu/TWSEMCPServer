@@ -13,12 +13,13 @@ import requests
 from fastmcp.exceptions import ToolError
 
 from utils.api_client import TWSEAPIClient
-from utils.tool_factory import create_company_tool
+from toolkit import CompanyToolSpec, create_company_tool
 from tests.helpers import _CapturingMCP
 
 pytestmark = pytest.mark.offline
 
 ENDPOINT = "/opendata/t187ap06_L_ci"
+PROBE = CompanyToolSpec(ENDPOINT, "probe_tool", "測試用")
 
 
 class _MaintenancePage:
@@ -80,7 +81,7 @@ def test_fetch_latest_market_data_propagates_failures(monkeypatch, client, fake_
 def test_tool_reports_failure_not_missing_data(monkeypatch, client, fake_request):
     """工具層必須拋 ToolError（MCP isError=true）「查詢失敗」，而非回傳與查無資料無從分辨的正常文字."""
     mcp = _CapturingMCP()
-    create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
+    create_company_tool(mcp, PROBE, client)
     monkeypatch.setattr(requests.Session, "request", fake_request)
 
     with pytest.raises(ToolError, match="^查詢失敗"):
@@ -127,7 +128,7 @@ class _ListWithoutTarget:
 def test_missing_company_still_reads_as_missing(monkeypatch, client):
     """對照組：真的查無此公司時，訊息要與「查詢失敗」明確區分."""
     mcp = _CapturingMCP()
-    create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
+    create_company_tool(mcp, PROBE, client)
     monkeypatch.setattr(requests.Session, "request", lambda *a, **kw: _ListWithoutTarget())
 
     result = mcp.tools["probe_tool"]("9999")

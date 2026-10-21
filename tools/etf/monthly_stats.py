@@ -9,7 +9,8 @@ from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.sitca import available_months, query_rows, to_number
 
 STATEMENT_PAGE = "etf_statement.aspx"

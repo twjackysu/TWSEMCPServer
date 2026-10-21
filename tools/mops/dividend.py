@@ -9,7 +9,8 @@ from datetime import date
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.mops import mops_post, leaf_titles, to_roc_year
 
 MAX_YEARS = 10

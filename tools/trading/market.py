@@ -1,115 +1,113 @@
 """Market trading tools for TWSE data."""
 
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     MSG_NO_DATA,
     MSG_NO_MATCHING_DATA,
     MSG_OFFSET_OUT_OF_RANGE,
-    handle_api_errors,
     format_list_response,
-    create_list_tool,
     DEFAULT_DISPLAY_LIMIT,
 )
-
-
-def _doc(summary: str, has_name: bool, default_limit: int = DEFAULT_DISPLAY_LIMIT) -> str:
-    """Build a tool docstring in the repo's standard shape."""
-    lines = [summary, "", "        Args:"]
-    if has_name:
-        lines.append("            name: 股票名稱關鍵字（選填）")
-    lines.append(f"            limit: 回傳筆數上限（預設 {default_limit}）")
-    lines.append("            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）")
-    return "\n".join(lines)
+from toolkit import ListToolSpec, create_list_tool, handle_api_errors
 
 
 # Simple list tools that follow: fetch → optional name filter → paginate.
-# Tuple: (endpoint, name, summary, label, empty_data_type, filter_field, formatter)
-SIMPLE_LIST_TOOLS = [
-    (
-        "/exchangeReport/TWT88U", "get_stocks_no_price_change_first_five_days",
-        "查詢上市個股首五日無漲跌幅。", "上市個股首五日無漲跌幅資料",
-        "上市個股首五日無漲跌幅", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 承銷價 {i.get('PriceUnderwritten', 'N/A')}\n",
+SIMPLE_LIST_TOOLS: List[ListToolSpec] = [
+    ListToolSpec(
+        endpoint="/exchangeReport/TWT88U", name="get_stocks_no_price_change_first_five_days",
+        summary="查詢上市個股首五日無漲跌幅。",
+        label="上市個股首五日無漲跌幅資料", empty_data_type="上市個股首五日無漲跌幅",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 承銷價 {i.get('PriceUnderwritten', 'N/A')}\n",
     ),
-    (
-        "/Announcement/BFZFZU_T", "get_financial_program_abnormal_recommendations",
-        "查詢投資理財節目異常推介個股。", "投資理財節目異常推介個股資料",
-        "投資理財節目異常推介個股", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Number', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/Announcement/BFZFZU_T", name="get_financial_program_abnormal_recommendations",
+        summary="查詢投資理財節目異常推介個股。",
+        label="投資理財節目異常推介個股資料", empty_data_type="投資理財節目異常推介個股",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Number', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWTBAU1", "get_suspended_day_trading_announcement",
-        "查詢集中市場暫停先賣後買當日沖銷交易標的預告表。", "集中市場暫停先賣後買當日沖銷交易標的預告表資料",
-        "集中市場暫停先賣後買當日沖銷交易標的預告表", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWTBAU1", name="get_suspended_day_trading_announcement",
+        summary="查詢集中市場暫停先賣後買當日沖銷交易標的預告表。",
+        label="集中市場暫停先賣後買當日沖銷交易標的預告表資料", empty_data_type="集中市場暫停先賣後買當日沖銷交易標的預告表",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWTBAU2", "get_suspended_day_trading_history",
-        "查詢集中市場暫停先賣後買當日沖銷交易歷史查詢。", "集中市場暫停先賣後買當日沖銷交易歷史資料",
-        "集中市場暫停先賣後買當日沖銷交易歷史", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWTBAU2", name="get_suspended_day_trading_history",
+        summary="查詢集中市場暫停先賣後買當日沖銷交易歷史查詢。",
+        label="集中市場暫停先賣後買當日沖銷交易歷史資料", empty_data_type="集中市場暫停先賣後買當日沖銷交易歷史",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 暫停日期 {i.get('StartDate', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/MI_INDEX4", "get_cross_market_trading_info",
-        "查詢每日上市上櫃跨市場成交資訊。", "每日上市上櫃跨市場成交資訊",
-        "每日上市上櫃跨市場成交資訊", None,
-        lambda i: f"- {i.get('Date', 'N/A')}: 台灣指數 {i.get('FormosaIndex', 'N/A')} ({i.get('Change', 'N/A')}) 成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/MI_INDEX4", name="get_cross_market_trading_info",
+        summary="查詢每日上市上櫃跨市場成交資訊。",
+        label="每日上市上櫃跨市場成交資訊", empty_data_type="每日上市上櫃跨市場成交資訊",
+        formatter=lambda i: f"- {i.get('Date', 'N/A')}: 台灣指數 {i.get('FormosaIndex', 'N/A')} ({i.get('Change', 'N/A')}) 成交金額 {i.get('TradeValue', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWT53U", "get_odd_lot_trading_quotes",
-        "查詢集中市場零股交易行情單。", "集中市場零股交易行情單資料",
-        "集中市場零股交易行情單", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交價 {i.get('TradePrice', 'N/A')}, 成交量 {i.get('TradeVolume', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWT53U", name="get_odd_lot_trading_quotes",
+        summary="查詢集中市場零股交易行情單。",
+        label="集中市場零股交易行情單資料", empty_data_type="集中市場零股交易行情單",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交價 {i.get('TradePrice', 'N/A')}, 成交量 {i.get('TradeVolume', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWTAWU", "get_suspended_trading_stocks",
-        "查詢集中市場暫停交易證券。", "集中市場暫停交易證券資料",
-        "集中市場暫停交易證券", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 停止 {i.get('TradingHaltDate', 'N/A')}, 恢復 {i.get('TradingResumptionDate', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWTAWU", name="get_suspended_trading_stocks",
+        summary="查詢集中市場暫停交易證券。",
+        label="集中市場暫停交易證券資料", empty_data_type="集中市場暫停交易證券",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 停止 {i.get('TradingHaltDate', 'N/A')}, 恢復 {i.get('TradingResumptionDate', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/BFI84U", "get_margin_loan_restrictions_announcement",
-        "查詢集中市場停資停券預告表。", "集中市場停資停券預告表資料",
-        "集中市場停資停券預告表", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Reason', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/BFI84U", name="get_margin_loan_restrictions_announcement",
+        summary="查詢集中市場停資停券預告表。",
+        label="集中市場停資停券預告表資料", empty_data_type="集中市場停資停券預告表",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('Reason', 'N/A')}\n",
     ),
-    (
-        "/block/BFIAUU_d", "get_block_trades_daily",
-        "查詢集中市場鉅額交易日成交量值統計。", "集中市場鉅額交易日成交量值統計資料",
-        "集中市場鉅額交易日成交量值統計", None,
-        lambda i: f"- {i.get('Date', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/block/BFIAUU_d", name="get_block_trades_daily",
+        summary="查詢集中市場鉅額交易日成交量值統計。",
+        label="集中市場鉅額交易日成交量值統計資料", empty_data_type="集中市場鉅額交易日成交量值統計",
+        formatter=lambda i: f"- {i.get('Date', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
     ),
-    (
-        "/block/BFIAUU_m", "get_block_trades_monthly",
-        "查詢集中市場鉅額交易月成交量值統計。", "集中市場鉅額交易月成交量值統計資料",
-        "集中市場鉅額交易月成交量值統計", None,
-        lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/block/BFIAUU_m", name="get_block_trades_monthly",
+        summary="查詢集中市場鉅額交易月成交量值統計。",
+        label="集中市場鉅額交易月成交量值統計資料", empty_data_type="集中市場鉅額交易月成交量值統計",
+        formatter=lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
     ),
-    (
-        "/block/BFIAUU_y", "get_block_trades_yearly",
-        "查詢集中市場鉅額交易年成交量值統計。", "集中市場鉅額交易年成交量值統計資料",
-        "集中市場鉅額交易年成交量值統計", None,
-        lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/block/BFIAUU_y", name="get_block_trades_yearly",
+        summary="查詢集中市場鉅額交易年成交量值統計。",
+        label="集中市場鉅額交易年成交量值統計資料", empty_data_type="集中市場鉅額交易年成交量值統計",
+        formatter=lambda i: f"- {i.get('Month', 'N/A')}: 成交量 {i.get('TradeVolume', 'N/A')}, 總成交金額 {i.get('TradeValue', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/STOCK_FIRST", "get_first_listed_foreign_stocks_daily",
-        "查詢每日第一上市外國股票成交量值。", "每日第一上市外國股票成交量值資料",
-        "每日第一上市外國股票成交量值", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交量 {i.get('TradeVolume', 'N/A')}, 成交金額 {i.get('TradeValue', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/STOCK_FIRST", name="get_first_listed_foreign_stocks_daily",
+        summary="查詢每日第一上市外國股票成交量值。",
+        label="每日第一上市外國股票成交量值資料", empty_data_type="每日第一上市外國股票成交量值",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 成交量 {i.get('TradeVolume', 'N/A')}, 成交金額 {i.get('TradeValue', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWT85U", "get_securities_trading_changes",
-        "查詢集中市場證券變更交易。", "集中市場證券變更交易資料",
-        "集中市場證券變更交易", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('PeriodicCallAuctionTrading', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWT85U", name="get_securities_trading_changes",
+        summary="查詢集中市場證券變更交易。",
+        label="集中市場證券變更交易資料", empty_data_type="集中市場證券變更交易",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): {i.get('PeriodicCallAuctionTrading', 'N/A')}\n",
     ),
-    (
-        "/exchangeReport/TWT84U", "get_stock_price_changes",
-        "查詢上市個股股價升降幅度。", "上市個股股價升降幅度資料",
-        "上市個股股價升降幅度", "Name",
-        lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 漲停 {i.get('TodayLimitUp', 'N/A')}, 跌停 {i.get('TodayLimitDown', 'N/A')}\n",
+    ListToolSpec(
+        endpoint="/exchangeReport/TWT84U", name="get_stock_price_changes",
+        summary="查詢上市個股股價升降幅度。",
+        label="上市個股股價升降幅度資料", empty_data_type="上市個股股價升降幅度",
+        filter_field="Name", name_hint="股票名稱關鍵字（選填）",
+        formatter=lambda i: f"- {i.get('Name', 'N/A')} ({i.get('Code', 'N/A')}): 漲停 {i.get('TodayLimitUp', 'N/A')}, 跌停 {i.get('TodayLimitDown', 'N/A')}\n",
     ),
 ]
 
@@ -119,12 +117,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     _client = client or TWSEAPIClient.get_instance()
 
-    for endpoint, name, summary, label, empty_type, filter_field, formatter in SIMPLE_LIST_TOOLS:
-        create_list_tool(
-            mcp, endpoint, name,
-            _doc(summary, has_name=filter_field is not None),
-            label, empty_type, formatter, filter_field=filter_field, client=client,
-        )
+    for spec in SIMPLE_LIST_TOOLS:
+        create_list_tool(mcp, spec, client)
 
     # --- Tools with custom headers, branching, or multi-section output ---
 

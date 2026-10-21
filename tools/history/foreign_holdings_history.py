@@ -8,7 +8,8 @@ ratios, limits and share counts, and it could neither pick a date nor look up on
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, format_list_response
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, format_list_response
+from toolkit import handle_api_errors
 
 MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
 

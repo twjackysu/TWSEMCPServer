@@ -1,52 +1,52 @@
 """Company ESG and governance tools."""
 
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, format_properties_with_values_multiline, has_meaningful_data
-from utils.tool_factory import create_company_tool
+from utils import TWSEAPIClient, format_properties_with_values_multiline, has_meaningful_data
+from toolkit import CompanyToolSpec, create_company_tool, handle_api_errors
 
-# Simple company data tools: (endpoint, name, docstring)
-SIMPLE_ESG_TOOLS = [
-    ("/opendata/t187ap46_L_9", "get_company_governance_info",
-     "根據股票代號查詢上市公司公司治理資訊。"),
-    ("/opendata/t187ap46_L_8", "get_company_climate_management",
-     "根據股票代號查詢上市公司氣候相關議題管理資訊。"),
-    ("/opendata/t187ap46_L_19", "get_company_risk_management",
-     "根據股票代號查詢上市公司風險管理政策資訊。"),
-    ("/opendata/t187ap46_L_13", "get_company_supply_chain_management",
-     "根據股票代號查詢上市公司供應鏈管理資訊。"),
-    ("/opendata/t187ap46_L_16", "get_company_info_security",
-     "根據股票代號查詢上市公司資訊安全資料。"),
-    ("/opendata/t187ap46_L_20", "get_company_anticompetitive_litigation",
-     "根據股票代號查詢上市公司反競爭行為法律訴訟損失資訊。"),
-    ("/opendata/t187ap46_L_17", "get_company_inclusive_finance",
-     "根據股票代號查詢上市公司普惠金融資訊。"),
-    ("/opendata/t187ap46_L_15", "get_company_community_relations",
-     "根據股票代號查詢上市公司社區關係資訊。"),
-    ("/opendata/t187ap46_L_18", "get_company_ownership_and_control",
-     "根據股票代號查詢上市公司持股及控制力資訊。"),
-    ("/opendata/t187ap46_L_14", "get_company_product_quality_safety",
-     "根據股票代號查詢上市公司產品品質與安全資訊。"),
-    ("/opendata/t187ap46_L_12", "get_company_food_safety",
-     "根據股票代號查詢上市公司食品安全資訊。"),
-    ("/opendata/t187ap46_L_11", "get_company_product_lifecycle",
-     "根據股票代號查詢上市公司產品生命週期資訊。"),
-    ("/opendata/t187ap46_L_10", "get_company_fuel_management",
-     "根據股票代號查詢上市公司燃料管理資訊。"),
-    ("/opendata/t187ap46_L_7", "get_company_investor_communications",
-     "根據股票代號查詢上市公司投資人溝通資訊。"),
-    ("/opendata/t187ap46_L_6", "get_company_board_info",
-     "根據股票代號查詢上市公司董事會資訊。"),
-    ("/opendata/t187ap46_L_5", "get_company_human_development",
-     "根據股票代號查詢上市公司人力發展資訊。"),
-    ("/opendata/t187ap46_L_4", "get_company_waste_management",
-     "根據股票代號查詢上市公司廢棄物管理資訊。"),
-    ("/opendata/t187ap46_L_3", "get_company_water_management",
-     "根據股票代號查詢上市公司水資源管理資訊。"),
-    ("/opendata/t187ap46_L_2", "get_company_energy_management",
-     "根據股票代號查詢上市公司能源管理資訊。"),
-    ("/opendata/t187ap46_L_1", "get_company_greenhouse_gas_emissions",
-     "根據股票代號查詢上市公司溫室氣體排放資訊。"),
+# Simple company data tools
+SIMPLE_ESG_TOOLS: List[CompanyToolSpec] = [
+    CompanyToolSpec("/opendata/t187ap46_L_9", "get_company_governance_info",
+                    "根據股票代號查詢上市公司公司治理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_8", "get_company_climate_management",
+                    "根據股票代號查詢上市公司氣候相關議題管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_19", "get_company_risk_management",
+                    "根據股票代號查詢上市公司風險管理政策資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_13", "get_company_supply_chain_management",
+                    "根據股票代號查詢上市公司供應鏈管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_16", "get_company_info_security",
+                    "根據股票代號查詢上市公司資訊安全資料。"),
+    CompanyToolSpec("/opendata/t187ap46_L_20", "get_company_anticompetitive_litigation",
+                    "根據股票代號查詢上市公司反競爭行為法律訴訟損失資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_17", "get_company_inclusive_finance",
+                    "根據股票代號查詢上市公司普惠金融資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_15", "get_company_community_relations",
+                    "根據股票代號查詢上市公司社區關係資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_18", "get_company_ownership_and_control",
+                    "根據股票代號查詢上市公司持股及控制力資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_14", "get_company_product_quality_safety",
+                    "根據股票代號查詢上市公司產品品質與安全資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_12", "get_company_food_safety",
+                    "根據股票代號查詢上市公司食品安全資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_11", "get_company_product_lifecycle",
+                    "根據股票代號查詢上市公司產品生命週期資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_10", "get_company_fuel_management",
+                    "根據股票代號查詢上市公司燃料管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_7", "get_company_investor_communications",
+                    "根據股票代號查詢上市公司投資人溝通資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_6", "get_company_board_info",
+                    "根據股票代號查詢上市公司董事會資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_5", "get_company_human_development",
+                    "根據股票代號查詢上市公司人力發展資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_4", "get_company_waste_management",
+                    "根據股票代號查詢上市公司廢棄物管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_3", "get_company_water_management",
+                    "根據股票代號查詢上市公司水資源管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_2", "get_company_energy_management",
+                    "根據股票代號查詢上市公司能源管理資訊。"),
+    CompanyToolSpec("/opendata/t187ap46_L_1", "get_company_greenhouse_gas_emissions",
+                    "根據股票代號查詢上市公司溫室氣體排放資訊。"),
 ]
 
 
@@ -57,8 +57,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     _client = client or TWSEAPIClient.get_instance()
     
     # Register simple tools via factory
-    for endpoint, name, doc in SIMPLE_ESG_TOOLS:
-        create_company_tool(mcp, endpoint, name, doc, client)
+    for spec in SIMPLE_ESG_TOOLS:
+        create_company_tool(mcp, spec, client)
     
     # Complex tools with custom logic below
     

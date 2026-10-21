@@ -6,7 +6,8 @@ served the current month, whose rows on 2026-09-29 were identical to this endpoi
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 MI_5MINS_HIST_URL = "https://www.twse.com.tw/rwd/zh/TAIEX/MI_5MINS_HIST"
 

@@ -10,7 +10,8 @@ larger) and has 均價 and 次日參考價, while the website's afterTrading/otc
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE, format_list_response
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, MSG_OFFSET_OUT_OF_RANGE, format_list_response
+from toolkit import handle_api_errors
 from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
 
 TPEX_DAILY_CLOSE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"

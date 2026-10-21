@@ -21,7 +21,8 @@ from typing import Dict, List, Optional, Tuple
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.taifex import TAIFEX_DOWNLOAD_BASE, TAIFEX_HEADERS, is_stock_code, stock_futures_contracts
 
 TICK_PAGE_URL = f"{TAIFEX_DOWNLOAD_BASE}/dlFutPrevious30DaysSalesData"

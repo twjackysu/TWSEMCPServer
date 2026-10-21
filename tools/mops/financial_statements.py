@@ -9,7 +9,8 @@ every industry, for the latest quarter (``dataType`` "1") or any past one ("2").
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 from utils.mops import mops_post, flatten_titles, to_roc_year
 
 # statement key → (MOPS api name, display name)

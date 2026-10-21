@@ -22,7 +22,8 @@ from typing import Dict, List, Optional, Tuple
 import requests
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
 # Weekly data in one ~2.3 MB file: without a cache every single-stock lookup re-downloads

@@ -4,7 +4,8 @@ tools/history/exright_day_trading_indices.py."""
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors, format_multiple_records
+from utils import TWSEAPIClient, format_multiple_records
+from toolkit import handle_api_errors
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register market indices tools with the MCP instance."""

@@ -9,7 +9,8 @@ endpoint (served as CSV that day) value for value.
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, handle_api_errors, cap_rows
+from utils import TWSEAPIClient, cap_rows
+from toolkit import handle_api_errors
 from utils.taifex import (
     TAIFEX_CACHE_TTL,
     TAIFEX_DOWNLOAD_BASE,

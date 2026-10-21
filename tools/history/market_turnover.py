@@ -2,7 +2,8 @@
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, handle_api_errors
+from utils import TWSEAPIClient
+from toolkit import handle_api_errors
 
 FMTQIK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK"
 

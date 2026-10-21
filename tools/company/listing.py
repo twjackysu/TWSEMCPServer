@@ -9,21 +9,12 @@ Which field holds the listing date depends on the endpoint (TWSE's swagger descr
 - /company/applylistingForeign: ``ListingDate`` is 股票上市買賣日期; there is no ApprovedListingDate.
 """
 
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, create_list_tool
+from utils import TWSEAPIClient
 from utils.date_helper import roc_to_ad
 from utils.types import TWSEDataItem
-
-
-def _doc(summary: str) -> str:
-    return "\n".join([
-        summary, "",
-        "        Args:",
-        "            name: 公司名稱關鍵字（選填）",
-        "            limit: 回傳筆數上限（預設 50）",
-        "            offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）",
-    ])
+from toolkit import ListToolSpec, create_list_tool
 
 
 def _date(value) -> str:
@@ -69,29 +60,37 @@ def normalize_local_application(row: TWSEDataItem) -> TWSEDataItem:
     return fixed
 
 
-# (endpoint, name, summary, label, empty_data_type, formatter, normalize)
-LISTING_TOOLS = [
-    (
-        "/company/applylistingForeign", "get_foreign_companies_applying_for_listing",
-        "查詢外國公司向證交所申請第一上市之公司。", "外國公司申請第一上市資料",
-        "外國公司申請第一上市", _application_formatter("ListingDate"), None,
+_COMPANY_NAME_HINT = "公司名稱關鍵字（選填）"
+
+LISTING_TOOLS: List[ListToolSpec] = [
+    ListToolSpec(
+        endpoint="/company/applylistingForeign", name="get_foreign_companies_applying_for_listing",
+        summary="查詢外國公司向證交所申請第一上市之公司。",
+        label="外國公司申請第一上市資料", empty_data_type="外國公司申請第一上市",
+        filter_field="Company", name_hint=_COMPANY_NAME_HINT,
+        formatter=_application_formatter("ListingDate"),
     ),
-    (
-        "/company/newlisting", "get_recently_listed_companies",
-        "查詢最近上市公司，由新到舊（上市日期＝股票上市買賣日）。", "最近上市公司資料", "最近上市公司",
-        lambda i: f"- {i.get('Company', 'N/A')} ({i.get('Code', 'N/A')}): 上市日期 {_date(i.get('ApprovedListingDate'))}\n",
-        None,
+    ListToolSpec(
+        endpoint="/company/newlisting", name="get_recently_listed_companies",
+        summary="查詢最近上市公司，由新到舊（上市日期＝股票上市買賣日）。",
+        label="最近上市公司資料", empty_data_type="最近上市公司",
+        filter_field="Company", name_hint=_COMPANY_NAME_HINT,
+        formatter=lambda i: f"- {i.get('Company', 'N/A')} ({i.get('Code', 'N/A')}): 上市日期 {_date(i.get('ApprovedListingDate'))}\n",
     ),
-    (
-        "/company/suspendListingCsvAndHtml", "get_suspended_listed_companies",
-        "查詢終止上市公司。", "終止上市公司資料", "終止上市公司",
-        lambda i: f"- {i.get('Company', 'N/A')} ({i.get('Code', 'N/A')}): 終止日期 {i.get('DelistingDate', 'N/A')}\n",
-        None,
+    ListToolSpec(
+        endpoint="/company/suspendListingCsvAndHtml", name="get_suspended_listed_companies",
+        summary="查詢終止上市公司。",
+        label="終止上市公司資料", empty_data_type="終止上市公司",
+        filter_field="Company", name_hint=_COMPANY_NAME_HINT,
+        formatter=lambda i: f"- {i.get('Company', 'N/A')} ({i.get('Code', 'N/A')}): 終止日期 {i.get('DelistingDate', 'N/A')}\n",
     ),
-    (
-        "/company/applylistingLocal", "get_local_companies_applying_for_listing",
-        "查詢申請上市之本國公司（上市日期＝股票上市買賣日，尚未排定時為 —）。", "申請上市之本國公司資料",
-        "申請上市之本國公司", _application_formatter("ApprovedListingDate"), normalize_local_application,
+    ListToolSpec(
+        endpoint="/company/applylistingLocal", name="get_local_companies_applying_for_listing",
+        summary="查詢申請上市之本國公司（上市日期＝股票上市買賣日，尚未排定時為 —）。",
+        label="申請上市之本國公司資料", empty_data_type="申請上市之本國公司",
+        filter_field="Company", name_hint=_COMPANY_NAME_HINT,
+        formatter=_application_formatter("ApprovedListingDate"),
+        normalize=normalize_local_application,
     ),
 ]
 
@@ -99,8 +98,5 @@ LISTING_TOOLS = [
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register company listing tools with the MCP instance."""
 
-    for endpoint, name, summary, label, empty_type, formatter, normalize in LISTING_TOOLS:
-        create_list_tool(
-            mcp, endpoint, name, _doc(summary), label, empty_type,
-            formatter, filter_field="Company", client=client, normalize=normalize,
-        )
+    for spec in LISTING_TOOLS:
+        create_list_tool(mcp, spec, client)
