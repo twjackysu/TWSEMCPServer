@@ -4,7 +4,10 @@
 """
 
 import io
+import time
 import zipfile
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -63,6 +66,30 @@ def _intraday_fn():
         "/v1/SSFLists": SSF,
     })
     return register_module_tools(intraday, client)["get_futures_intraday"]
+
+
+class _YieldingDict(OrderedDict):
+    """寫入後讓出執行緒 5ms，把「寫入後、讀回前」這段 race 的時間窗撐大到每次都會發生."""
+
+    def __setitem__(self, key, value):
+        super().__setitem__(key, value)
+        time.sleep(0.005)
+
+
+def test_parsed_ticks_cache_survives_concurrent_eviction(monkeypatch):
+    """工具在 worker thread 並行執行；快取只放 1 筆時，每次呼叫都會擠掉別人剛放進去的資料.
+
+    沒加鎖時，一個呼叫剛寫入的 key 會在讀回之前被另一個呼叫淘汰（KeyError → 查詢失敗）。
+    在有 GIL 的 CPython 上這段時間窗極短，所以用 _YieldingDict 把它撐大。
+    """
+    monkeypatch.setattr(intraday, "MAX_PARSED", 1)
+    monkeypatch.setattr(intraday, "OrderedDict", _YieldingDict)
+    fn = _intraday_fn()
+    contracts = ["TX", "MTX", "CDF", "QFF"]
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(lambda i: (contracts[i % 4], fn(contracts[i % 4], date="20261016")), range(40)))
+    for contract, text in results:
+        assert text.startswith(f"【{contract} 202610 盤中走勢】"), text[:80]
 
 
 # ---------- parsing and bars ----------

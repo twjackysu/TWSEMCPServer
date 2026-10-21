@@ -13,6 +13,7 @@ against the daily market report: the night session matches within 0.3%; the day 
 """
 
 import re
+import threading
 import zipfile
 import io
 from collections import OrderedDict
@@ -135,7 +136,10 @@ def format_session(label: str, ticks: List[Tick], interval: int, start_minute: i
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register the futures intraday tool."""
     _client = client or TWSEAPIClient.get_instance()
+    # Shared by concurrent calls (tools run in worker threads): every read and write of
+    # `parsed` happens under the lock.
     parsed: "OrderedDict[Tuple[str, str], List[Tick]]" = OrderedDict()
+    parsed_lock = threading.Lock()
 
     def _csv_text(day: str) -> str:
         url = f"{TICK_ZIP_BASE}/Daily_{day[:4]}_{day[4:6]}_{day[6:]}.zip"
@@ -145,11 +149,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     def _ticks(day: str, contract: str) -> List[Tick]:
         key = (day, contract)
-        if key not in parsed:
-            if len(parsed) >= MAX_PARSED:
+        with parsed_lock:
+            ticks = parsed.get(key)
+        if ticks is not None:
+            return ticks
+        # Parse outside the lock (seconds for a ~45 MB file) so cache hits for other days don't
+        # wait. Two calls missing the same key both parse; the zip itself is fetched once.
+        ticks = parse_ticks(_csv_text(day), contract)
+        with parsed_lock:
+            parsed.pop(key, None)
+            while len(parsed) >= MAX_PARSED:
                 parsed.popitem(last=False)
-            parsed[key] = parse_ticks(_csv_text(day), contract)
-        return parsed[key]
+            parsed[key] = ticks
+        # Return our own result: another call may evict `key` before we could read it back.
+        return ticks
 
     @mcp.tool
     @handle_api_errors()
