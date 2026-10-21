@@ -2,30 +2,29 @@
 TWT49U（除權除息計算結果）、TWTB4U（當日沖銷交易）、MI_INDEX type=IND（指數收盤）。
 """
 
+from datetime import date
+
 from sources.twse.mi_index import MI_INDEX_URL, index_quotes
+from sources.twse.twt49u import exright_results
 from tests.helpers import fetch_or_skip, gateway_or_skip
-from tools.history.exright_day_trading_indices import TWT49U_URL, TWTB4U_URL
+from tools.history.exright_day_trading_indices import TWTB4U_URL
 
 FIXED_DATE = "20250103"  # 固定歷史交易日
 
 
 class TestExrightResultsHistoryAPI:
-    """get_exright_results_history 使用 row[0]~row[10]、row[13]、row[14]。"""
+    """get_exright_results_history 與還原權息（services/price_series）都經 sources/twse/twt49u.py；
+    gateway 依欄位名稱取值，欄位改名會丟 UpstreamFormatError。"""
 
-    def test_fields_used_by_position(self):
-        resp = fetch_or_skip(TWT49U_URL, params={"startDate": "20250601", "endDate": "20250731", "response": "json"})
-        assert resp.get("stat") == "OK"
-        fields = resp.get("fields") or []
-        expected = {
-            0: "資料日期", 1: "股票代號", 2: "股票名稱", 3: "除權息前收盤價", 4: "除權息參考價",
-            5: "權值+息值", 6: "權/息", 7: "漲停價格", 8: "跌停價格", 9: "開盤競價基準",
-            10: "減除股利參考價", 13: "最近一次申報每股 (單位)淨值", 14: "最近一次申報每股 (單位)盈餘",
-        }
-        wrong = {i: (name, fields[i] if i < len(fields) else None) for i, name in expected.items()
-                 if i >= len(fields) or fields[i] != name}
-        assert not wrong, f"欄位位置已變更 {{index: (預期, 實際)}}: {wrong}"
-        rows = resp.get("data") or []
-        assert rows and all(len(r) == len(fields) for r in rows)
+    def test_fixed_range_parses(self):
+        report = gateway_or_skip(exright_results, date(2025, 6, 1), date(2025, 7, 31))
+        assert report.found and report.results, f"固定區間查無資料：{report.stat}"
+        tsmc = [r for r in report.results if r.code == "2330"]
+        assert [r.day for r in tsmc] == [date(2025, 6, 12)], "2330 於 2025-06-12 除息"
+        r = tsmc[0]
+        assert r.kind == "息" and r.close_before and r.reference and r.rights_and_dividend
+        assert None not in (r.limit_up, r.limit_down, r.opening_reference, r.ex_dividend_reference)
+        assert r.nav_per_share and r.eps
 
 
 class TestDayTradingHistoryAPI:

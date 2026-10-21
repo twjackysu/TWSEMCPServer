@@ -181,10 +181,15 @@ def test_exright_filters_by_stock():
     row = ["115年07月01日", "1101", "台泥", "24.05", "23.25", "0.8", "息", "25.55", "20.95", "23.25", "23.25", "", "", "30.86", "0.38"]
     other = list(row)
     other[1] = "2330"
-    fn = register_module_tools(twse_extra, OfflineClient({"/exRight/TWT49U": {"stat": "OK", "data": [row, other]}}))[
-        "get_exright_results_history"]
+    fields = ["資料日期", "股票代號", "股票名稱", "除權息前收盤價", "除權息參考價", "權值+息值", "權/息", "漲停價格", "跌停價格",
+              "開盤競價基準", "減除股利參考價", "詳細資料", "最近一次申報資料 季別/日期", "最近一次申報每股 (單位)淨值",
+              "最近一次申報每股 (單位)盈餘"]
+    reply = {"stat": "OK", "fields": fields, "data": [row, other]}
+    fn = register_module_tools(twse_extra, OfflineClient({"/exRight/TWT49U": reply}))["get_exright_results_history"]
     text = fn("20260701", "20260731", stock_no="1101")
-    assert "共有 1 筆" in text and "1101 台泥 | 息 | 前收:24.05 參考價:23.25" in text
+    assert "共有 1 筆" in text and "115年07月01日 | 1101 台泥 | 息 | 前收:24.05 參考價:23.25" in text
+    with pytest.raises(ToolError, match="日期格式錯誤"):
+        fn("2026-07-01", "20260731")
 
 
 # ---------- TDCC ----------
