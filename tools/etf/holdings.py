@@ -26,8 +26,8 @@ from utils.sitca import (
     holdings_by_class,
     holdings_months,
     query_rows,
-    to_number,
 )
+from utils.parse import float_or_none
 
 STATEMENT_PAGE = "etf_statement.aspx"
 STATEMENT_RESULT = "etf_statement2.aspx"
@@ -53,14 +53,14 @@ def format_holdings(header: List[str], rows: List[List[str]]) -> List[str]:
     items: List[Dict[str, str]] = [dict(zip(cols, r, strict=False)) for r in rows]
     # The quarterly page has no 名次: rank by weight.
     if COL_RANK not in cols:
-        items.sort(key=lambda h: to_number(h.get(COL_PCT, "")) or 0, reverse=True)
+        items.sort(key=lambda h: float_or_none(h.get(COL_PCT, "")) or 0, reverse=True)
     lines = []
     for i, h in enumerate(items, 1):
         rank = h.get(COL_RANK) or str(i)
         code = h.get(COL_CODE, "")
         lines.append(
             f"{rank}. {h.get(COL_NAME, '')}{f'（{code}）' if code else ''} | {h.get(COL_KIND, '')} | "
-            f"占淨值 {h.get(COL_PCT, '-')}% | 金額 {_amount(to_number(h.get(COL_AMOUNT, '')))}"
+            f"占淨值 {h.get(COL_PCT, '-')}% | 金額 {_amount(float_or_none(h.get(COL_AMOUNT, '')))}"
         )
     return lines
 
@@ -124,7 +124,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     "槓桿型、反向型 ETF 多半只持有期貨與現金而不列入；新 ETF 要等首次申報後才有資料")
 
         lines = format_holdings(header, rows)
-        total = sum(to_number(dict(zip(header[1:], r, strict=False)).get(COL_PCT, "")) or 0 for r in rows)
+        total = sum(float_or_none(dict(zip(header[1:], r, strict=False)).get(COL_PCT, "")) or 0 for r in rows)
         scope = "每季占淨值 1% 以上持股" if quarterly else "每月前十大持股"
         out = [f"【{code} {info.get('證券簡稱', '')} 持股明細】{fund_name}",
                f"資料期間 {ym[:4]}-{ym[4:]}｜{scope}｜共 {len(lines)} 檔，合計占淨值 {total:.2f}%\n"]

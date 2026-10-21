@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
+from utils.parse import float_or_none
 from toolkit import bounded, handle_api_errors
 
 MIS_ALL_ETF_URL = "https://mis.twse.com.tw/stock/data/all_etf.txt"
@@ -29,13 +30,6 @@ SORTS = {
 }
 
 
-def _num(value: Any) -> Optional[float]:
-    try:
-        return float(str(value).replace(",", "").strip())
-    except (TypeError, ValueError):
-        return None
-
-
 def parse_all_etf(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     """Flatten the per-issuer groups into one row per ETF."""
     rows = []
@@ -44,12 +38,12 @@ def parse_all_etf(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
             code = str(item.get("a", "")).strip()
             if not code:
                 continue
-            units, prior_nav, est_nav = _num(item.get("c")), _num(item.get("h")), _num(item.get("f"))
+            units, prior_nav, est_nav = float_or_none(item.get("c")), float_or_none(item.get("h")), float_or_none(item.get("f"))
             nav = prior_nav if prior_nav is not None else est_nav
             rows.append({
                 "code": code, "name": str(item.get("b", "")).strip(),
-                "units": units, "change": _num(item.get("d")), "price": _num(item.get("e")),
-                "est_nav": est_nav, "premium": _num(item.get("g")), "prior_nav": prior_nav,
+                "units": units, "change": float_or_none(item.get("d")), "price": float_or_none(item.get("e")),
+                "est_nav": est_nav, "premium": float_or_none(item.get("g")), "prior_nav": prior_nav,
                 "prior_nav_text": str(item.get("h", "")).strip(),
                 "date": str(item.get("i", "")).strip(), "time": str(item.get("j", "")).strip(),
                 "scale": units * nav if units is not None and nav is not None else None,

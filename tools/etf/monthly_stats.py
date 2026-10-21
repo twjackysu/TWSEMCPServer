@@ -11,7 +11,8 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import bounded, handle_api_errors
-from utils.sitca import available_months, query_rows, to_number
+from utils.parse import float_or_none
+from utils.sitca import available_months, query_rows
 
 STATEMENT_PAGE = "etf_statement.aspx"
 STATEMENT_RESULT = "etf_statement2.aspx"
@@ -56,12 +57,13 @@ def records(rows: List[List[str]]) -> List[Dict[str, str]]:
     return [dict(zip(header, r, strict=False)) for r in rows[1:]]
 
 
-def _num(r: Dict[str, str], col: str) -> float:
-    return to_number(r.get(col, "")) or 0.0
+def _number(r: Dict[str, str], col: str) -> float:
+    """A statement column as a number; a blank or "-" cell counts as 0 (sums and rankings)."""
+    return float_or_none(r.get(col, "")) or 0.0
 
 
 def net_flow(r: Dict[str, str]) -> float:
-    return _num(r, COL_SUBSCRIBE) - _num(r, COL_REDEEM)
+    return _number(r, COL_SUBSCRIBE) - _number(r, COL_REDEEM)
 
 
 def _yi(value: float, signed: bool = False) -> str:
@@ -69,17 +71,17 @@ def _yi(value: float, signed: bool = False) -> str:
 
 
 def format_month(ym: str, r: Dict[str, str], prev: Optional[Dict[str, str]] = None) -> str:
-    holders = _num(r, COL_HOLDERS)
+    holders = _number(r, COL_HOLDERS)
     line = (
-        f"{ym[:4]}-{ym[4:]} | 規模 {_yi(_num(r, COL_SCALE))}（市占 {r.get(COL_SHARE, '-')}）| "
-        f"淨值 {r.get(COL_NAV, '-')} | 受益權單位數 {_num(r, COL_UNITS):,.0f} | "
-        f"受益人數 {holders:,.0f}（自然人 {_num(r, COL_NATURAL):,.0f}／法人 {_num(r, COL_LEGAL):,.0f}）"
+        f"{ym[:4]}-{ym[4:]} | 規模 {_yi(_number(r, COL_SCALE))}（市占 {r.get(COL_SHARE, '-')}）| "
+        f"淨值 {r.get(COL_NAV, '-')} | 受益權單位數 {_number(r, COL_UNITS):,.0f} | "
+        f"受益人數 {holders:,.0f}（自然人 {_number(r, COL_NATURAL):,.0f}／法人 {_number(r, COL_LEGAL):,.0f}）"
     )
     if prev is not None:
-        line += f"，較前月 {holders - _num(prev, COL_HOLDERS):+,.0f}"
+        line += f"，較前月 {holders - _number(prev, COL_HOLDERS):+,.0f}"
     line += (
-        f" | 申購 {_yi(_num(r, COL_SUBSCRIBE))}／買回 {_yi(_num(r, COL_REDEEM))}（淨 {_yi(net_flow(r), True)}）| "
-        f"定期定額 {_num(r, COL_RI_COUNT):,.0f} 筆、{_num(r, COL_RI_ACCOUNTS):,.0f} 戶、{_yi(_num(r, COL_RI_AMOUNT))}"
+        f" | 申購 {_yi(_number(r, COL_SUBSCRIBE))}／買回 {_yi(_number(r, COL_REDEEM))}（淨 {_yi(net_flow(r), True)}）| "
+        f"定期定額 {_number(r, COL_RI_COUNT):,.0f} 筆、{_number(r, COL_RI_ACCOUNTS):,.0f} 戶、{_yi(_number(r, COL_RI_AMOUNT))}"
     )
     return line
 
@@ -148,7 +150,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not rows:
             return f"查無 {ym[:4]}-{ym[4:]} 的 ETF 月報資料"
         label, col = SORTS[sort_by]
-        ranked = sorted(rows, key=(lambda r: _num(r, col)) if col else net_flow, reverse=True)[:limit]
+        ranked = sorted(rows, key=(lambda r: _number(r, col)) if col else net_flow, reverse=True)[:limit]
         lines = [f"【ETF {label}排行】{ym[:4]}-{ym[4:]}（共 {len(rows)} 檔，列出前 {len(ranked)} 檔）\n"]
         for i, r in enumerate(ranked, 1):
             ident = f"{r['證券代號']} {r['證券簡稱']}" if r["證券代號"] != "-" else r["基金名稱"]

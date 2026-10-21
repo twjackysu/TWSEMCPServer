@@ -13,6 +13,7 @@ from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
 from utils.mops import mops_post
+from utils.parse import float_or_none
 
 MAX_MONTHS = 12
 
@@ -55,10 +56,7 @@ def current_month_revenue(result: Optional[dict]) -> Optional[float]:
     """The 本月 revenue of a t05st10_ifrs result as a number, or None."""
     for row in (result or {}).get("data") or []:
         if isinstance(row, list) and len(row) >= 2 and str(row[0]).strip() == CURRENT_MONTH_LABEL:
-            try:
-                return float(str(row[1]).replace(",", ""))
-            except ValueError:
-                return None
+            return float_or_none(row[1])
     return None
 
 
