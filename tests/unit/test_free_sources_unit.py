@@ -8,6 +8,7 @@ import io
 import zipfile
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -335,7 +336,8 @@ def test_business_cycle_newest_first_with_month_limit():
 def test_business_cycle_table_validation_and_missing_file():
     fn = register_module_tools(ndc_indicators, OfflineClient({"icon=.zip": _ndc_zip()}))["get_business_cycle_indicators"]
     assert "table 只能是" in fn(table="gdp")
-    assert "找不到 領先指標構成項目.csv" in fn(table="leading")
+    with pytest.raises(ToolError, match="找不到 領先指標構成項目"):
+        fn(table="leading")
 
 
 # ---------- CBC ----------

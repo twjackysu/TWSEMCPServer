@@ -2,13 +2,39 @@
 analysis, etc.). The statements themselves (損益表/資產負債表/現金流量表) live in
 tools/mops/financial_statements.py."""
 
-from typing import Optional
+from typing import Literal, Optional
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from utils import (
     TWSEAPIClient,
     handle_api_errors,
     create_company_tool,
 )
+
+# order_by names shown to callers → t187ap17_L column names. The full column names are
+# accepted too: the previous default was one, so earlier callers may still send it.
+PROFITABILITY_SORT_FIELDS = {
+    "公司代號": "公司代號",
+    "公司名稱": "公司名稱",
+    "年度": "年度",
+    "季別": "季別",
+    "營業收入(百萬元)": "營業收入(百萬元)",
+    "毛利率(%)": "毛利率(%)(營業毛利)/(營業收入)",
+    "營業利益率(%)": "營業利益率(%)(營業利益)/(營業收入)",
+    "稅前純益率(%)": "稅前純益率(%)(稅前純益)/(營業收入)",
+    "稅後純益率(%)": "稅後純益率(%)(稅後純益)/(營業收入)",
+}
+TEXT_SORT_FIELDS = {"公司代號", "公司名稱"}
+
+
+def profitability_sort_field(order_by: str) -> str:
+    """The t187ap17_L column for ``order_by``; an unknown name is an error, never a silent fallback."""
+    order_by = order_by.strip()
+    if order_by in PROFITABILITY_SORT_FIELDS:
+        return PROFITABILITY_SORT_FIELDS[order_by]
+    if order_by in PROFITABILITY_SORT_FIELDS.values():
+        return order_by
+    raise ToolError(f"order_by 必須是 {'、'.join(PROFITABILITY_SORT_FIELDS)} 其中之一，收到：{order_by}")
 
 # Simple tools: fetch_company_data(endpoint, code) → format as properties.
 SIMPLE_FINANCIAL_TOOLS = [
@@ -38,43 +64,28 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_profitability_analysis_summary(
         page_size: int = 20,
         page_number: int = 1,
-        order_by: str = "稅後純益率(%)(稅後純益)/(營業收入)",
-        order_direction: str = "desc"
+        order_by: str = "稅後純益率(%)",
+        order_direction: Literal["asc", "desc"] = "desc"
     ) -> str:
         """查詢上市公司營益分析查詢彙總表(全體公司彙總報表)。
 
         Args:
             page_size: 每頁筆數（預設20，最大100）
             page_number: 頁碼（預設1，從1開始）
-            order_by: 排序欄位。可用欄位：公司代號、公司名稱、營業收入(百萬元)、毛利率(%)、營業利益率(%)、稅前純益率(%)、稅後純益率(%)、年度、季別
-            order_direction: 排序方向，'asc' 為遞增，'desc' 為遞減（預設 'asc'）
+            order_by: 排序欄位（預設 稅後純益率(%)）。可用欄位：公司代號、公司名稱、營業收入(百萬元)、毛利率(%)、營業利益率(%)、稅前純益率(%)、稅後純益率(%)、年度、季別
+            order_direction: 排序方向，'asc' 為遞增，'desc' 為遞減（預設 'desc'）
         """
+        order_by = profitability_sort_field(order_by)
         data = _client.fetch_data("/opendata/t187ap17_L")
         if not data:
             return "目前沒有營益分析查詢彙總表資料。"
 
         page_size = min(max(1, page_size), 100)
         page_number = max(1, page_number)
-        order_direction = order_direction.lower()
-        if order_direction not in ["asc", "desc"]:
-            order_direction = "asc"
-
-        valid_fields = [
-            "公司代號", "公司名稱", "年度", "季別",
-            "營業收入(百萬元)",
-            "毛利率(%)(營業毛利)/(營業收入)",
-            "營業利益率(%)(營業利益)/(營業收入)",
-            "稅前純益率(%)(稅前純益)/(營業收入)",
-            "稅後純益率(%)(稅後純益)/(營業收入)",
-        ]
-        if order_by not in valid_fields:
-            order_by = "公司代號"
 
         def get_sort_key(item):
             value = item.get(order_by, "")
-            if order_by in ["營業收入(百萬元)", "毛利率(%)(營業毛利)/(營業收入)",
-                            "營業利益率(%)(營業利益)/(營業收入)", "稅前純益率(%)(稅前純益)/(營業收入)",
-                            "稅後純益率(%)(稅後純益)/(營業收入)", "年度", "季別"]:
+            if order_by not in TEXT_SORT_FIELDS:
                 try:
                     return float(value) if value and value != "N/A" else float('-inf')
                 except (ValueError, TypeError):

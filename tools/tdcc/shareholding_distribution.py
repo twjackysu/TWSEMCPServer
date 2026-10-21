@@ -16,6 +16,7 @@ absolute value), so the trend view never uses that row.
 import csv
 import io
 import re
+import threading
 from typing import Dict, List, Optional, Tuple
 
 import requests
@@ -176,7 +177,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     """Register TDCC shareholding distribution tools."""
     _client = client or TWSEAPIClient.get_instance()
     # Past weeks never change, so keep them for the life of the process (bounded).
+    # Tools run in worker threads, so eviction + insert happen under a lock.
     week_cache: Dict[Tuple[str, str], Dict[str, Tuple[int, int, float]]] = {}
+    week_cache_lock = threading.Lock()
 
     def _latest_week_table(code: str) -> str:
         body = _client.fetch_bytes(TDCC_DISTRIBUTION_URL, timeout=60, cache_ttl=TDCC_CACHE_TTL)
@@ -215,9 +218,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                     if not weekly and "查無此資料" in body:
                         return f"查無證券代號 {code} 的集保股權分散資料"
                     continue  # no data for that week
-                if len(week_cache) >= MAX_CACHED_WEEKS:
-                    week_cache.pop(next(iter(week_cache)))
-                week_cache[(code, date)] = levels
+                with week_cache_lock:
+                    if len(week_cache) >= MAX_CACHED_WEEKS:
+                        week_cache.pop(next(iter(week_cache)))
+                    week_cache[(code, date)] = levels
             weekly.append((date, week_metrics(levels)))
         if not weekly:
             return f"查無證券代號 {code} 的集保股權分散資料"

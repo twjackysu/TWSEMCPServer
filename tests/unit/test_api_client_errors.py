@@ -10,6 +10,7 @@ import time
 
 import pytest
 import requests
+from fastmcp.exceptions import ToolError
 
 from utils.api_client import TWSEAPIClient
 from utils.tool_factory import create_company_tool
@@ -77,13 +78,13 @@ def test_fetch_latest_market_data_propagates_failures(monkeypatch, client, fake_
 
 @pytest.mark.parametrize("fake_request", UPSTREAM_FAILURES)
 def test_tool_reports_failure_not_missing_data(monkeypatch, client, fake_request):
-    """工具層輸出必須是「查詢失敗」，而非與查無資料無從分辨的空字串."""
+    """工具層必須拋 ToolError（MCP isError=true）「查詢失敗」，而非回傳與查無資料無從分辨的正常文字."""
     mcp = _CapturingMCP()
     create_company_tool(mcp, ENDPOINT, "probe_tool", "測試用", client)
     monkeypatch.setattr(requests, "request", fake_request)
 
-    result = mcp.tools["probe_tool"]("2330")
-    assert result.startswith("查詢失敗"), f"故障被偽裝成正常回應: {result!r}"
+    with pytest.raises(ToolError, match="^查詢失敗"):
+        mcp.tools["probe_tool"]("2330")
 
 
 @pytest.mark.parametrize("fake_request", TRANSPORT_FAILURES)
