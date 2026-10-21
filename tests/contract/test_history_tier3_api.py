@@ -2,29 +2,29 @@
 TWT49U（除權除息計算結果）、TWTB4U（當日沖銷交易）、MI_INDEX type=IND（指數收盤）。
 """
 
-from tests.helpers import fetch_or_skip
-from tools.history.exright_day_trading_indices import TWT49U_URL, TWTB4U_URL, MI_INDEX_URL, strip_tags
+from datetime import date
+
+from sources.twse.mi_index import MI_INDEX_URL, index_quotes
+from sources.twse.twt49u import exright_results
+from tests.helpers import fetch_or_skip, gateway_or_skip
+from tools.history.exright_day_trading_indices import TWTB4U_URL
 
 FIXED_DATE = "20250103"  # 固定歷史交易日
 
 
 class TestExrightResultsHistoryAPI:
-    """get_exright_results_history 使用 row[0]~row[10]、row[13]、row[14]。"""
+    """get_exright_results_history 與還原權息（services/price_series）都經 sources/twse/twt49u.py；
+    gateway 依欄位名稱取值，欄位改名會丟 UpstreamFormatError。"""
 
-    def test_fields_used_by_position(self):
-        resp = fetch_or_skip(TWT49U_URL, params={"startDate": "20250601", "endDate": "20250731", "response": "json"})
-        assert resp.get("stat") == "OK"
-        fields = resp.get("fields") or []
-        expected = {
-            0: "資料日期", 1: "股票代號", 2: "股票名稱", 3: "除權息前收盤價", 4: "除權息參考價",
-            5: "權值+息值", 6: "權/息", 7: "漲停價格", 8: "跌停價格", 9: "開盤競價基準",
-            10: "減除股利參考價", 13: "最近一次申報每股 (單位)淨值", 14: "最近一次申報每股 (單位)盈餘",
-        }
-        wrong = {i: (name, fields[i] if i < len(fields) else None) for i, name in expected.items()
-                 if i >= len(fields) or fields[i] != name}
-        assert not wrong, f"欄位位置已變更 {{index: (預期, 實際)}}: {wrong}"
-        rows = resp.get("data") or []
-        assert rows and all(len(r) == len(fields) for r in rows)
+    def test_fixed_range_parses(self):
+        report = gateway_or_skip(exright_results, date(2025, 6, 1), date(2025, 7, 31))
+        assert report.found and report.results, f"固定區間查無資料：{report.stat}"
+        tsmc = [r for r in report.results if r.code == "2330"]
+        assert [r.day for r in tsmc] == [date(2025, 6, 12)], "2330 於 2025-06-12 除息"
+        r = tsmc[0]
+        assert r.kind == "息" and r.close_before and r.reference and r.rights_and_dividend
+        assert None not in (r.limit_up, r.limit_down, r.opening_reference, r.ex_dividend_reference)
+        assert r.nav_per_share and r.eps
 
 
 class TestDayTradingHistoryAPI:
@@ -48,23 +48,19 @@ class TestDayTradingHistoryAPI:
         assert tables[0].get("data") and tables[1].get("data"), "固定歷史交易日應有資料"
 
 
-class TestIndicesByDateAPI:
-    """get_market_index_info 走訪有 title 的 tables，使用 row[0]~row[4]，
-    row[2] 是含 +/- 的 HTML。"""
+class TestIndexBoardGateway:
+    """get_market_index_info 只透過 sources/twse/mi_index.py index_quotes 讀 type=IND；
+    真實回應要能建出 IndexBoard，欄位改名時 gateway 丟 UpstreamFormatError。"""
 
-    def test_index_tables_shape(self):
-        resp = fetch_or_skip(MI_INDEX_URL, params={"date": FIXED_DATE, "type": "IND", "response": "json"})
-        assert resp.get("stat") == "OK"
-        tables = [t for t in resp.get("tables") or [] if t.get("title") and t.get("data")]
-        assert tables, "找不到任何有 title 與 data 的指數表"
-        for t in tables:
-            assert t.get("fields", [])[1:5] == ["收盤指數", "漲跌(+/-)", "漲跌點數", "漲跌百分比(%)"], (
-                f"{t['title']} 欄位已變更: {t.get('fields')}"
-            )
-        names = [r[0] for t in tables for r in t["data"]]
-        assert "發行量加權股價指數" in names and "半導體類指數" in names, "類股指數不再包含於 type=IND"
-        signs = {strip_tags(r[2]) for t in tables for r in t["data"]}
-        assert signs <= {"+", "-", "", " "} and signs & {"+", "-"}, f"漲跌欄格式已變更: {signs}"
+    def test_fixed_day_parses_into_index_tables(self):
+        board = gateway_or_skip(index_quotes, FIXED_DATE)
+        assert board is not None and board.date == FIXED_DATE and board.tables, "找不到任何有 title 與 data 的指數表"
+        quotes = {q.name: q for t in board.tables for q in t.quotes}
+        assert "發行量加權股價指數" in quotes and "半導體類指數" in quotes, "類股指數不再包含於 type=IND"
+        taiex = quotes["發行量加權股價指數"]
+        assert None not in (taiex.close, taiex.change_points, taiex.change_pct)
+        directions = {q.direction for q in quotes.values()}
+        assert directions <= {"+", "-", ""} and directions & {"+", "-"}, f"漲跌欄格式已變更: {directions}"
 
 
 def test_omitting_date_returns_latest_day():

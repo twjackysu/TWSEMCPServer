@@ -16,7 +16,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **投信投顧公會 ETF 專區** (`www.sitca.org.tw/ROC/SITCA_ETF/`、`/ROC/Industry/IN2629|IN2630`，`utils/sitca.py`) — 3 tools: `get_etf_info`（所有投信、上市與上櫃 ETF 基本資料；單檔另合併證交所 t187ap47_L 與櫃買 ETF/detail，清單補上 SITCA 沒有的期信／外幣級別代號；取代了 `get_fund_basic_info`）、`get_etf_monthly_stats`（每月規模／淨值／受益人數／申購買回／定期定額，2007 起）、`get_etf_holdings`（成分股：基金投資明細每月前十大 2021-08 起、每季占淨值 1% 以上 2021-09 起；以基金名稱對回 ETF 代號，只做精確比對）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
-- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `services/price_series.py`（上市 STOCK_DAY（`sources/twse/stock_day.py`）／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
+- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`services/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `services/price_series.py`（上市 STOCK_DAY（`sources/twse/stock_day.py`）／上櫃 tradingStock 日K、TWT49U（`sources/twse/twt49u.py`）／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
 - **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`、`dlFutPrevious30DaysSalesData`) — 11 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨與選擇權大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具；選擇權大額交易人於 2026-10-07 同樣逐列比對（320 列，僅「所有月份總計」代碼 999912 vs 999999 不同）後也改用下載頁（largeTraderOptDown，一次最多約一個月，整年區間會被拒絕）。`get_futures_intraday`：最近 30 個交易日的每筆成交 zip 彙總成分鐘 K 線。`get_daily_futures_market_report` 的 contract 可填股票代號（openapi `SSFLists` 換成股票期貨契約）；`get_monthly_trading_statistics(market=)` 涵蓋期貨與選擇權（openapi）
 
 ## Development Commands
@@ -46,25 +46,28 @@ toolkit/                      # MCP-side building blocks for tool modules (only 
 ├── decorators.py             # @handle_api_errors — the tool error boundary (exception → ToolError)
 └── factory.py                # CompanyToolSpec / ListToolSpec + create_company_tool / create_list_tool
 services/                     # Data the tools need, assembled from gateways + pure logic (uses sources/, utils/)
-└── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
+├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
+└── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date) and industry membership
 sources/                      # Gateways: one module per upstream endpoint, typed records out (uses utils/ only)
 ├── columns.py                # column_index(): find columns by published field name, raise if one is gone
-├── caching.py                # month_cache_ttl(): past months 1h, current month 2 min
-└── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
+├── caching.py                # month_cache_ttl() (past months 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
+├── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
+├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
+├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
+└── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)
 ├── mops.py                   # MOPS helpers: mops_post (JSON API), mops_legacy_post (HTML), titles/HTML-table parsing
 ├── taifex.py                 # TAIFEX helpers: headers, cp950 CSV decode, date ranges, latest-trading-day lookup (fetch_period)
 ├── indicators.py             # Pure functions: SMA/EMA/RSI/KD/MACD/Bollinger
-├── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date) and industry membership
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
 ├── date_helper.py            # roc_to_ad() / ad_to_roc() / parse_roc_date() for TWSE ROC dates; taipei_today()
 ├── errors.py                 # InvalidArgument (→ ToolError as is), UpstreamFormatError (a reply's shape changed)
 ├── parse.py                  # decimal_or_none() / int_or_none(): exchange-printed numbers, "--" → None
 ├── pagination.py             # Page / Paged: limit/offset paging
-├── formatters.py             # Data → string formatting functions
+├── formatters.py             # Data → string formatting functions; printed(): a gateway number as the exchange prints it
 ├── http_transport.py         # Per-site pooled sessions, TLS policy, UpstreamRetry
 └── types.py                  # TWSEDataItem TypedDict, DataFormatter Protocol
 tools/
@@ -114,7 +117,7 @@ The `client` is captured via closure. Tools are registered with `@mcp.tool` — 
 
 **Layering**: dependencies point down only — `tools/` → `toolkit/` and `services/` → `sources/` → `utils/`. Only `tools/` and `toolkit/` may import `fastmcp`; `utils/` imports none of the other packages, `sources/` only `utils/`, `services/` only `sources/` and `utils/`, `toolkit/` only `utils/`. `tests/unit/test_layering_unit.py` enforces this (in a fresh interpreter too, so transitive imports count) and that each package imports on its own (no circular imports). The Dockerfile copies each top-level package by name; the same test fails if a new package is missing there.
 
-**Gateways** (`sources/`): an endpoint's row layout lives in exactly one gateway, which returns frozen dataclasses — callers never index a raw row (`r[3]`). Look columns up by the published `fields` with `column_index()`; on a renamed/missing column or an unexpected value shape raise `UpstreamFormatError` instead of guessing or returning "no data"; return `None` only when the upstream itself says there is no data. Keep numbers' printed digits with `Decimal` where a tool shows them as published. The gateway also owns the endpoint's cache policy (e.g. `month_cache_ttl`). Its contract test calls the gateway on live data (`gateway_or_skip` in `tests/helpers.py`), so a format change fails as `UpstreamFormatError`. Migration is endpoint by endpoint (docs/improvement-plan.md, Phase 3); endpoints parsed in more than one place go first.
+**Gateways** (`sources/`): an endpoint's row layout lives in exactly one gateway, which returns frozen dataclasses — callers never index a raw row (`r[3]`). Look columns up by the published `fields` with `column_index()`; on a renamed/missing column or an unexpected value shape raise `UpstreamFormatError` instead of guessing or returning "no data"; return `None` only when the upstream itself says there is no data. Keep numbers' printed digits with `Decimal` where a tool shows them as published (`utils.printed()` puts the thousands separators back). HTML in cells (MI_INDEX's 漲跌 sign) is stripped in the gateway, never in a tool. The gateway also owns the endpoint's cache policy (e.g. `month_cache_ttl`). Its contract test calls the gateway on live data (`gateway_or_skip` in `tests/helpers.py`), so a format change fails as `UpstreamFormatError`. Migration is endpoint by endpoint (docs/improvement-plan.md, Phase 3); endpoints parsed in more than one place go first.
 
 **Tool specs**: tools that need no custom code are declared as data and registered in a loop — `CompanyToolSpec(endpoint, name, description)` with `create_company_tool(mcp, spec, client)` for one company's row by stock code, `ListToolSpec(endpoint=, name=, summary=, label=, empty_data_type=, formatter=, filter_field=, name_hint=, normalize=)` with `create_list_tool(mcp, spec, client)` for fetch → optional `name` filter → paginate. `ListToolSpec.description` builds the Args section (`name` when `filter_field` is set, then `limit`/`offset`), so don't hand-write it.
 

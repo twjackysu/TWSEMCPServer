@@ -17,9 +17,9 @@ from utils.api_client import TWSEAPIClient
 from utils.date_helper import parse_roc_date, taipei_today
 from sources.caching import PAST_MONTH_CACHE_TTL, month_cache_ttl
 from sources.twse.stock_day import stock_day_month
+from sources.twse.twt49u import exright_results
 
 TPEX_TRADING_STOCK_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
-TWT49U_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
 TPEX_EXRIGHT_URL = "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ"
 
 LISTED, OTC = "上市", "上櫃"
@@ -124,29 +124,24 @@ def fetch_daily_bars(client: TWSEAPIClient, code: str, months: List[Tuple[int, i
 def fetch_exright_events(client: TWSEAPIClient, market: str, code: str, start: date, end: date) -> List[ExRightEvent]:
     """Ex-rights / ex-dividend results for ``code`` between ``start`` and ``end``."""
     if market == LISTED:
-        resp = client.fetch_json(
-            TWT49U_URL, params={"startDate": f"{start:%Y%m%d}", "endDate": f"{end:%Y%m%d}", "response": "json"},
-            cache_ttl=PAST_MONTH_CACHE_TTL,
-        )
-        rows = (resp or {}).get("data") or [] if (resp or {}).get("stat") == "OK" else []
-    else:
-        resp = client.fetch_json(
-            TPEX_EXRIGHT_URL,
-            params={"startDate": f"{start:%Y/%m/%d}", "endDate": f"{end:%Y/%m/%d}", "response": "json"},
-            cache_ttl=PAST_MONTH_CACHE_TTL,
-        )
-        tables = (resp or {}).get("tables") or []
-        rows = (tables[0].get("data") if tables else None) or []
+        events = [ExRightEvent(r.day, float(r.close_before), float(r.reference), r.kind)
+                  for r in exright_results(client, start, end).results
+                  if r.code == code and r.close_before and r.reference]
+        return sorted(events, key=lambda e: e.day)
+    resp = client.fetch_json(
+        TPEX_EXRIGHT_URL,
+        params={"startDate": f"{start:%Y/%m/%d}", "endDate": f"{end:%Y/%m/%d}", "response": "json"},
+        cache_ttl=PAST_MONTH_CACHE_TTL,
+    )
+    tables = (resp or {}).get("tables") or []
     events = []
-    for r in rows:
-        # listed: 資料日期,股票代號,股票名稱,除權息前收盤價,除權息參考價,權值+息值,權/息, ...
-        # OTC:    除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息, ...
+    for r in (tables[0].get("data") if tables else None) or []:
+        # 除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息, ...
         if r[1].strip() != code:
             continue
         d, before, ref = parse_roc_date(r[0]), _num(r[3]), _num(r[4])
         if d and before and ref:
-            kind = r[6] if market == LISTED else r[8]
-            events.append(ExRightEvent(d, before, ref, str(kind).strip()))
+            events.append(ExRightEvent(d, before, ref, str(r[8]).strip()))
     return sorted(events, key=lambda e: e.day)
 
 

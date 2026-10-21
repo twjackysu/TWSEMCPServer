@@ -167,6 +167,14 @@ def format_list_response(
     return result
 
 
+def printed(value, blank: str = "--") -> str:
+    """A gateway number as the exchanges print it: thousands separators, the published decimals.
+
+    31855287 → "31,855,287"; Decimal("2440.00") → "2,440.00"; None → ``blank``.
+    """
+    return blank if value is None else f"{value:,}"
+
+
 def truncate(text: str, n: int = 100) -> str:
     """Return text, appending '...' when longer than n chars."""
     return f"{text[:n]}..." if len(text) > n else text

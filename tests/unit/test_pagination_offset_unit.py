@@ -31,7 +31,7 @@ class _StubClient:
     def __init__(self, payload):
         self._payload = payload
 
-    def fetch_json(self, url, params=None, timeout=None, headers=None):
+    def fetch_json(self, url, params=None, timeout=None, headers=None, cache_ttl=0):
         return self._payload
 
     def fetch_data(self, endpoint, timeout=None):
@@ -44,7 +44,9 @@ def _legacy(rows):
 
 
 # 每支工具的最小可用 payload：欄位數要足夠讓 in-range 的那一頁也能正常排版。
-DAILY_CLOSE_ROW = ["2330", "台積電"] + ["1"] * 14                      # 16 欄，tuple 解包
+DAILY_CLOSE_ROW = ["2330", "台積電"] + ["1"] * 14                      # 16 欄
+DAILY_CLOSE_FIELDS = ["證券代號", "證券名稱", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價", "收盤價",
+                      "漲跌(+/-)", "漲跌價差", "最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量", "本益比"]
 SHORT_SALE_BALANCE_ROW = ["2330", "台積電"] + ["0"] * 13                # 融券 6 + 借券 6 + 備註
 SHORT_SALE_TRADES_ROW = ["2330   台積電", "0", "0", "0", "0"]
 BLOCK_TRADE_ROW = ["2330", "台積電", "鉅額中盤", "1000", "10", "10000"]  # 6 欄，tuple 解包
@@ -56,7 +58,7 @@ CASES = [
         all_stocks_daily_close,
         "get_stock_daily_trading",
         {"date": TRADING_DATE},
-        {"stat": "OK", "tables": [{"title": f"{TRADING_DATE} 每日收盤行情", "data": [DAILY_CLOSE_ROW]}]},
+        {"stat": "OK", "tables": [{"title": f"{TRADING_DATE} 每日收盤行情", "fields": DAILY_CLOSE_FIELDS, "data": [DAILY_CLOSE_ROW]}]},
     ),
     (
         short_sale_lending,
