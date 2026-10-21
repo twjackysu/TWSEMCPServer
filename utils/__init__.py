@@ -24,6 +24,7 @@ from .formatters import (
     create_simple_list_formatter,
     truncate,
     cap_rows,
+    printed,
 )
 from .date_helper import roc_to_ad, ad_to_roc
 from .errors import InvalidArgument
@@ -54,6 +55,7 @@ __all__ = [
     "create_simple_list_formatter",
     "truncate",
     "cap_rows",
+    "printed",
     "roc_to_ad",
     "ad_to_roc",
     "InvalidArgument",

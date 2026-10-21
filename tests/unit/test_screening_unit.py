@@ -1,4 +1,4 @@
-"""utils/market_snapshot.py 與 tools/analytics/screening.py 的單元測試（不打網路）。"""
+"""services/market_snapshot.py 與 tools/analytics/screening.py 的單元測試（不打網路）。"""
 
 import pytest
 from fastmcp.exceptions import ToolError
@@ -6,17 +6,21 @@ from fastmcp.exceptions import ToolError
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tools.analytics import screening
-from utils.market_snapshot import StockSnapshot, market_snapshot
+from services.market_snapshot import StockSnapshot, market_snapshot
 
 pytestmark = pytest.mark.offline
+
+
+QUOTE_FIELDS = ["證券代號", "證券名稱", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價", "收盤價",
+                "漲跌(+/-)", "漲跌價差", "最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量", "本益比"]
 
 
 def _routes(seen):
     def listed_quotes(params, _b):
         seen["listed_quotes_date"] = params.get("date")
-        return {"tables": [{"title": "每日收盤行情(全部)", "data": [
-            ["2330", "台積電", "1,000", "1", "1", "1", "1", "1", "2,475.00", "<p style ='color:green'>-</p>", "5.00"],
-            ["2317", "鴻海", "2,000", "1", "1", "1", "1", "1", "200.00", "<p style ='color:red'>+</p>", "2.00"]]}]}
+        return {"stat": "OK", "date": params.get("date", ""), "tables": [{"title": "每日收盤行情(全部)", "fields": QUOTE_FIELDS, "data": [
+            ["2330", "台積電", "1,000", "1", "1", "1", "1", "1", "2,475.00", "<p style ='color:green'>-</p>", "5.00", "", "", "", "", "28.69"],
+            ["2317", "鴻海", "2,000", "1", "1", "1", "1", "1", "200.00", "<p style ='color:red'>+</p>", "2.00", "", "", "", "", ""]]}]}
 
     def otc_quotes(params, _b):
         seen["otc_quotes_date"] = params.get("date")
@@ -26,7 +30,8 @@ def _routes(seen):
 
     def listed_members(params, _b):
         if params.get("type") == "24":
-            return {"tables": [{"title": "115年09月29日 每日收盤行情(半導體業)", "data": [["2330", "台積電"]]}]}
+            return {"stat": "OK", "date": "20260929", "tables": [{"title": "115年09月29日 每日收盤行情(半導體業)", "fields": QUOTE_FIELDS,
+                                                             "data": [["2330", "台積電"] + [""] * 14]}]}
         return listed_quotes(params, _b)
 
     return {

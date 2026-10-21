@@ -5,22 +5,11 @@ the same 1382 stocks and values as this endpoint's 每日收盤行情 table, whi
 last bid/ask and P/E, and accepts past dates.
 """
 
-import re
-
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, printed
 from toolkit import handle_api_errors
-
-MI_INDEX_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
-
-# The table with per-stock quotes ("每日收盤行情") is a specific entry within the
-# `tables` array MI_INDEX returns (the rest are index-level summary tables). Its
-# position has been stable across dates tested; located by title prefix as a
-# safety net in case TWSE reorders the tables.
-STOCK_TABLE_TITLE_PREFIX = "每日收盤行情"
-
-_TAG_RE = re.compile(r"<[^>]+>")
+from sources.twse.mi_index import stock_quotes
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -44,30 +33,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = {"response": "json", "type": "ALLBUT0999"}
-        if date:
-            params["date"] = date
-        resp = _client.fetch_json(MI_INDEX_URL, params=params)
-        date = resp.get("date") or date if isinstance(resp, dict) else date
-
-        if not resp or resp.get("stat") != "OK":
+        table = stock_quotes(_client, "ALLBUT0999", date)
+        if table is None:
             return f"查無 {date or '最新交易日'} 的收盤行情資料，請確認該日期為交易日（非假日或週末）"
+        date = table.date
 
-        tables = resp.get("tables", [])
-        stock_table = next(
-            (t for t in tables if (t.get("title") or "").find(STOCK_TABLE_TITLE_PREFIX) != -1),
-            None,
-        )
-        if not stock_table or not stock_table.get("data"):
-            return f"查無 {date} 的個股收盤行情資料"
-
-        data = stock_table["data"]
+        data = table.quotes
         if stock_no:
-            data = [row for row in data if row[0].strip() == stock_no]
+            data = [q for q in data if q.code == stock_no]
             if not data:
                 return f"查無股票代號 {stock_no} 在 {date} 的收盤行情"
         if name:
-            data = [row for row in data if name in row[1]]
+            data = [q for q in data if name in q.name]
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {date} 的收盤行情"
 
@@ -81,15 +58,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         header += "）\n"
 
         lines = [header]
-        for row in paged.rows:
-            # row: 證券代號,證券名稱,成交股數,成交筆數,成交金額,開盤價,最高價,最低價,收盤價,漲跌(+/-),漲跌價差,最後揭示買價,最後揭示買量,最後揭示賣價,最後揭示賣量,本益比
-            code, sname, volume, tx, value, o, h, l, c, direction, change, _bp, _bv, _ap, _av, pe = row
-            # 漲跌價差不帶正負號，正負號在 HTML 的「漲跌(+/-)」欄；平盤該欄為空白
-            sign = _TAG_RE.sub("", str(direction)).strip()
-            signed_change = f"{sign}{change}" if sign in ("+", "-") else change
+        for q in paged.rows:
+            change = printed(q.change_points)
+            if q.direction in ("+", "-"):
+                change = q.direction + change  # 漲跌價差 is unsigned; flat and 除權息 (X) print bare
             lines.append(
-                f"{code} {sname} | 開:{o} 高:{h} 低:{l} 收:{c} 漲跌:{signed_change} | "
-                f"量:{volume} 金額:{value} 筆數:{tx} | 本益比:{pe}"
+                f"{q.code} {q.name} | 開:{printed(q.open)} 高:{printed(q.high)} 低:{printed(q.low)} "
+                f"收:{printed(q.close)} 漲跌:{change} | "
+                f"量:{printed(q.volume)} 金額:{printed(q.value)} 筆數:{printed(q.transactions)} | 本益比:{printed(q.pe, '')}"
             )
 
         if paged.more():

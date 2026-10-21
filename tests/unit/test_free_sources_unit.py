@@ -123,9 +123,12 @@ def test_day_trading_non_trading_day():
     assert "請確認該日期為交易日" in fn("20260801")
 
 
+IND_FIELDS = ["指數", "收盤指數", "漲跌(+/-)", "漲跌點數", "漲跌百分比(%)", "特殊處理註記"]
+
+
 def test_indices_keyword_filter_and_sign_from_html():
     payload = {"stat": "OK", "tables": [
-        {"title": "價格指數(臺灣證券交易所)", "data": [
+        {"title": "價格指數(臺灣證券交易所)", "fields": IND_FIELDS, "data": [
             ["發行量加權股價指數", "43,386.41", "<p style ='color:red'>+</p>", "406.36", "0.85", ""],
             ["半導體類指數", "1,491.44", "<p style ='color:green'>-</p>", "3.37", "-0.23", ""],
         ]},
@@ -152,7 +155,7 @@ INDEX_NAMES = ["發行量加權股價指數", "半導體類指數", "半導體�
 def test_index_categories(category, expected):
     rows = [[n, "1", "+", "1", "0.1", ""] for n in INDEX_NAMES]
     fn = register_module_tools(twse_extra, OfflineClient({"/afterTrading/MI_INDEX": {"stat": "OK", "tables": [
-        {"title": "指數", "data": rows}]}}))["get_market_index_info"]
+        {"title": "指數", "fields": IND_FIELDS, "data": rows}]}}))["get_market_index_info"]
     text = fn(category=category)
     assert {n for n in INDEX_NAMES if f"{n}:" in text} == expected
 
@@ -163,7 +166,7 @@ def test_index_and_day_trading_default_to_latest_day():
     def route(params, _body):
         seen.append(dict(params))
         return {"stat": "OK", "date": "20260929", "tables": [
-            {"title": "t", "data": [["發行量加權股價指數", "1", "+", "1", "0.1", ""]]}, {"data": [["2330", "台積電", "", "1", "2", "3"]]}]}
+            {"title": "t", "fields": IND_FIELDS, "data": [["發行量加權股價指數", "1", "+", "1", "0.1", ""]]}, {"data": [["2330", "台積電", "", "1", "2", "3"]]}]}
 
     client = OfflineClient({"/afterTrading/MI_INDEX": route, "/dayTrading/TWTB4U": route})
     tools = register_module_tools(twse_extra, client)

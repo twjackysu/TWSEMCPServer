@@ -1,11 +1,11 @@
-"""Contract tests for utils/market_snapshot.py (get_stock_screener / get_industry_peers)."""
+"""Contract tests for services/market_snapshot.py (get_stock_screener / get_industry_peers)."""
 
-from tests.helpers import fetch_or_skip, records_or_skip
+from tests.helpers import fetch_or_skip, gateway_or_skip, records_or_skip
 from utils.api_client import TWSEAPIClient
-from utils.market_snapshot import (
+from sources.twse.mi_index import stock_quotes
+from services.market_snapshot import (
     BWIBBU_D_URL,
     LISTED_PROFILE_ENDPOINT,
-    MI_INDEX_URL,
     TPEX_PE_URL,
     TPEX_PROFILE_URL,
     TPEX_QUOTES_URL,
@@ -28,10 +28,9 @@ def test_industry_codes_share_one_system_across_markets():
 
 
 def test_industry_member_lists_carry_names():
-    listed = fetch_or_skip(MI_INDEX_URL, params={"response": "json", "type": "24", "date": FIXED_DATE})
-    titles = [t.get("title") or "" for t in listed.get("tables") or []]
-    member_table = next((t for t in listed.get("tables") or [] if "每日收盤行情(半導體業)" in (t.get("title") or "")), None)
-    assert member_table and any(r[0] == "2330" for r in member_table.get("data") or []), f"產業成員表已變更: {titles}"
+    listed = gateway_or_skip(stock_quotes, "24", FIXED_DATE)
+    assert listed is not None and listed.group == "半導體業", f"產業成員表已變更: {listed and listed.title!r}"
+    assert any(q.code == "2330" for q in listed.quotes), "半導體業成員表找不到 2330"
     otc = fetch_or_skip(TPEX_QUOTES_URL, params={"response": "json", "type": "24", "date": "2025/01/03"})
     table = (otc.get("tables") or [{}])[0]
     assert table.get("category") and any(r[0] == "6488" for r in table.get("data") or []), "上櫃產業成員表已變更"

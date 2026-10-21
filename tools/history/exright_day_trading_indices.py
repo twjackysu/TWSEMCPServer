@@ -6,18 +6,15 @@ The day-trading and index tools replace OpenAPI versions (/exchangeReport/TWTB4U
 /exchangeReport/MI_INDEX) that only covered the latest day with fewer columns.
 """
 
-import re
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
 from toolkit import handle_api_errors
+from sources.twse.mi_index import index_quotes
 
 TWT49U_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
 TWTB4U_URL = "https://www.twse.com.tw/rwd/zh/dayTrading/TWTB4U"
-MI_INDEX_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
-
-_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _any(*patterns):
@@ -40,11 +37,6 @@ INDEX_CATEGORIES = {
     "dividend": lambda n: _any("高股息", "高息", "股息", "股利", "優息", "存股")(n) and not _is_return(n),
     "all": lambda n: True,
 }
-
-
-def strip_tags(value: str) -> str:
-    """MI_INDEX's 漲跌 column is HTML (``<p style='color:red'>+</p>``); keep the text."""
-    return _TAG_RE.sub("", str(value)).strip()
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -175,26 +167,22 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         matcher = INDEX_CATEGORIES.get(category.strip().lower())
         if matcher is None:
             raise ToolError(f"category 只能是 {', '.join(INDEX_CATEGORIES)}")
-        params = {"type": "IND", "response": "json"}
-        if date.strip():
-            params["date"] = date.strip()
-        resp = _client.fetch_json(MI_INDEX_URL, params=params)
+        board = index_quotes(_client, date.strip())
         label = date or "最新交易日"
-        if not resp or resp.get("stat") != "OK":
+        if board is None:
             return f"查無 {label} 的指數資料，請確認該日期為交易日（非假日或週末）"
 
-        lines = [f"【{resp.get('date') or label} 證交所指數收盤行情（{category}）】"]
+        lines = [f"【{board.date or label} 證交所指數收盤行情（{category}）】"]
         count = 0
-        for table in resp.get("tables") or []:
-            title = table.get("title")
-            rows = [r for r in table.get("data") or [] if matcher(r[0]) and keyword in r[0]]
-            if not title or not rows:
+        for table in board.tables:
+            quotes = [q for q in table.quotes if matcher(q.name) and keyword in q.name]
+            if not quotes:
                 continue
-            lines.append(f"\n〔{title}〕")
-            for r in rows:
-                # r: 指數,收盤指數,漲跌(+/-)(HTML),漲跌點數,漲跌百分比(%),特殊處理註記
-                # 漲跌點數不帶正負號（正負號在 HTML 的漲跌欄），漲跌百分比本身已帶號
-                lines.append(f"{r[0]}: {r[1]} | {strip_tags(r[2])}{r[3]} ({r[4]}%)")
+            lines.append(f"\n〔{table.title}〕")
+            for q in quotes:
+                # 漲跌點數不帶正負號（方向另成一欄），漲跌百分比本身已帶號
+                lines.append(f"{q.name}: {printed(q.close)} | {q.direction}{printed(q.change_points)} "
+                             f"({printed(q.change_pct)}%)")
                 count += 1
         if not count:
             cond = f"分類 {category}" + (f"、名稱包含「{keyword}」" if keyword else "")

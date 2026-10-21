@@ -3,13 +3,13 @@ membership, for screening and peer comparison.
 
 Sources (latest trading day, each one request, cached):
 - listed valuation:  TWSE rwd BWIBBU_d        (收盤價, 殖利率, 股利年度, 本益比, 股價淨值比, 財報年/季)
-- listed prices:     TWSE rwd MI_INDEX ALLBUT0999 每日收盤行情 (漲跌 sign + 漲跌價差, 成交股數)
+- listed prices:     TWSE rwd MI_INDEX ALLBUT0999 每日收盤行情 (gateway: sources/twse/mi_index.py)
 - OTC valuation:     TPEx afterTrading/peQryDate
 - OTC prices:        TPEx afterTrading/otc type=EW
 - industry of a stock: TWSE OpenAPI t187ap03_L 產業別 / TPEx OpenAPI mopsfin_t187ap03_O
   SecuritiesIndustryCode — both use the same two-digit codes (e.g. 24 = 半導體)
-- industry members:  MI_INDEX type=<code> / afterTrading/otc type=<code>, whose table titles
-  also carry the industry name
+- industry members:  MI_INDEX type=<code> (its quote table's title names the industry) /
+  afterTrading/otc type=<code>
 
 The valuation endpoints publish a day later than the quote endpoints (on 2026-09-30 during
 the evening both valuations still showed 09-29 while quotes showed 09-30), so prices are
@@ -17,14 +17,13 @@ fetched for the date the valuation actually served; mixing the two would pair on
 close with the previous day's P/E.
 """
 
-import re
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from .api_client import TWSEAPIClient
+from utils.api_client import TWSEAPIClient
+from sources.twse.mi_index import stock_quotes
 
 BWIBBU_D_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d"
-MI_INDEX_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
 TPEX_PE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate"
 TPEX_QUOTES_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc"
 TPEX_PROFILE_URL = "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O"
@@ -32,7 +31,6 @@ LISTED_PROFILE_ENDPOINT = "/opendata/t187ap03_L"
 
 SNAPSHOT_CACHE_TTL = 600
 LISTED, OTC = "上市", "上櫃"
-_TAG_RE = re.compile(r"<[^>]+>")
 
 
 @dataclass
@@ -56,6 +54,10 @@ class StockSnapshot:
         return self.change / (self.close - self.change) * 100
 
 
+def _float(value) -> Optional[float]:
+    return None if value is None else float(value)
+
+
 def _num(value) -> Optional[float]:
     text = str(value).replace(",", "").replace("%", "").strip()
     try:
@@ -73,19 +75,13 @@ def _listed(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
         out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), LISTED, close=_num(r[2]),
                                           dividend_yield=_num(r[3]), dividend_year=str(r[4]), pe=_num(r[5]),
                                           pb=_num(r[6]), fiscal=str(r[7]))
-    params = {"response": "json", "type": "ALLBUT0999"}
-    if day:
-        params["date"] = day
-    quotes = client.fetch_json(MI_INDEX_URL, params=params, cache_ttl=SNAPSHOT_CACHE_TTL)
-    table = next((t for t in (quotes or {}).get("tables") or [] if "每日收盤行情" in (t.get("title") or "")), {})
-    for r in table.get("data") or []:
-        # r: 代號,名稱,成交股數,成交筆數,成交金額,開,高,低,收,漲跌(+/-)(HTML),漲跌價差,...
-        s = out.setdefault(r[0].strip(), StockSnapshot(r[0].strip(), r[1].strip(), LISTED))
-        s.close = s.close if s.close is not None else _num(r[8])
-        change = _num(r[10])
-        if change is not None:
-            s.change = -change if _TAG_RE.sub("", str(r[9])).strip() == "-" else change
-        s.volume = _num(r[2])
+    table = stock_quotes(client, "ALLBUT0999", day)
+    for q in table.quotes if table else []:
+        s = out.setdefault(q.code, StockSnapshot(q.code, q.name, LISTED))
+        s.close = s.close if s.close is not None else _float(q.close)
+        if q.change is not None:
+            s.change = float(q.change)
+        s.volume = _float(q.volume)
     return out, day
 
 
@@ -135,13 +131,9 @@ def industry_of(client: TWSEAPIClient, code: str) -> Optional[str]:
 def industry_members(client: TWSEAPIClient, industry: str) -> Tuple[str, List[str]]:
     """(industry name, codes of listed + OTC members) for a two-digit industry code."""
     name, codes = "", []
-    quotes = client.fetch_json(MI_INDEX_URL, params={"response": "json", "type": industry}, cache_ttl=SNAPSHOT_CACHE_TTL)
-    for t in (quotes or {}).get("tables") or []:
-        title = t.get("title") or ""
-        m = re.search(r"每日收盤行情\((.+?)\)", title)
-        if m:
-            name = m.group(1)
-            codes += [r[0].strip() for r in t.get("data") or []]
+    listed = stock_quotes(client, industry)
+    if listed:
+        name, codes = listed.group, [q.code for q in listed.quotes]
     otc = client.fetch_json(TPEX_QUOTES_URL, params={"response": "json", "type": industry}, cache_ttl=SNAPSHOT_CACHE_TTL)
     table = ((otc or {}).get("tables") or [{}])[0]
     codes += [r[0].strip() for r in table.get("data") or []]
