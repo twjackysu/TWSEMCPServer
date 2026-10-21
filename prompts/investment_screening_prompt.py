@@ -1,9 +1,7 @@
 """Prompt for investment screening using TWSE OpenAPI endpoints."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_level: str = "moderate") -> PromptMessage:
+def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_level: str = "moderate") -> str:
     """Prompt for investment screening using TWSE OpenAPI endpoints."""
     content = f"""台灣股市投資篩選指引
 
@@ -162,4 +160,4 @@ def investment_screening_prompt(screening_criteria: str = "comprehensive", risk_
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的投資篩選分析。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

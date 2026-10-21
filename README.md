@@ -127,7 +127,7 @@ openapi.taifex.com.tw 僅提供最新一個交易日，本專案改用期交所�
 ```bash
 git clone https://github.com/twjackysu/TWStockMCPServer.git
 cd TWStockMCPServer
-uv sync && uv run fastmcp dev server.py
+uv sync && uv run fastmcp dev inspector server.py
 ```
 
 ## 📡 資料來源

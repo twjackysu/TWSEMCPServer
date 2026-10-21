@@ -1,9 +1,7 @@
 """Prompt for market hotspot monitoring using TWSE OpenAPI endpoints."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", date_filter: str = "today") -> PromptMessage:
+def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", date_filter: str = "today") -> str:
     """Prompt for market hotspot monitoring using TWSE OpenAPI endpoints."""
     content = f"""台灣股市熱點監控指引
 
@@ -110,4 +108,4 @@ def market_hotspot_monitoring_prompt(monitoring_scope: str = "comprehensive", da
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的市場熱點分析。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

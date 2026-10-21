@@ -1,9 +1,7 @@
 """Prompt for a pre-trade risk scan (disposal/warning/day-trading-restriction stocks)."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> PromptMessage:
+def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> str:
     """Prompt for scanning disposal/warning/restriction lists before placing a trade."""
     content = f"""買前風險掃描指引
 
@@ -77,4 +75,4 @@ def pre_trade_risk_scan_prompt(market: str = "twse", stock_symbol: str = "") -> 
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的買前風險掃描結果。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

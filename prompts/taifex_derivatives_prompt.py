@@ -1,9 +1,7 @@
 """Prompt for TAIFEX futures/options derivatives analysis."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def taifex_derivatives_prompt(scope: str = "comprehensive") -> PromptMessage:
+def taifex_derivatives_prompt(scope: str = "comprehensive") -> str:
     """Prompt for TAIFEX futures/options chip analysis using TAIFEX OpenAPI endpoints."""
     content = f"""台灣期貨選擇權籌碼分析指引
 
@@ -80,4 +78,4 @@ def taifex_derivatives_prompt(scope: str = "comprehensive") -> PromptMessage:
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的期貨選擇權籌碼分析。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

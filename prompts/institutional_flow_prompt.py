@@ -1,9 +1,7 @@
 """Prompt for three-major-institutional-investors (三大法人) flow analysis."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") -> PromptMessage:
+def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") -> str:
     """Prompt for institutional investor (foreign/investment trust/dealer) flow analysis."""
     content = f"""三大法人籌碼流向分析指引
 
@@ -83,4 +81,4 @@ def institutional_flow_prompt(target: str = "market", stock_symbol: str = "") ->
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的三大法人籌碼流向分析。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content

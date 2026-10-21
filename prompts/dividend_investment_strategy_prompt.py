@@ -1,9 +1,7 @@
 """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
 
-from fastmcp.prompts.prompt import PromptMessage, TextContent
 
-
-def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> PromptMessage:
+def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_horizon: str = "quarterly") -> str:
     """Prompt for dividend investment strategy using TWSE OpenAPI endpoints."""
     content = f"""台灣股市股利投資策略指引
 
@@ -125,4 +123,4 @@ def dividend_investment_strategy_prompt(strategy_type: str = "high_yield", time_
 
 請先呼叫上述對應工具取得真實資料，再依實際回傳內容提供完整的股利投資策略。
 """
-    return PromptMessage(role="user", content=TextContent(type="text", text=content))
+    return content
