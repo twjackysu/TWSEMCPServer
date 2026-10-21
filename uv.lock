@@ -1058,6 +1058,7 @@ name = "twstockmcpserver"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "anyio" },
     { name = "fastmcp" },
     { name = "httpx" },
     { name = "mcp", extra = ["cli"] },
@@ -1075,6 +1076,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.9.0" },
     { name = "fastmcp", specifier = "==2.12.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.9.3" },

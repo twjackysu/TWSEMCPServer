@@ -7,6 +7,7 @@ MOPS 的欄位結構由 tests/contract/test_mops_api.py 驗證；這裡只測我
 from datetime import date
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -257,8 +258,9 @@ def test_conference_unexpected_page_is_an_error_not_no_data():
              "empty": "<html><center>查無資料</center></html>".encode("utf-8")}
     fn = register_module_tools(investor_conference, OfflineClient({"/mops/web/ajax_t100sb02_1": lambda _p, b: pages[b["co_id"]]}))[
         "get_investor_conferences"]
-    assert "查詢失敗" in fn("2026", code="blocked")
-    assert "查無" in fn("2026", code="empty") and "查詢失敗" not in fn("2026", code="empty")
+    with pytest.raises(ToolError, match="^查詢失敗"):
+        fn("2026", code="blocked")
+    assert "查無" in fn("2026", code="empty")
 
 
 # ---------- parse_html_tables ----------
@@ -366,5 +368,7 @@ def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():
     empty = "<html><table><tr><td>查無資料</td></tr></table></html>".encode("utf-8")
     fn = register_module_tools(treasury_guarantees, OfflineClient({"/ajax_t05st11": lambda _p, b: blocked if b["co_id"] == "1" else empty}))[
         "get_company_lending_and_guarantees"]
-    assert "查詢失敗" in fn("1") and "查無 2" in fn("2")
+    with pytest.raises(ToolError, match="^查詢失敗"):
+        fn("1")
+    assert "查無 2" in fn("2")
     assert "同時指定" in fn("2", year="2026")

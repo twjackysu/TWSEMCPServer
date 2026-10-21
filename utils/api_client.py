@@ -3,13 +3,32 @@
 import json
 import requests
 import logging
+import threading
 import time
 from typing import List, Optional, Any, Dict
+from urllib.parse import urlsplit
 
 from .types import TWSEDataItem
 from .config import APIConfig
 
 logger = logging.getLogger(__name__)
+
+# Lock stripes for single-flight: concurrent identical requests wait for the first one
+# and read its cached result instead of each hitting upstream.
+_FLIGHT_STRIPES = 64
+
+
+def throttle_key(url: str) -> str:
+    """The site a request counts against for rate limiting: the last three host labels.
+
+    openapi./www./mis./mops./mopsov.twse.com.tw all map to ``twse.com.tw``, as do
+    www.taifex.com.tw and openapi.taifex.com.tw to ``taifex.com.tw``. Subdomains of one
+    exchange may sit behind the same IP-blocking firewall, so they share one interval
+    rather than each getting its own and multiplying the rate seen from our IP.
+    """
+    host = (urlsplit(url).hostname or "").lower()
+    return ".".join(host.split(".")[-3:])
+
 
 class TWSEAPIClient:
     """Client for Taiwan Stock Exchange API."""
@@ -29,7 +48,14 @@ class TWSEAPIClient:
         self.request_interval = request_interval
         self.verify_ssl = verify_ssl
         self.cache_ttl = cache_ttl
-        self._last_request_time = 0.0
+        # Tools run in worker threads (see handle_api_errors), so every piece of shared
+        # state below is guarded. One throttle clock and lock per site (throttle_key):
+        # requests to one site stay one at a time and spaced, other sites proceed meanwhile.
+        self._site_locks: Dict[str, threading.Lock] = {}
+        self._site_locks_guard = threading.Lock()
+        self._last_request_at: Dict[str, float] = {}
+        self._flight_locks = [threading.Lock() for _ in range(_FLIGHT_STRIPES)]
+        self._cache_guard = threading.Lock()
         self._cache: Dict[str, tuple[float, List[TWSEDataItem]]] = {}
         # Raw response bodies for fetch_json / fetch_bytes calls that opt in with cache_ttl.
         # Bytes, not parsed objects, so no caller can mutate what another caller receives.
@@ -43,12 +69,25 @@ class TWSEAPIClient:
             cls._instance = cls()
         return cls._instance
 
-    def _throttle(self) -> None:
-        """Enforce the per-instance request interval."""
-        elapsed = time.time() - self._last_request_time
-        if elapsed < self.request_interval:
-            wait = self.request_interval - elapsed
-            logger.debug(f"Rate limiting: sleeping for {wait:.2f} seconds")
+    def _site_lock(self, site: str) -> threading.Lock:
+        with self._site_locks_guard:
+            return self._site_locks.setdefault(site, threading.Lock())
+
+    def _flight_lock(self, key: str) -> threading.Lock:
+        return self._flight_locks[hash(key) % _FLIGHT_STRIPES]
+
+    def _throttle(self, site: str) -> None:
+        """Wait until ``request_interval`` has passed since the last request to ``site``.
+
+        Called with the site's lock held. Sleeping here blocks only this worker thread.
+        Monotonic clock: a wall-clock adjustment must not stretch or skip the wait.
+        """
+        last = self._last_request_at.get(site)
+        if last is None:
+            return
+        wait = self.request_interval - (time.monotonic() - last)
+        if wait > 0:
+            logger.debug(f"Rate limiting {site}: sleeping for {wait:.2f} seconds")
             time.sleep(wait)
 
     def _request(
@@ -67,29 +106,33 @@ class TWSEAPIClient:
         Pass ``session`` for flows that need cookies carried between requests (the TDCC
         query page ties a one-time form token to a JSESSIONID cookie).
         """
-        self._throttle()
-        logger.info(f"Fetching {method} {url} params={params}")
-        try:
-            send = session.request if session is not None else requests.request
-            resp = send(
-                method,
-                url,
-                params=params,
-                data=data,
-                json=json_body,
-                headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
-                verify=self.verify_ssl,
-                timeout=timeout,
-            )
-        finally:
-            # Stamp even when the call raises (timeout, connection error) or the
-            # response turns out to be an error status. A failed request still cost the
-            # upstream a hit, so leaving the stamp stale would make _throttle() see a
-            # huge elapsed time and skip the interval entirely — the retry loops that sit
-            # on top of this (MI_MARGN's 7-day walk-back, the industry-report probing in
-            # tools/company/financials.py) would then fire back-to-back with no spacing,
-            # exactly when TWSE is rate-limiting or down.
-            self._last_request_time = time.time()
+        site = throttle_key(url)
+        # Held through the request, not just the wait: two threads that both waited out
+        # the interval would otherwise send back-to-back.
+        with self._site_lock(site):
+            self._throttle(site)
+            logger.info(f"Fetching {method} {url} params={params}")
+            try:
+                send = session.request if session is not None else requests.request
+                resp = send(
+                    method,
+                    url,
+                    params=params,
+                    data=data,
+                    json=json_body,
+                    headers=headers or {"User-Agent": self.user_agent, "Accept": "application/json"},
+                    verify=self.verify_ssl,
+                    timeout=timeout,
+                )
+            finally:
+                # Stamp even when the call raises (timeout, connection error) or the
+                # response turns out to be an error status. A failed request still cost the
+                # upstream a hit, so leaving the stamp stale would make _throttle() see a
+                # huge elapsed time and skip the interval entirely — the retry loops that sit
+                # on top of this (MI_MARGN's 7-day walk-back, the industry-report probing in
+                # tools/company/financials.py) would then fire back-to-back with no spacing,
+                # exactly when TWSE is rate-limiting or down.
+                self._last_request_at[site] = time.monotonic()
         resp.raise_for_status()
         resp.encoding = "utf-8"
         return resp
@@ -114,18 +157,20 @@ class TWSEAPIClient:
             return self._request(url, params=params, headers=headers, timeout=timeout,
                                  method=method, data=data, json_body=json_body).content
         key = json.dumps([method, url, params, data, json_body], sort_keys=True, ensure_ascii=False, default=str)
-        now = time.time()
-        hit = self._response_cache.get(key)
-        if hit is not None and now - hit[0] < cache_ttl:
-            return hit[1]
-        content = self._request(url, params=params, headers=headers, timeout=timeout,
-                                method=method, data=data, json_body=json_body).content
-        self._response_cache.pop(key, None)
-        while len(self._response_cache) >= self.response_cache_max_entries:
-            # dicts keep insertion order: the first key is the oldest entry
-            self._response_cache.pop(next(iter(self._response_cache)))
-        self._response_cache[key] = (now, content)
-        return content
+        with self._flight_lock(key):
+            with self._cache_guard:
+                hit = self._response_cache.get(key)
+            if hit is not None and time.time() - hit[0] < cache_ttl:
+                return hit[1]
+            content = self._request(url, params=params, headers=headers, timeout=timeout,
+                                    method=method, data=data, json_body=json_body).content
+            with self._cache_guard:
+                self._response_cache.pop(key, None)
+                while len(self._response_cache) >= self.response_cache_max_entries:
+                    # dicts keep insertion order: the first key is the oldest entry
+                    self._response_cache.pop(next(iter(self._response_cache)))
+                self._response_cache[key] = (time.time(), content)
+            return content
 
     def fetch_data(self, endpoint: str, timeout: float = APIConfig.DEFAULT_TIMEOUT) -> List[TWSEDataItem]:
         """Fetch from a TWSE OpenAPI endpoint (base_url-relative) and normalise to a list.
@@ -136,9 +181,15 @@ class TWSEAPIClient:
         seconds of each other — the cache turns those into one HTTP round-trip.
         """
         url = f"{self.base_url}{endpoint}"
+        # Tools of one prompt run concurrently and often read the same list: the first
+        # fetches it, the rest wait here and read it from the cache.
+        with self._flight_lock(url):
+            return self._fetch_data_once(url, timeout)
 
+    def _fetch_data_once(self, url: str, timeout: float) -> List[TWSEDataItem]:
         if self.cache_ttl > 0:
-            cached = self._cache.get(url)
+            with self._cache_guard:
+                cached = self._cache.get(url)
             if cached is not None and time.time() - cached[0] < self.cache_ttl:
                 return cached[1]
 
@@ -155,7 +206,8 @@ class TWSEAPIClient:
                 ) from parse_err
             result = data if isinstance(data, list) else ([data] if data else [])
             if self.cache_ttl > 0:
-                self._cache[url] = (time.time(), result)
+                with self._cache_guard:
+                    self._cache[url] = (time.time(), result)
             return result
         except Exception as e:
             logger.error(f"Failed to fetch data from {url}: {e}")
