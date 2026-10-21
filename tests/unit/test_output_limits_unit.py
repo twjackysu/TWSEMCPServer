@@ -108,7 +108,8 @@ def test_margin_balance_offset_out_of_range_is_explicit(margin_tools):
 @pytest.fixture
 def valuation_tools():
     rows = [[f"{1000 + i}", f"股票{i}", "123.45", "3.21", "113", "15.67", "2.34", "114/2"] for i in range(ROWS)]
-    resp = {"stat": "OK", "date": TRADING_DATE, "data": rows}
+    fields = ["證券代號", "證券名稱", "收盤價", "殖利率(%)", "股利年度", "本益比", "股價淨值比", "財報年/季"]
+    resp = {"stat": "OK", "date": TRADING_DATE, "fields": fields, "data": rows}
     return register_module_tools(bwibbu_all, OfflineClient({"/afterTrading/BWIBBU_d": resp}))
 
 

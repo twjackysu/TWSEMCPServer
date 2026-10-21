@@ -13,6 +13,7 @@ pytestmark = pytest.mark.offline
 
 QUOTE_FIELDS = ["證券代號", "證券名稱", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價", "收盤價",
                 "漲跌(+/-)", "漲跌價差", "最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量", "本益比"]
+BWIBBU_FIELDS = ["證券代號", "證券名稱", "收盤價", "殖利率(%)", "股利年度", "本益比", "股價淨值比", "財報年/季"]
 
 
 def _routes(seen):
@@ -35,7 +36,7 @@ def _routes(seen):
         return listed_quotes(params, _b)
 
     return {
-        "/afterTrading/BWIBBU_d": {"date": "20260929", "data": [
+        "/afterTrading/BWIBBU_d": {"stat": "OK", "date": "20260929", "fields": BWIBBU_FIELDS, "data": [
             ["2330", "台積電", "2,475.00", "0.89", 114, "28.69", "9.98", "115/2"],
             ["2317", "鴻海", "200.00", "5.00", 114, "-", "1.20", "115/2"]]},
         "/afterTrading/MI_INDEX": listed_members,

@@ -4,6 +4,7 @@
 """
 
 import pytest
+from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.stock_day import stock_day_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
 
@@ -32,55 +33,28 @@ class TestStockDayGateway:
         assert gateway_or_skip(stock_day_month, "9999", 2025, 1) is None
 
 
-@pytest.fixture(scope="class")
-def bwibbu_d_data():
-    return fetch_or_skip(
-        "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
-        params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-    )
-
-
-class TestBwibbuDailyAPI:
-    """全市場估值 - BWIBBU_d
-    Tool get_stock_valuation_ratios 依 COL_* 常數取用欄位，
-    並以回應的 date 欄位確認拿到的確實是所查日期的資料。
+class TestBwibbuDailyGateway:
+    """全市場估值 - BWIBBU_d（sources/twse/bwibbu_d.py）
+    get_stock_valuation_ratios 與 services/market_snapshot 都只透過這個 gateway 讀 BWIBBU_d；欄位改名時
+    gateway 丟 UpstreamFormatError。tool 靠回應的 date 擋掉「拿到別天資料卻標成所查日期」。
     """
 
-    def test_field_order_matches_column_constants(self, bwibbu_d_data):
-        """tool 寫死欄位索引，需確認 fields 順序未變."""
-        assert bwibbu_d_data.get("stat") == "OK"
-        fields = bwibbu_d_data["fields"]
-        expected = [
-            "證券代號", "證券名稱", "收盤價", "殖利率(%)",
-            "股利年度", "本益比", "股價淨值比", "財報年/季",
-        ]
-        assert fields == expected, f"欄位順序異動！實際值: {fields}"
-
-    def test_response_echoes_requested_date(self, bwibbu_d_data):
-        """tool 靠 date 欄位擋掉「拿到別天資料卻標成所查日期」."""
-        assert bwibbu_d_data.get("date") == FIXED_DATE, (
-            f"回應日期 {bwibbu_d_data.get('date')} 與所查日期 {FIXED_DATE} 不符"
-        )
+    def test_fixed_day_parses_and_echoes_its_date(self):
+        report = gateway_or_skip(valuation_ratios, FIXED_DATE)
+        assert report.found and report.date == FIXED_DATE, f"回應日期 {report.date!r} 與所查日期 {FIXED_DATE} 不符"
+        tsmc = next((v for v in report.valuations if v.code == FIXED_STOCK), None)
+        assert tsmc is not None and tsmc.name == "台積電", f"{FIXED_DATE} 估值找不到 {FIXED_STOCK}"
+        assert None not in (tsmc.close, tsmc.dividend_yield, tsmc.pe, tsmc.pb), tsmc
+        assert tsmc.dividend_year.isdigit() and tsmc.fiscal, tsmc
 
     def test_endpoint_actually_honours_date(self):
         """兩個不同日期必須回傳不同資料——舊的 BWIBBU_ALL 端點就是敗在這裡."""
         other_date = "20240315"
-        other = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
-            params={"response": "json", "date": other_date, "selectType": "ALL"},
-        )
-        assert other.get("date") == other_date
-        assert other["data"][0] != _first_row_for(FIXED_DATE), (
+        other = gateway_or_skip(valuation_ratios, other_date)
+        assert other.date == other_date
+        assert other.valuations[0] != gateway_or_skip(valuation_ratios, FIXED_DATE).valuations[0], (
             "不同日期回傳相同資料，端點已不再支援歷史查詢"
         )
-
-
-def _first_row_for(date: str):
-    resp = fetch_or_skip(
-        "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
-        params={"response": "json", "date": date, "selectType": "ALL"},
-    )
-    return resp["data"][0]
 
 
 class TestMarginBalanceAPI:

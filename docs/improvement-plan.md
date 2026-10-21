@@ -39,7 +39,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      `services/`；`day_cache_ttl`、`utils.printed()`。
    - ✅ TWT49U（#118）：`sources/twse/twt49u.py`；`get_exright_results_history` 與還原權息共用，
      `stat` 原樣保留給「查無」訊息。2024–2026 共 3,922 列與舊版逐字相同。
-   - [ ] BWIBBU_d　- [ ] T86 + TPEx dailyTrade（Adapter）
+   - ✅ BWIBBU_d（#119）：`sources/twse/bwibbu_d.py`；`get_stock_valuation_ratios` 與 `market_snapshot`
+     共用。兩個完整交易日（1,083 + 1,031 檔）與上市全部選股結果與舊版逐字相同。
+   - [ ] T86 + TPEx dailyTrade（Adapter）
 - [ ] Phase 2 共用核心
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面
