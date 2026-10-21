@@ -95,13 +95,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         上市、上櫃、興櫃、公開發行公司皆可。每月含當月營收、月增率、去年同期、年增率、
         今年累計與累計年增率，以及公司對大幅變動的說明。
 
+        回傳：每個月份的營收數據（單位：新台幣仟元）。尚未公告的月份會標示「尚未公告」
+
         Args:
             code: 股票代號，例如 "2330"
             start_month: 起始月份，西元 YYYYMM，例如 "202601"；留空＝最新公告月份（附上前一個月對照）
             end_month: 結束月份，西元 YYYYMM（選填，預設同 start_month）。區間最多 12 個月
-
-        Returns:
-            每個月份的營收數據（單位：新台幣仟元）。尚未公告的月份會標示「尚未公告」
         """
         code = code.strip()
         if start_month.strip():

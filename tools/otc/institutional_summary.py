@@ -30,14 +30,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         不是個股）：預設最新交易日，可查任意過去交易日，也可查整週或整月的累計金額。
         上櫃個股的法人買賣超請用 get_otc_institutional；上市市場請用 get_market_institutional_amounts_history。
 
+        回傳：外資及陸資合計（及其中不含自營商、外資自營商兩項）、投信、自營商合計（及其中自行買賣、避險兩項）、
+        三大法人合計的買進、賣出、買賣超金額（億元；買賣超另附原始元）
+
         Args:
             date: 日期 YYYYMMDD（選填，留空＝最新交易日）。period 為 week／month 時指該日所在的週或月
             period: day（單日，預設）、week（該週合計）、month（該月合計，當月為月初至今）
             scope: stocks（上櫃股票，預設）或 all（上櫃全部有價證券，含 ETF 等）
-
-        Returns:
-            外資及陸資合計（及其中不含自營商、外資自營商兩項）、投信、自營商合計（及其中自行買賣、避險兩項）、
-            三大法人合計的買進、賣出、買賣超金額（億元；買賣超另附原始元）
         """
         error = check_choice("period", period, PERIODS) or check_choice(
             "scope", scope, {k: v[1] for k, v in SCOPES.items()})

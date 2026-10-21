@@ -80,14 +80,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         上市、上櫃、興櫃、公開發行公司皆可，自動採用該公司產業（一般業、金融、保險…）的報表格式。
         附去年同季與年初至今累計的比較欄位。
 
+        回傳：每個會計項目在「當季、去年同季、今年累計、去年累計」的金額與占營收百分比，
+        含營收、毛利、營業利益、稅後淨利、EPS 等
+
         Args:
             code: 股票代號，例如 "2330"
             year: 年度，西元（"2025"）或民國（"114"）皆可；留空＝最新一季
             season: 季別 1～4；留空（0）＝最新一季。指定 year 時必填
-
-        Returns:
-            每個會計項目在「當季、去年同季、今年累計、去年累計」的金額與占營收百分比，
-            含營收、毛利、營業利益、稅後淨利、EPS 等
         """
         return _query("income", code, year, season)
 
@@ -98,13 +97,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         上市、上櫃、興櫃、公開發行公司皆可，自動採用該公司產業的報表格式。
         附前一年底與去年同期的比較欄位。
 
+        回傳：每個會計項目（流動資產、負債、權益等）在各比較日期的金額與占總資產百分比
+
         Args:
             code: 股票代號，例如 "2330"
             year: 年度，西元（"2025"）或民國（"114"）皆可；留空＝最新一季
             season: 季別 1～4；留空（0）＝最新一季。指定 year 時必填
-
-        Returns:
-            每個會計項目（流動資產、負債、權益等）在各比較日期的金額與占總資產百分比
         """
         return _query("balance", code, year, season)
 
@@ -114,13 +112,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司現金流量表（公開資訊觀測站）：預設最新一季，也可指定任意歷史季度。
         金額為年初至該季末的累計數，並附去年同期累計比較。
 
+        回傳：營業、投資、籌資活動現金流量各項目，含折舊攤銷、資本支出（取得不動產廠房及設備）、
+        發放現金股利、期末現金餘額等
+
         Args:
             code: 股票代號，例如 "2330"
             year: 年度，西元（"2025"）或民國（"114"）皆可；留空＝最新一季
             season: 季別 1～4（第 4 季即全年）；留空（0）＝最新一季。指定 year 時必填
-
-        Returns:
-            營業、投資、籌資活動現金流量各項目，含折舊攤銷、資本支出（取得不動產廠房及設備）、
-            發放現金股利、期末現金餘額等
         """
         return _query("cashflow", code, year, season)

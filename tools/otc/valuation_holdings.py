@@ -36,15 +36,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃股票本益比、殖利率、股價淨值比：預設最新交易日，也可指定過去日期。
         與上市的 get_stock_valuation_ratios 對應。
 
+        回傳：每支上櫃股的本益比、每股股利（股利年度）、殖利率(%)、股價淨值比（財報年/季）
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 公司名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支上櫃股的本益比、每股股利（股利年度）、殖利率(%)、股價淨值比（財報年/季）
         """
         params = date_params(date)
         if params is None:
@@ -71,15 +70,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃股票僑外資及陸資持股比例：預設最新交易日，也可指定過去日期，依持股比率由高到低排行。
         與上市的 get_foreign_holdings 對應，適合追蹤外資在上櫃股的持股變化。
 
+        回傳：排行、代號、名稱、外資持股比率、尚可投資比率、法令投資上限、持有股數、發行股數
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50；limit=20 即外資持股前 20 名）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            排行、代號、名稱、外資持股比率、尚可投資比率、法令投資上限、持有股數、發行股數
         """
         params = date_params(date)
         if params is None:

@@ -67,16 +67,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司股利分派（公開資訊觀測站）：預設近兩年，也可回溯多年評估配息穩定性。
         上市、上櫃、興櫃、公開發行公司皆可，季配息公司會列出每一季的股利。
 
+        回傳：每次股利分派的決議進度、所屬年（季）度、董事會決議日、股東會日期、當期淨利、
+        現金股利（盈餘/法定公積/資本公積，元/股）、股票股利（元/股）
+
         Args:
             code: 股票代號，例如 "2330"
             start_year: 起始年度，西元（"2021"）或民國（"110"）皆可；留空＝去年起
             end_year: 結束年度（選填，預設今年；有指定 start_year 時預設同 start_year）。區間最多 10 年
             year_type: "dividend"＝依股利所屬年度（預設，例如 2024 年盈餘所配的股利）；
                 "board"＝依董事會決議年度
-
-        Returns:
-            每次股利分派的決議進度、所屬年（季）度、董事會決議日、股東會日期、當期淨利、
-            現金股利（盈餘/法定公積/資本公積，元/股）、股票股利（元/股）
         """
         code = code.strip()
         query_type = YEAR_TYPES.get(year_type.strip().lower())

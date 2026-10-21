@@ -18,11 +18,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢股價指數類期貨與選擇權保證金一覽表，包含結算保證金、維持保證金、原始保證金。
         留空 contract 則顯示全部商品。
 
+        回傳：各指數期貨／選擇權商品的結算、維持、原始保證金金額（元）
+
         Args:
             contract: 商品名稱（中文），例如「臺股期貨」。留空則顯示全部。
-
-        Returns:
-            各指數期貨／選擇權商品的結算、維持、原始保證金金額（元）
         """
         data = _client.fetch_json(_INDEX_MARGIN_URL, headers=TAIFEX_HEADERS)
 
@@ -58,11 +57,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢股票期貨保證金一覽表，顯示各股票期貨的保證金率及分組級距。
         留空 stock_code 則顯示全部；可輸入股票代號（如 2330）或期貨契約代碼（如 TXF）。
 
+        回傳：各股票期貨的級距分組、結算、維持、原始保證金率
+
         Args:
             stock_code: 股票代號（如 2330）或期貨契約代碼（如 CAF）。留空則顯示全部。
-
-        Returns:
-            各股票期貨的級距分組、結算、維持、原始保證金率
         """
         data = _client.fetch_json(_STOCK_MARGIN_URL, headers=TAIFEX_HEADERS)
 

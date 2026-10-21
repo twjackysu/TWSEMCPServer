@@ -16,12 +16,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_otc_index(limit: int = DEFAULT_DISPLAY_LIMIT, offset: int = 0) -> str:
         """查詢櫃買市場（上櫃）指數歷史行情，包含開高低收、漲跌幅。
 
+        回傳：櫃買指數各期日期、開盤、最高、最低、收盤、漲跌
+
         Args:
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            櫃買指數各期日期、開盤、最高、最低、收盤、漲跌
         """
         data = _client.fetch_json(TPEX_INDEX_URL)
 

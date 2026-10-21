@@ -21,12 +21,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_stock_monthly_average(stock_no: str, date: str = "") -> str:
         """查詢上市個股當月每日收盤價及月平均收盤價：預設本月，也可查任意過去月份，適合評估月線趨勢。
 
+        回傳：該月份每個交易日的收盤價，以及月平均收盤價
+
         Args:
             stock_no: 股票代號，例如 "2330"
             date: 查詢月份 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月；留空＝本月）
-
-        Returns:
-            該月份每個交易日的收盤價，以及月平均收盤價
         """
         params = {"response": "json", "stockNo": stock_no}
         if date:

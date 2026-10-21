@@ -57,14 +57,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司董事、監察人、經理人及大股東的持股與設質明細（公開資訊觀測站）：預設最新月份，
         也可查過去月份。上市、上櫃、興櫃、公發公司皆可。附各類董監持股合計與設質比例。
 
+        回傳：每位內部人的職稱、姓名、選任時持股、目前持股、設質股數與比例，
+        配偶未成年子女及利用他人名義持有部份，以及董監持股合計
+
         Args:
             code: 股票代號，例如 "2330"
             year: 年度，西元或民國（選填；與 month 同時留空＝最新月份）
             month: 月份 1～12（選填）
-
-        Returns:
-            每位內部人的職稱、姓名、選任時持股、目前持股、設質股數與比例，
-            配偶未成年子女及利用他人名義持有部份，以及董監持股合計
         """
         body, error = period_body(code.strip(), year.strip(), month.strip())
         if error:
@@ -104,15 +103,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司內部人（董監、經理人、持股10%以上大股東及其配偶子女）的每月持股異動
         （公開資訊觀測站）：預設最新月份，也可查過去月份。可看出誰在集中市場買賣、設質或解質。
 
+        回傳：每位內部人的身份別、姓名、持股種類、上月持股、本月實際持股，
+        以及本月增加／減少（集中市場、其他原因、私募、信託、設質／解質）中不為零的項目
+
         Args:
             code: 股票代號，例如 "2330"
             year: 年度，西元或民國（選填；與 month 同時留空＝最新月份）
             month: 月份 1～12（選填）
             only_changed: 只列本月有增減的申報人（預設 True）；False 則列出全部申報人
-
-        Returns:
-            每位內部人的身份別、姓名、持股種類、上月持股、本月實際持股，
-            以及本月增加／減少（集中市場、其他原因、私募、信託、設質／解質）中不為零的項目
         """
         body, error = period_body(code.strip(), year.strip(), month.strip())
         if error:

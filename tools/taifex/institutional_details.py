@@ -101,14 +101,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_institutional_traders_by_futures(contract: str = "", start_date: str = "", end_date: str = "") -> str:
         """查詢三大法人各期貨契約的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
 
+        回傳：自營商、投信、外資及陸資在各期貨契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
+
         Args:
             contract: 契約代碼（例如 TXF 臺股期貨、MXF 小型臺指、EXF 電子期貨）或中文名稱
                 （例如「臺股期貨」）；留空＝全部契約。注意此處代碼與 get_daily_futures_market_report 的 TX/MTX 不同
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
-
-        Returns:
-            自營商、投信、外資及陸資在各期貨契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
         """
         rows, label, error = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
         if error:
@@ -123,13 +122,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢三大法人各選擇權契約（買權+賣權合計）的交易與未平倉：預設最新交易日，也可回溯任意區間（最長 92 天）。
         買權、賣權分開請用 get_institutional_traders_calls_puts。
 
+        回傳：自營商、投信、外資及陸資在各選擇權契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
+
         Args:
             contract: 契約代碼（例如 TXO 臺指選擇權）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
-
-        Returns:
-            自營商、投信、外資及陸資在各選擇權契約的交易口數、交易金額（千元）、未平倉口數及契約價值（千元）
         """
         rows, label, error = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
         if error:
@@ -145,14 +143,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢三大法人選擇權買賣權分計（CALL 與 PUT 分開）：預設最新交易日，也可回溯任意區間（最長 92 天）。
         觀察法人對後市看法的重要指標，外資偏多時 CALL 淨買方未平倉通常增加。
 
+        回傳：三大法人在各選擇權 CALL/PUT 的買方、賣方交易口數與金額（千元）、未平倉口數與契約價值（千元）
+
         Args:
             contract: 契約代碼（例如 TXO）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
             call_put: 篩選 CALL 或 PUT，留空則顯示全部
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
-
-        Returns:
-            三大法人在各選擇權 CALL/PUT 的買方、賣方交易口數與金額（千元）、未平倉口數與契約價值（千元）
         """
         rows, label, error = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
         if error:

@@ -232,13 +232,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         資料來自臺灣集中保管結算所，每週更新（通常週五／週六公布前一個交易週的資料），
         上市、上櫃、興櫃、ETF 皆可查。
 
+        回傳：weeks=1：資料日期、17 個持股分級的人數／股數／占比，以及大戶／散戶摘要；
+        weeks>1：由新到舊每週的大戶與散戶持股比例、人數與週變化
+
         Args:
             code: 證券代號，例如 "2330"、"0050"
             weeks: 週數（預設 1＝最新一週的完整 17 級距表；2～13＝逐週趨勢，每多一週多一次查詢，較慢）
-
-        Returns:
-            weeks=1：資料日期、17 個持股分級的人數／股數／占比，以及大戶／散戶摘要；
-            weeks>1：由新到舊每週的大戶與散戶持股比例、人數與週變化
         """
         code = code.strip()
         if weeks < 1 or weeks > MAX_WEEKS:

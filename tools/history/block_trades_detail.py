@@ -26,15 +26,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         鉅額交易的個股代號、交易別、成交價與成交量金額。
         注意：來源端點不支援伺服器端股票代號篩選，stock_no/name 為本地端過濾。
 
+        回傳：每筆鉅額交易的股票代號、名稱、交易別、成交價、成交股數、成交金額
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票的鉅額交易
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每筆鉅額交易的股票代號、名稱、交易別、成交價、成交股數、成交金額
         """
         resp = _client.fetch_json(
             BFIAUU_URL,

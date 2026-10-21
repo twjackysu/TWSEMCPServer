@@ -30,15 +30,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上市股票本益比（P/E）、殖利率、股價淨值比（P/B）：預設最新交易日，也可指定過去日期。
         可查單一個股，或全市場清單用於篩選低估值個股、比較產業估值水位。
 
+        回傳：每支股票的代號、名稱、收盤價、本益比、殖利率(%)、股利年度、股價淨值比、財報年/季
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）。全市場逾 1000 檔，未分頁的完整輸出逾 60KB
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的代號、名稱、收盤價、本益比、殖利率(%)、股利年度、股價淨值比、財報年/季
         """
         params = {"response": "json", "selectType": "ALL"}
         if date:

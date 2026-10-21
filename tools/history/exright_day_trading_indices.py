@@ -57,16 +57,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         與 get_dividend_rights_schedule（未來除權息預告）不同，這是實際除權息當日的結果，
         可用來還原權息股價、計算填權息。資料自民國 92 年起。
 
+        回傳：每筆除權息的日期、代號、名稱、除權息前收盤價、除權息參考價、權值+息值、權/息、
+        漲跌停價、開盤競價基準、減除股利參考價、最近一季每股淨值與每股盈餘
+
         Args:
             start_date: 起始日期，格式 YYYYMMDD，例如 "20260101"
             end_date: 結束日期，格式 YYYYMMDD，例如 "20260831"
             stock_no: 股票代號（選填），指定則只回傳該股票
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每筆除權息的日期、代號、名稱、除權息前收盤價、除權息參考價、權值+息值、權/息、
-            漲跌停價、開盤競價基準、減除股利參考價、最近一季每股淨值與每股盈餘
         """
         resp = _client.fetch_json(
             TWT49U_URL, params={"startDate": start_date, "endDate": end_date, "response": "json"}
@@ -97,16 +96,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         含全市場當沖占比、每檔可當沖股票的「暫停先賣後買」註記、當沖成交股數與買賣金額。
         證交所於交易日晚間才公布當日量值（T+2 前仍可能修正），盤中查詢當天可能只有標的清單。
 
+        回傳：全市場當沖成交股數與占比、買進/賣出金額與占比；各股票的暫停先賣後買註記、
+        當沖成交股數、當沖買進/賣出成交金額
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            全市場當沖成交股數與占比、買進/賣出金額與占比；各股票的暫停先賣後買註記、
-            當沖成交股數、當沖買進/賣出成交金額
         """
         params = {"selectType": "All", "response": "json"}
         if date.strip():
@@ -156,6 +154,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢證交所指數收盤行情：預設最新交易日，也可回溯任意過去交易日，適合比較類股強弱。
         涵蓋加權指數、類股指數（半導體類、金融保險類…）、主題指數（臺灣50、高股息…）與報酬指數。
 
+        回傳：每個指數的收盤指數、漲跌點數、漲跌百分比，依「價格指數／報酬指數 ×
+        證交所／跨市場／臺灣指數公司」分組
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             category: 指數分類：
@@ -168,10 +169,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 - "dividend": 高股息相關指數
                 - "all": 所有指數
             keyword: 指數名稱關鍵字（選填），例如 "半導體"；與 category 同時套用
-
-        Returns:
-            每個指數的收盤指數、漲跌點數、漲跌百分比，依「價格指數／報酬指數 ×
-            證交所／跨市場／臺灣指數公司」分組
         """
         matcher = INDEX_CATEGORIES.get(category.strip().lower())
         if matcher is None:

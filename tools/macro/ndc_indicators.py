@@ -70,15 +70,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢國發會景氣對策信號（景氣燈號）與景氣指標，每月更新，資料自 1982 年起。
         燈號：紅燈(38-45分，熱絡)、黃紅燈(32-37)、綠燈(23-31，穩定)、黃藍燈(17-22)、藍燈(9-16，低迷)。
 
+        回傳：每月（由新到舊）的各欄位數值；最新月份部分項目可能尚未公布
+
         Args:
             months: 回傳最近幾個月（預設 12，最多 60）
             table: 資料表，預設 "signal"：
                 signal＝景氣對策信號分數與燈號、領先/同時/落後指標綜合指數；
                 signal_components＝燈號九項構成項目（M1B、股價指數、工業生產、出口…）；
                 leading／coincident／lagging＝領先／同時／落後指標構成項目
-
-        Returns:
-            每月（由新到舊）的各欄位數值；最新月份部分項目可能尚未公布
         """
         filename = CYCLE_TABLES.get(table.strip().lower())
         if filename is None:
@@ -96,11 +95,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢國發會臺灣採購經理人指數：製造業 PMI 與非製造業 NMI，每月更新（2012 年起）。
         指數 50 以上代表擴張、50 以下代表緊縮，是景氣的領先參考指標。
 
+        回傳：每月（由新到舊）的 PMI 與 NMI
+
         Args:
             months: 回傳最近幾個月（預設 12，最多 60）
-
-        Returns:
-            每月（由新到舊）的 PMI 與 NMI
         """
         months = max(1, min(months, MAX_MONTHS))
         body = _client.fetch_bytes(NDC_PMI_CSV_URL, timeout=60, cache_ttl=NDC_CACHE_TTL)

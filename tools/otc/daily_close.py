@@ -78,15 +78,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         注意：指定 date 時資料來自櫃買中心網站，成交量值「不含定價交易」且沒有均價欄；
         不帶 date（最新交易日）時含定價交易並附均價。
 
+        回傳：每支上櫃證券的收盤、漲跌、開高低、成交股數、成交金額、成交筆數（最新交易日另含均價）
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支上櫃證券的收盤、漲跌、開高低、成交股數、成交金額、成交筆數（最新交易日另含均價）
         """
         if not date.strip():
             return _latest(stock_no, name, limit, offset)

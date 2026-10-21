@@ -23,11 +23,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         可用於長期趨勢分析與商品流動性比較。
         留空 contract 則顯示全部商品。
 
+        回傳：各商品年度成交量、交易日數、平均每日成交量
+
         Args:
             contract: 期貨契約代碼，例如 TX、MTX。留空則顯示全部。
-
-        Returns:
-            各商品年度成交量、交易日數、平均每日成交量
         """
         data = _client.fetch_json(_ANNUAL_URL, headers=TAIFEX_HEADERS)
 
@@ -62,11 +61,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢期貨或選擇權市場上個月的交易人結構統計，依商品類別（股價指數、股票、商品、匯率）分類，
         顯示各類型交易人（散戶、自營商、投信、外資、期貨自營商）的買賣量與月底未平倉量。
 
+        回傳：各商品類別的月統計交易量，依交易人別細分
+
         Args:
             market: futures（期貨，預設）或 options（選擇權）
-
-        Returns:
-            各商品類別的月統計交易量，依交易人別細分
         """
         if market not in _MONTHLY_STATS_URLS:
             return f"market 必須是 {'、'.join(_MONTHLY_STATS_URLS)} 其中之一"

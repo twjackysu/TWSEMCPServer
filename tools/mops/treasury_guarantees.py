@@ -37,6 +37,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司買回自己公司股份（庫藏股）彙總：董事會決議日、買回目的、預定股數、價格區間、
         買回期間與執行結果（已買回股數、平均價格、執行率）。預設近 90 天內決議的案件。
 
+        回傳：每筆庫藏股案件的公司、決議日、目的、金額上限、預定買回股數、價格區間、買回期間、
+        是否執行完畢、已買回股數與金額、平均每股價格、佔預定股數與已發行股數比例
+
         Args:
             start_date: 董事會決議日期起 YYYYMMDD（選填，預設 90 天前）
             end_date: 董事會決議日期迄 YYYYMMDD（選填，預設今天）
@@ -44,10 +47,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             code: 股票代號（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每筆庫藏股案件的公司、決議日、目的、金額上限、預定買回股數、價格區間、買回期間、
-            是否執行完畢、已買回股數與金額、平均每股價格、佔預定股數與已發行股數比例
         """
         market = market.strip().lower()
         if market not in MARKETS:
@@ -93,14 +92,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢公司背書保證與資金貸與餘額（公開資訊觀測站）：預設最新月份，也可查過去月份。
         用於評估公司（含子公司）對外資金貸放與背書保證的風險曝險，含對大陸地區背書保證。
 
+        回傳：本公司及子公司的資金貸放餘額（本月、上月、最高限額）、背書保證（本月增減、累計餘額、
+        最高額度）、母子公司間背書保證、對大陸地區背書保證（單位：新台幣仟元）
+
         Args:
             code: 股票代號，例如 "2317"
             year: 年度，西元或民國（選填；與 month 同時留空＝最新月份）
             month: 月份 1～12（選填）
-
-        Returns:
-            本公司及子公司的資金貸放餘額（本月、上月、最高限額）、背書保證（本月增減、累計餘額、
-            最高額度）、母子公司間背書保證、對大陸地區背書保證（單位：新台幣仟元）
         """
         if bool(year.strip()) != bool(month.strip()):
             return "請同時指定 year 與 month，或兩者都留空查詢最新月份"

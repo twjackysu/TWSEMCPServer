@@ -70,12 +70,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         與 get_otc_daily（OpenAPI，僅最新一日）不同，可回溯任意過去月份。
         上市股票請改用 get_stock_history。
 
+        回傳：當月每個交易日的日期、成交張數、成交仟元、開盤、最高、最低、收盤、漲跌、筆數
+
         Args:
             code: 上櫃股票代號，例如 "6488"
             date: 該月任一天，格式 YYYYMMDD，例如 "20260801"（會回傳 2026 年 8 月整月）
-
-        Returns:
-            當月每個交易日的日期、成交張數、成交仟元、開盤、最高、最低、收盤、漲跌、筆數
         """
         tpex_date = to_tpex_date(date)
         if not tpex_date:
@@ -109,6 +108,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         get_twse_institutional_investors_by_stock（單一個股）；上櫃市場整體的法人買賣金額請用
         get_otc_institutional_summary。
 
+        回傳：每支股票的外資（不含外資自營商、外資自營商）、投信、自營商（自行買賣／避險）
+        買賣超股數與三大法人合計
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填，指定時只回傳該股）
@@ -120,10 +122,6 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             side: buy（只列買超，由大到小）、sell（只列賣超，由大到小）、abs（依絕對值混排，預設）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的外資（不含外資自營商、外資自營商）、投信、自營商（自行買賣／避險）
-            買賣超股數與三大法人合計
         """
         error = check_choice("sort_by", sort_by, SORT_LABELS) or check_choice("side", side, SIDES)
         if error:
@@ -168,16 +166,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢上櫃股票融資融券餘額：預設最新交易日，也可回溯任意過去交易日。
         上市股票請改用 get_margin_balance。
 
+        回傳：每支股票的融資（前日餘額/買進/賣出/現償/餘額/使用率/限額）、
+        融券（前日餘額/賣出/買進/券償/餘額/使用率）、資券相抵；另附全市場合計
+
         Args:
             date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的融資（前日餘額/買進/賣出/現償/餘額/使用率/限額）、
-            融券（前日餘額/賣出/買進/券償/餘額/使用率）、資券相抵；另附全市場合計
         """
         params = date_params(date)
         if params is None:

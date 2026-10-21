@@ -26,15 +26,14 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         若指定日期非交易日，會自動往前尋找最近的交易日資料。
         未指定個股時附上全市場信用交易統計（融資、融券、融資金額）。上櫃股票請用 get_otc_margin_balance。
 
+        回傳：每支股票的融資買進、賣出、餘額、融券賣出、買進、餘額、資券互抵等資料
+
         Args:
             date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），若指定則只回傳該股票的融資融券資料
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）。全市場約 1300 檔，未分頁的完整輸出逾 100KB
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
-
-        Returns:
-            每支股票的融資買進、賣出、餘額、融券賣出、買進、餘額、資券互抵等資料
         """
         if not date:
             # 不帶 date 時上游直接回最新交易日

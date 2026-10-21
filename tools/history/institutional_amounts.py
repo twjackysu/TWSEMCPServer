@@ -35,13 +35,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         個股的法人買賣超排行請用 get_twse_institutional_investors_summary；單一個股明細請用
         get_twse_institutional_investors_by_stock；上櫃市場請用 get_otc_institutional_summary。
 
+        回傳：自營商（自行買賣／避險）、投信、外資及陸資（不含外資自營商）、外資自營商與三大法人合計的
+        買進、賣出、買賣差額（億元；買賣差額另附原始元）
+
         Args:
             date: 日期 YYYYMMDD（選填，留空＝最新交易日）。period 為 week／month 時指該日所在的週或月
             period: day（單日，預設）、week（該週合計）、month（該月合計，當月為月初至今）
-
-        Returns:
-            自營商（自行買賣／避險）、投信、外資及陸資（不含外資自營商）、外資自營商與三大法人合計的
-            買進、賣出、買賣差額（億元；買賣差額另附原始元）
         """
         error = check_choice("period", period, PERIODS)
         if error:

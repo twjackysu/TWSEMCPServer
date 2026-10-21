@@ -76,13 +76,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         每筆列出標的名稱、代號（台股代號或國外 ISIN）、上市／上櫃／國外等種類、占淨值比例與金額。
         槓桿型、反向型 ETF 多半只持有期貨與現金，不在明細中；期貨 ETF 與外幣級別代號不在投信投顧公會資料中。
 
+        回傳：ETF 名稱、資料期間，以及依名次（季資料依占淨值比例）排列的持股與合計占淨值比例
+
         Args:
             code: ETF 代號，例如 "0050"、"00878"、"00981A"、"00679B"
             period: 月份 YYYYMM（選填，留空＝最新一期）。quarterly=True 時須為季末月，例如 "202606"
             quarterly: False＝每月前十大（預設）；True＝每季占淨值 1% 以上的全部持股
-
-        Returns:
-            ETF 名稱、資料期間，以及依名次（季資料依占淨值比例）排列的持股與合計占淨值比例
         """
         code = code.strip().upper()
         if not code:

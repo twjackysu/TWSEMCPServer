@@ -44,12 +44,11 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         預設最新交易日，也可回溯任意區間（最長 92 天，約近 3 年內）。
         期貨、選擇權分開並列請用 get_futures_institutional。
 
+        回傳：每個交易日、每個身份別的交易口數與金額（多/空/淨）、未平倉口數及契約價值（百萬元）
+
         Args:
             start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
-
-        Returns:
-            每個交易日、每個身份別的交易口數與金額（多/空/淨）、未平倉口數及契約價值（百萬元）
         """
         parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS, "20260401")
         if error:
