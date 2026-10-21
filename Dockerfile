@@ -21,6 +21,8 @@ COPY requirements.txt ./
 COPY server.py ./
 COPY tools/ ./tools/
 COPY toolkit/ ./toolkit/
+COPY services/ ./services/
+COPY sources/ ./sources/
 COPY utils/ ./utils/
 COPY prompts/ ./prompts/
 COPY staticFiles/ ./staticFiles/

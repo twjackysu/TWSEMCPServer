@@ -7,7 +7,8 @@ the extra behaviour the analytics rely on.
 """
 
 from tests.helpers import fetch_or_skip
-from utils.price_series import STOCK_DAY_URL, TPEX_EXRIGHT_URL
+from services.price_series import TPEX_EXRIGHT_URL
+from sources.twse.stock_day import STOCK_DAY_URL
 
 FIXED_MONTH = "20250101"
 

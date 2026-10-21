@@ -66,6 +66,25 @@ def fetch_or_skip(url: str, **kwargs):
         raise
 
 
+def gateway_or_skip(gateway, *args, **kwargs):
+    """Call a sources/ gateway with the shared live client; skip on the transient failures
+    ``fetch_or_skip`` skips (5xx, connection failure, truncated stream).
+
+    Everything else propagates — in particular ``UpstreamFormatError``, which is exactly the
+    interface change a gateway contract test exists to catch.
+    """
+    try:
+        return gateway(TWSEAPIClient.get_instance(), *args, **kwargs)
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code >= 500:
+            pytest.skip(f"Upstream server error ({e.response.status_code}) in {gateway.__name__}")
+        raise
+    except requests.ConnectionError as e:
+        pytest.skip(f"Cannot reach upstream in {gateway.__name__} — {e}")
+    except requests.exceptions.ChunkedEncodingError as e:
+        pytest.skip(f"Upstream connection dropped mid-response in {gateway.__name__} — {e}")
+
+
 def fetch_bytes_or_skip(url: str, **kwargs) -> bytes:
     """``fetch_bytes`` counterpart of ``fetch_or_skip`` for CSV / zip / HTML sources.
 

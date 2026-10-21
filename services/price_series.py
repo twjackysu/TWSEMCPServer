@@ -13,18 +13,16 @@ from dataclasses import dataclass, replace
 from datetime import date
 from typing import List, Optional, Tuple
 
-from .api_client import TWSEAPIClient
-from .date_helper import taipei_today
+from utils.api_client import TWSEAPIClient
+from utils.date_helper import parse_roc_date, taipei_today
+from sources.caching import PAST_MONTH_CACHE_TTL, month_cache_ttl
+from sources.twse.stock_day import stock_day_month
 
-STOCK_DAY_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
 TPEX_TRADING_STOCK_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
 TWT49U_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
 TPEX_EXRIGHT_URL = "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ"
 
 LISTED, OTC = "上市", "上櫃"
-# A finished month's prices never change; the current month's grow daily.
-PAST_MONTH_CACHE_TTL = 3600
-CURRENT_MONTH_CACHE_TTL = 120
 
 
 @dataclass(frozen=True)
@@ -57,15 +55,6 @@ def _num(value) -> Optional[float]:
         return None  # "--" on days without trades
 
 
-def _roc_date(text: str) -> Optional[date]:
-    """'115/09/01' or '115年09月01日' → date."""
-    digits = text.replace("年", "/").replace("月", "/").replace("日", "").strip().split("/")
-    try:
-        return date(int(digits[0]) + 1911, int(digits[1]), int(digits[2]))
-    except (ValueError, IndexError):
-        return None
-
-
 def months_back(count: int, end: Optional[date] = None) -> List[Tuple[int, int]]:
     """The last ``count`` calendar months up to ``end`` (default: this month), oldest first."""
     end = end or taipei_today().date()
@@ -77,41 +66,30 @@ def months_back(count: int, end: Optional[date] = None) -> List[Tuple[int, int]]
     return out[::-1]
 
 
-def _month_ttl(y: int, m: int) -> int:
-    today = taipei_today()
-    return CURRENT_MONTH_CACHE_TTL if (y, m) == (today.year, today.month) else PAST_MONTH_CACHE_TTL
+def _float(value) -> Optional[float]:
+    return None if value is None else float(value)
 
 
 def _listed_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Optional[str], List[Bar]]:
-    resp = client.fetch_json(
-        STOCK_DAY_URL, params={"response": "json", "stockNo": code, "date": f"{y}{m:02d}01"}, cache_ttl=_month_ttl(y, m)
-    )
-    if not resp or resp.get("stat") != "OK":
+    month = stock_day_month(client, code, y, m)
+    if month is None:
         return None, []
-    bars = []
-    for r in resp.get("data") or []:
-        # r: 日期,成交股數,成交金額,開盤價,最高價,最低價,收盤價,漲跌價差,成交筆數
-        d = _roc_date(r[0])
-        if d:
-            bars.append(Bar(d, _num(r[3]), _num(r[4]), _num(r[5]), _num(r[6]), _num(r[1]) or 0.0))
-    title = str(resp.get("title", ""))
-    # title: "115年09月 2330 台積電           各日成交資訊"
-    parts = title.split()
-    name = parts[2] if len(parts) >= 3 and parts[1] == code else ""
-    return name, bars
+    bars = [Bar(r.day, _float(r.open), _float(r.high), _float(r.low), _float(r.close), float(r.volume or 0))
+            for r in month.rows]
+    return month.name, bars
 
 
 def _otc_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Optional[str], List[Bar]]:
     resp = client.fetch_json(
         TPEX_TRADING_STOCK_URL, params={"code": code, "date": f"{y}/{m:02d}/01", "response": "json"},
-        cache_ttl=_month_ttl(y, m),
+        cache_ttl=month_cache_ttl(y, m),
     )
     tables = (resp or {}).get("tables") or []
     rows = (tables[0].get("data") if tables else None) or []
     bars = []
     for r in rows:
         # r: 日期,成交張數,成交仟元,開盤,最高,最低,收盤,漲跌,筆數
-        d = _roc_date(r[0])
+        d = parse_roc_date(r[0])
         if d:
             bars.append(Bar(d, _num(r[3]), _num(r[4]), _num(r[5]), _num(r[6]), (_num(r[1]) or 0.0) * 1000))
     return (resp or {}).get("name") or None, bars
@@ -165,7 +143,7 @@ def fetch_exright_events(client: TWSEAPIClient, market: str, code: str, start: d
         # OTC:    除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息, ...
         if r[1].strip() != code:
             continue
-        d, before, ref = _roc_date(r[0]), _num(r[3]), _num(r[4])
+        d, before, ref = parse_roc_date(r[0]), _num(r[3]), _num(r[4])
         if d and before and ref:
             kind = r[6] if market == LISTED else r[8]
             events.append(ExRightEvent(d, before, ref, str(kind).strip()))

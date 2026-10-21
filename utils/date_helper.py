@@ -4,7 +4,8 @@ Taiwan uses the ROC calendar where year = AD year - 1911.
 TWSE legacy APIs return dates in ROC format (e.g., "114/01/02" for 2025-01-02).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
+from typing import Optional
 
 _TAIPEI = timezone(timedelta(hours=8))
 
@@ -13,6 +14,15 @@ def taipei_today() -> datetime:
     """Today's date in Taiwan (the server may run in another timezone)."""
     now = datetime.now(_TAIPEI)
     return datetime(now.year, now.month, now.day)
+
+
+def parse_roc_date(text: str) -> Optional[date]:
+    """'115/09/01' or '115年09月01日' → date(2026, 9, 1); None when it is not such a date."""
+    parts = str(text).replace("年", "/").replace("月", "/").replace("日", "").strip().split("/")
+    try:
+        return date(int(parts[0]) + 1911, int(parts[1]), int(parts[2]))
+    except (ValueError, IndexError):
+        return None
 
 
 def roc_to_ad(roc_date: str) -> str:

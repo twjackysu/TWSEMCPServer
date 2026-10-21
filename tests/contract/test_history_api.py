@@ -4,43 +4,32 @@
 """
 
 import pytest
-from tests.helpers import fetch_or_skip
+from sources.twse.stock_day import stock_day_month
+from tests.helpers import fetch_or_skip, gateway_or_skip
 
 # Use a fixed historical trading day to ensure data stability
 FIXED_DATE = "20250103"
 FIXED_STOCK = "2330"  # TSMC
 
 
-@pytest.fixture(scope="class")
-def stock_day_data():
-    return fetch_or_skip(
-        "https://www.twse.com.tw/exchangeReport/STOCK_DAY",
-        params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
-    )
-
-
-class TestStockDayAPI:
-    """個股歷史日K - STOCK_DAY
-    Tool get_stock_history 使用 row[0] 作為日期（需 ROC 格式含 /），
-    row[3]~row[6] 作為開高低收（需可轉數字）。
+class TestStockDayGateway:
+    """個股歷史日K - STOCK_DAY（sources/twse/stock_day.py）
+    get_stock_history 與 services/price_series 都只透過這個 gateway 讀 STOCK_DAY；真實回應要能建出
+    StockDayMonth。欄位改名、搬走時 gateway 會丟 UpstreamFormatError，這裡就會失敗。
     """
 
-    def test_date_field_is_roc_format(self, stock_day_data):
-        """tool 用 roc_to_ad(row[0]) 轉換，需確認日期含 /."""
-        assert stock_day_data.get("stat") == "OK"
-        date_field = stock_day_data["data"][0][0]
-        assert "/" in date_field, f"日期格式異動！實際值: {date_field}"
+    def test_fixed_month_parses_into_typed_rows(self):
+        month = gateway_or_skip(stock_day_month, FIXED_STOCK, 2025, 1)
+        assert month is not None, f"{FIXED_STOCK} 2025-01 應有交易資料"
+        assert month.name == "台積電", f"title 格式異動？{month.title!r}"
+        assert month.rows and all(r.day.year == 2025 and r.day.month == 1 for r in month.rows)
+        for r in month.rows:  # 2330 每個交易日都有成交
+            assert None not in (r.open, r.high, r.low, r.close, r.volume, r.value, r.transactions), r
+            assert r.low <= r.open <= r.high and r.low <= r.close <= r.high, r
+            assert r.change.strip()[:1] in ("+", "-", "0", "X"), f"漲跌價差格式異動：{r.change!r}"
 
-    def test_price_fields_are_numeric(self, stock_day_data):
-        """tool 用 row[3]~row[6] 作為開高低收，需確認可轉數字."""
-        assert stock_day_data.get("stat") == "OK"
-        row = stock_day_data["data"][0]
-        for idx in [3, 4, 5, 6]:
-            val = row[idx].replace(",", "")
-            try:
-                float(val)
-            except ValueError:
-                pytest.fail(f"row[{idx}] 無法轉為數字，值為: {row[idx]}")
+    def test_unknown_code_is_no_data_not_an_error(self):
+        assert gateway_or_skip(stock_day_month, "9999", 2025, 1) is None
 
 
 @pytest.fixture(scope="class")

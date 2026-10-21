@@ -9,7 +9,7 @@ from utils import TWSEAPIClient
 from toolkit import handle_api_errors
 from utils.date_helper import taipei_today
 from utils.indicators import bollinger, kd, macd, rsi, sma
-from utils.price_series import adjust_bars, fetch_daily_bars, fetch_exright_events, months_back
+from services.price_series import adjust_bars, fetch_daily_bars, fetch_exright_events, months_back
 
 MAX_MONTHS = 12
 # 60-day MA and MACD(26+9) need ~90 trading days of history before the first shown value.

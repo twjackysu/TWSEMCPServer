@@ -32,6 +32,10 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
    `limit`/`offset`（breaking，記在 PR 說明；repo 沒有 CHANGELOG）。`test_pagination_unit.py` 擋手刻分頁。
 4. P1-6 / P1-10（Phase 3 起點）：被重複解析的 STOCK_DAY、MI_INDEX、TWT49U、BWIBBU_d 各收成一個
    gateway；T86 改依 `fields` 取欄位，TPEx dailyTrade 走 Adapter，兩市場共用排行與呈現。
+   - ✅ STOCK_DAY（#116）：`sources/twse/stock_day.py`；同時建立 `sources/`、`services/` 兩層，
+     `price_series` 移到 `services/`；`column_index`、`month_cache_ttl`、`utils/parse.py`、
+     `UpstreamFormatError` 供後續 gateway 共用。tool 輸出與 main 逐字相同。
+   - [ ] MI_INDEX　- [ ] TWT49U　- [ ] BWIBBU_d　- [ ] T86 + TPEx dailyTrade（Adapter）
 - [ ] Phase 2 共用核心
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面
