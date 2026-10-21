@@ -13,15 +13,13 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import handle_api_errors
-from utils.institutional import SIDES, SORT_LABELS, check_choice, rank, to_int
+from utils.institutional import SIDES, SORT_LABELS, check_choice, rank
+from sources.tpex.insti_daily import tpex_flows
 
 TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
 TRADING_STOCK_URL = f"{TPEX_WWW}/afterTrading/tradingStock"
-INSTI_DAILY_URL = f"{TPEX_WWW}/insti/dailyTrade"
 # insti/dailyTrade sect: EW 不含權證、牛熊證；EE 上櫃 ETF；AL 所有證券；或兩碼產業代碼
 OTC_SECTS = {"": "EW", "stock": "EW", "etf": "EE", "all": "AL"}  # stock = EW minus 00-prefixed ETFs
-# Net-share columns: 外資及陸資合計, 投信, 自營商合計, 三大法人合計
-OTC_NET_COLUMNS = {"foreign": 10, "trust": 13, "dealer": 22, "total": 23}
 MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
 
 
@@ -133,33 +131,32 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             sect = category.strip().upper() if re.fullmatch(r"[0-9A-Za-z]{2}", category.strip()) else None
         if sect is None:
             raise ToolError("category 必須留空，或是 stock、etf、all、產業代碼（例如 24）")
-        params = date_params(date)
-        if params is None:
+        tpex_date = to_tpex_date(date) if date.strip() else ""
+        if tpex_date is None:
             raise ToolError("日期格式錯誤，請使用 YYYYMMDD，例如 \"20260803\"")
-        resp = _client.fetch_json(
-            INSTI_DAILY_URL, params={"type": "Daily", "sect": sect, **params, "response": "json"}
-        )
-        rows = first_table(resp).get("data") or []
-        if not rows:
+        report = tpex_flows(_client, sect, tpex_date.replace("/", ""))
+        if report is None:
             return f"查無 {date or '最新交易日'} 的上櫃三大法人資料，請確認該日期為交易日（非假日或週末）及 category"
-        day = resp_date(resp, date)
-        rows = filter_rows(rows, stock_no, name)
+        day = report.date or date or "最新交易日"
+        flows = report.flows
+        if stock_no:
+            flows = [f for f in flows if f.code == stock_no.strip()]
+        if name:
+            flows = [f for f in flows if name in f.name]
         if category.strip().lower() == "stock":
-            rows = [r for r in rows if not r[0].strip().startswith("00")]
+            flows = [f for f in flows if not f.code.startswith("00")]
         if not stock_no:
-            rows = rank(rows, lambda r: to_int(r[OTC_NET_COLUMNS[sort_by]]), side)
+            flows = rank(flows, lambda f: f.net(sort_by), side)
 
-        def fmt(r):
-            # r: 代號,名稱, 外資及陸資(不含外資自營商) 買/賣/超 [2:5], 外資自營商 [5:8],
-            #    外資及陸資合計 [8:11], 投信 [11:14], 自營商(自行買賣) [14:17],
-            #    自營商(避險) [17:20], 自營商合計 [20:23], 三大法人買賣超合計 [23]
+        def fmt(f):
             return (
-                f"{r[0]} {r[1]} | 外資:{r[10]}（不含自營商 {r[4]}，外資自營商 {r[7]}）| "
-                f"投信:{r[13]} | 自營商:{r[22]}（自行 {r[16]}，避險 {r[19]}）| 三大法人合計:{r[23]}\n"
+                f"{f.code} {f.name} | 外資:{f.foreign.net:,}（不含自營商 {f.foreign_ex_dealer.net:,}，"
+                f"外資自營商 {f.foreign_dealer.net:,}）| 投信:{f.trust.net:,} | 自營商:{f.dealer.net:,}"
+                f"（自行 {f.dealer_self.net:,}，避險 {f.dealer_hedge.net:,}）| 三大法人合計:{f.total_net:,}\n"
             )
 
         order = "" if stock_no else f"，依{SORT_LABELS[sort_by]}{SIDES[side]}排序"
-        return format_list_response(rows, f" {day} 上櫃三大法人買賣超（單位：股{order}）", fmt, limit, offset)
+        return format_list_response(flows, f" {day} 上櫃三大法人買賣超（單位：股{order}）", fmt, limit, offset)
 
     @mcp.tool
     @handle_api_errors()

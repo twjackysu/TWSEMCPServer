@@ -22,6 +22,9 @@ pytestmark = pytest.mark.offline
 
 # ---------- TPEx history ----------
 
+INSTI_FIELDS = ["代號", "名稱"] + ["買進股數", "賣出股數", "買賣超股數"] * 7 + ["三大法人買賣超股數合計"]
+
+
 def _insti_row(code, name):
     # 外資不含自營商 超=100、外資自營商 超=20、外資合計 超=120、投信 超=-30、
     # 自營自行 超=5、自營避險 超=-7、自營合計 超=-2、三大法人=88
@@ -30,7 +33,7 @@ def _insti_row(code, name):
 
 
 def test_otc_institutional_maps_column_groups():
-    client = OfflineClient({"/insti/dailyTrade": {"tables": [{"data": [
+    client = OfflineClient({"/insti/dailyTrade": {"tables": [{"fields": INSTI_FIELDS, "data": [
         _insti_row("6488", "環球晶"), _insti_row("3105", "穩懋"),
     ]}]}})
     fn = register_module_tools(otc_history, client)["get_otc_institutional"]
@@ -64,7 +67,7 @@ def test_otc_defaults_to_latest_day_and_reports_its_date():
 
     def route(params, _body):
         seen.update(params)
-        return {"date": "20260929", "tables": [{"data": [_insti_row("6488", "環球晶")]}]}
+        return {"date": "20260929", "tables": [{"fields": INSTI_FIELDS, "data": [_insti_row("6488", "環球晶")]}]}
 
     fn = register_module_tools(otc_history, OfflineClient({"/insti/dailyTrade": route}))["get_otc_institutional"]
     assert "20260929 上櫃三大法人買賣超" in fn()
