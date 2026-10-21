@@ -16,8 +16,20 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
   讓文字型 tool 設 `output_schema=None`
 - [x] P0 收尾（#110）：參數錯誤改 `raise ToolError`（32 個模組 63 處，訊息不變，
   `test_argument_errors_unit.py` 把關）；`get_futures_intraday` 共用快取加鎖（#106 漏掉的並行 race）
+- [x] 開始 P1 前的掃描與順帶修正：TDCC 逐週趨勢把錯誤頁當成沒資料（#111）；上市日期讀錯欄位、
+  `applylistingLocal` 整排錯位（#112）
 - [ ] Phase 0 剩餘：`ruff check` 進 CI
-- [ ] Phase 1 剩餘：Session + Retry、backoff、circuit breaker、per-site policy（見「防止被鎖 IP」）
+- [x] P1-7 傳輸層（#113）：每網站一個連線池 Session、全部網站開啟 TLS 驗證、Retry（間隔、Retry-After 上限）
+- [ ] Phase 1 剩餘：circuit breaker（見「防止被鎖 IP」）
+
+**P1 的 PR 順序**（每項一個 PR）：
+1. ✅ P1-7 傳輸層（上一行）。
+2. P1-9 + P1-11：`tool_factory` 移出 `utils/`（基礎層不 import fastmcp、解掉循環 import）；
+   `SIMPLE_LIST_TOOLS` 等 8 欄位置 tuple 改成 dataclass。
+3. P1-8：分頁統一成一個 `Page`，取代 13 份手刻分頁；profitability 的 `page_size/page_number` 改成
+   `limit/offset`（breaking，記 changelog）。
+4. P1-6 / P1-10（Phase 3 起點）：被重複解析的 STOCK_DAY、MI_INDEX、TWT49U、BWIBBU_d 各收成一個
+   gateway；T86 改依 `fields` 取欄位，TPEx dailyTrade 走 Adapter，兩市場共用排行與呈現。
 - [ ] Phase 2 共用核心
 - [ ] Phase 3 來源層 + 領域層
 - [ ] Phase 4 MCP 介面
@@ -70,7 +82,8 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
    2–3 處，contract test 只守一處。T86 回應自帶 19 個 `fields`，程式卻用 `IDX_* = 0..18` 寫死位置。
 7. **`TWSEAPIClient` 是 God Object**：傳輸、節流、兩套快取、OpenAPI 正規化、公司篩選、Singleton、相容
    classmethod 全在一類。後果：全域單一節流時鐘（查 MOPS 等 TAIFEX）；`time.time()` 計時；每次新建連線、
-   無 Session、無 retry；`verify_ssl=False` 套用到 10 個 host（只有 TWSE 需要）。
+   無 Session、無 retry；`verify_ssl=False` 套用到所有 host。（更正：2026-10-21 實測 13 個 host 在
+   Python 3.13 下都能驗證，包括 TWSE；只有 `cpx.cbc.gov.tw` 過不了 3.13 的 `VERIFY_X509_STRICT`。）
 8. **分頁兩種寫法**：多數 `limit/offset`，profitability 用 `page_size/page_number`。
 9. **依賴方向反**：`utils/tool_factory.py` import `fastmcp`（基礎層依賴呈現層）；`utils/__init__` ↔
    `tool_factory` 循環 import。
@@ -192,8 +205,11 @@ def get_twse_institutional_investors_summary(
 ### Phase 1：執行期
 - ✅ 同步 tool 丟 thread；失敗回 `isError=true`（`ToolError`）（#106；FastMCP 4 起 thread 由框架負責）。
 - ✅ client thread-safe：per-site 節流鎖、`monotonic` 計時、single-flight（並發相同請求只打一次上游）。
-- 剩餘：Session + Retry（尊重 `Retry-After`、指數退避 + jitter）、per-site policy（TLS 只對 TWSE 關）、
-  circuit breaker。上游重試放在 HTTP 層，不用 FastMCP 的 `RetryMiddleware`（見對照表）。
+- ✅ 每網站一個連線池 Session（cookie 每次清掉，維持無狀態）、全部網站開啟 TLS 驗證（央行只拿掉
+  `VERIFY_X509_STRICT`）、Retry：502/503/504 與連線失敗最多 2 次，間隔至少 1 秒再 2 秒加 jitter，
+  帶 `Retry-After` 的 413/429/503 照它等、超過 10 秒就放棄（`utils/http_transport.py`，#113）。
+  上游重試放在 HTTP 層，不用 FastMCP 的 `RetryMiddleware`（見對照表）。
+- 剩餘：circuit breaker。
 - 剩餘：慢的 tool 設 `timeout=`（TAIFEX tick zip、`fetch_period` 往回找、TDCC 13 週）；超過一兩分鐘的
   考慮 `task=True` 背景任務。
 
@@ -266,10 +282,11 @@ def get_twse_institutional_investors_summary(
    - 可加：per-site 設定間隔或 token bucket。社群經驗值（twstock 等套件文件，非官方）是證交所約
      每 5 秒 3 個請求；目前 0.5 秒＝每 5 秒最多 10 個，對 `twse.com.tw` 可能偏快，應可個別調整。
 3. **被限流時退讓**
-   - 429/503 尊重 `Retry-After`；指數退避 + jitter。
-   - per-site circuit breaker：連續失敗或偵測到封鎖頁（例如 MOPS 的 `FOR SECURITY REASONS`）就停打該網站
-     一段冷卻時間，直接回錯誤。被擋時繼續打只會延長封鎖。
-4. **連線重用**：`requests.Session` keep-alive，少做 TCP/TLS 握手。
+   - 已加：429/503 尊重 `Retry-After`（超過 10 秒就放棄，不重試）；沒有 `Retry-After` 的 429 不重試；
+     502/503/504 重試時間隔至少 1 秒、再 2 秒，加 jitter（#113）。
+   - 可加：per-site circuit breaker：連續失敗或偵測到封鎖頁（例如 MOPS 的 `FOR SECURITY REASONS`）就停打
+     該網站一段冷卻時間，直接回錯誤。被擋時繼續打只會延長封鎖。
+4. **連線重用**：已加，每網站一個 `requests.Session` 連線池（#113）。
 5. **不做**：用代理池輪換 IP 規避封鎖，違反資料來源的使用條款。
 
 ## 不要做的事
