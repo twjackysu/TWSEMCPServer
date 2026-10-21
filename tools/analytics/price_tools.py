@@ -55,8 +55,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             code: 股票代號，例如 "2330"、"6488"（自動判斷上市或上櫃）
-            start_month: 起始月份 YYYYMM（選填，預設最近 3 個月）
-            end_month: 結束月份 YYYYMM（選填，預設同 start_month）。區間最多 12 個月
+            start_month: 起始月份 西元 YYYYMM（選填，預設最近 3 個月）
+            end_month: 結束月份 西元 YYYYMM（選填，預設同 start_month）。區間最多 12 個月
         """
         end, count = parse_months(start_month.strip(), end_month.strip())
         if isinstance(end, str):

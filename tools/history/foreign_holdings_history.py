@@ -40,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每支股票的代號、名稱、全體外資及陸資持股比率、尚可投資比率、投資上限比率、持有股數、發行股數
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             sort_by: "code"＝依證券代號（預設）；"ratio"＝依全體外資及陸資持股比率由高到低

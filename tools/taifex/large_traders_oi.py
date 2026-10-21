@@ -66,8 +66,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             contract: 期貨契約代碼，預設 TX。留空則列出所有可用契約代碼
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
         parsed, label, error = fetch_period(
             _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS
@@ -111,8 +111,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             contract: 選擇權契約代碼，預設 TXO。留空則列出所有可用契約代碼
             call_put: 篩選「買權」或「賣權」，留空則顯示全部
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
         parsed, label, error = fetch_period(
             _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS

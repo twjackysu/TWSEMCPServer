@@ -92,8 +92,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             contract: 期貨契約代碼，預設 TX；或股票／ETF 代號。留空則列出所有可用契約代碼
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
         contract = contract.strip().upper()
         if not contract:
@@ -149,8 +149,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             contract: 選擇權契約代碼，預設 TXO。留空則列出所有可用契約代碼
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
             contract_month: 到期月份/週次，例如「202610」或「202610W1」（選填）
             call_put: 篩選「買權」或「賣權」，留空則顯示全部
             limit: 未指定 contract_month 時，每個交易日顯示的筆數（依成交量排序，預設 30）

@@ -50,8 +50,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每個交易日、每個身份別的期貨與選擇權各自多空交易口數、契約金額（千元）、未平倉口數與契約金額
 
         Args:
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
         parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS)
         if error:

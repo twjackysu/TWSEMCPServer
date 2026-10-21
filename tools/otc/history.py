@@ -63,7 +63,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             code: 上櫃股票代號，例如 "6488"
-            date: 該月任一天，格式 YYYYMMDD，例如 "20260801"（會回傳 2026 年 8 月整月）
+            date: 該月任一天，格式 西元 YYYYMMDD，例如 "20260801"（會回傳 2026 年 8 月整月）
         """
         tpex_date = slash_date(date)
         resp = _client.fetch_json(
@@ -99,7 +99,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         買賣超股數與三大法人合計
 
         Args:
-            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            date: 查詢日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填，指定時只回傳該股）
             name: 股票名稱關鍵字（選填）
             category: 範圍（選填）：留空＝不含權證、牛熊證（含 ETF，債券 ETF 常佔外資買賣超前幾名）；
@@ -150,7 +150,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         融券（前日餘額/賣出/買進/券償/餘額/使用率）、資券相抵；另附全市場合計
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）

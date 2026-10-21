@@ -128,7 +128,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             code: ETF 代號，例如 "0050"、"00679B"（留空＝單月排行）
             months: 指定 code 時的月數（預設 6，最多 24；每多一個月多一次查詢，約 2–4 秒）
-            period: 月份 YYYYMM（選填，留空＝最新一個月）。指定 code 時為趨勢的最新月份
+            period: 月份 西元 YYYYMM（選填，留空＝最新一個月）。指定 code 時為趨勢的最新月份
             sort_by: 排行依據：scale（規模，預設）、holders（受益人數）、net_flow（淨申購金額）、
                 regular（定期定額扣款金額）
             limit: 排行筆數（預設 30，最多 100）

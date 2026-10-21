@@ -40,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         買進、賣出、買賣差額（億元；買賣差額另附原始元）
 
         Args:
-            date: 日期 YYYYMMDD（選填，留空＝最新交易日）。period 為 week／month 時指該日所在的週或月
+            date: 日期 西元 YYYYMMDD（選填，留空＝最新交易日）。period 為 week／month 時指該日所在的週或月
             period: day（單日，預設）、week（該週合計）、month（該月合計，當月為月初至今）
         """
         date = date.strip()

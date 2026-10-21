@@ -88,7 +88,14 @@ def _tools():
     ("get_treasury_stock_buybacks", {"start_date": "2026-09-01"}, "start_date 日期格式錯誤"),
     ("get_daily_futures_market_report", {"start_date": "2026/06/01"}, "start_date 日期格式錯誤"),
     ("get_stock_valuation_ratios", {"date": "2026-09-30"}, "date 日期格式錯誤"),  # 以前會原樣送給證交所
-    ("get_twse_news", {"start_date": "1151001"}, "start_date 日期格式錯誤"),  # 民國 7 碼不接受
+    # 回覆沿用來源的民國日期；拿回來當參數時，訊息直接給出換算好的西元
+    ("get_twse_news", {"start_date": "1151001"},
+     "start_date 看起來是民國日期，請換算成西元 YYYYMMDD（民國年 + 1911）：1151001 → 20261001"),
+    ("get_stock_valuation_ratios", {"date": "115/09/30"}, "date 看起來是民國日期，請換算成西元 YYYYMMDD（民國年 + 1911）：115/09/30 → 20260930"),
+    ("get_twse_institutional_investors_summary", {"date": "115年09月30日"}, "115年09月30日 → 20260930"),
+    ("get_otc_daily", {"date": "99/12/31"}, "99/12/31 → 20101231"),
+    ("get_margin_balance", {"date": "2026-09-30"}, "date 日期格式錯誤，請使用西元 YYYYMMDD，不加分隔符號：2026-09-30 → 20260930"),
+    ("get_margin_balance", {"date": "1151332"}, "date 日期格式錯誤，請使用西元 YYYYMMDD，例如 \"20260930\"（收到 '1151332'）"),
     ("get_twse_institutional_investors_summary", {"date": "20260230"}, "date 日期不存在"),
 ])
 def test_rejected_before_the_tool_runs_with_a_chinese_message(tool, args, message):
@@ -114,6 +121,27 @@ def test_every_limit_and_offset_parameter_is_bounded_in_the_schema():
         if "offset" in props and props["offset"].get("minimum") != 0:
             unbounded.append(f"{tool.name}.offset")
     assert not unbounded, unbounded
+
+
+def test_server_instructions_state_the_date_convention():
+    """參數一律西元、回覆常是民國：這條全工具共用的規則在初始化時交給 client（MCP instructions）。"""
+    async def run():
+        async with Client(server.mcp) as client:
+            return client.instructions
+    instructions = asyncio.run(run())
+    assert "一律是西元 YYYYMMDD" in instructions and "民國年 + 1911 = 西元年" in instructions
+    assert "1150930 → 20260930" in instructions
+
+
+def test_every_date_and_month_parameter_says_gregorian():
+    """日期（YYYYMMDD）與月份（YYYYMM）參數的說明都寫明「西元」，回覆裡的民國日期才不會被當成同一種格式。"""
+    missing = []
+    for tool in _tools():
+        for name, prop in tool.input_schema.get("properties", {}).items():
+            description = prop.get("description") or ""
+            if "YYYYMM" in description and "西元" not in description:
+                missing.append(f"{tool.name}.{name}")
+    assert not missing, missing
 
 
 def test_every_date_parameter_is_a_trading_date():

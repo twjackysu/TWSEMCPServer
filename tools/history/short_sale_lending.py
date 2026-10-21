@@ -33,7 +33,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         借券（前日餘額/當日賣出/當日還券/當日調整/當日餘額/次一營業日可限額）
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -100,7 +100,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每支股票的融券賣出成交數量/金額、借券賣出成交數量/金額
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）

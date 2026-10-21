@@ -126,7 +126,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             code: 股票代號（選填），例如 "2330"
-            date: 發言日期 YYYYMMDD（選填）。搭配 code 時只看該日；不搭配 code 時查該日全市場
+            date: 發言日期 西元 YYYYMMDD（選填）。搭配 code 時只看該日；不搭配 code 時查該日全市場
             year: 年度，西元或民國（選填，僅搭配 code；預設今年）
             market: 市場別篩選（選填，僅全市場模式）：sii 上市、otc 上櫃、rotc 興櫃、pub 公發
             limit: 回傳則數上限（預設 50；指定 code 時每頁最多 10 則，因每則全文需另外查詢）

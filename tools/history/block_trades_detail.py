@@ -29,7 +29,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每筆鉅額交易的股票代號、名稱、交易別、成交價、成交股數、成交金額
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（需為交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260610"（需為交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票的鉅額交易
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）

@@ -27,7 +27,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
-            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月整月）
+            date: 欲查詢的月份，格式 西元 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月整月）
         """
         day = datetime.strptime(date, "%Y%m%d")
 

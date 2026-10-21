@@ -17,8 +17,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """查詢證交所新聞。
 
         Args:
-            start_date: 起始日期（格式 YYYYMMDD），預設為當月第一天
-            end_date: 結束日期（格式 YYYYMMDD），預設為當月最後一天
+            start_date: 起始日期（格式 西元 YYYYMMDD），預設為當月第一天
+            end_date: 結束日期（格式 西元 YYYYMMDD），預設為當月最後一天
         """
         from datetime import datetime
         import calendar

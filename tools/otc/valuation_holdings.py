@@ -40,7 +40,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每支上櫃股的本益比、每股股利（股利年度）、殖利率(%)、股價淨值比（財報年/季）
 
         Args:
-            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            date: 查詢日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 公司名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -72,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：排行、代號、名稱、外資持股比率、尚可投資比率、法令投資上限、持有股數、發行股數
 
         Args:
-            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            date: 查詢日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50；limit=20 即外資持股前 20 名）
