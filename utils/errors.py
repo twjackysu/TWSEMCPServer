@@ -20,6 +20,10 @@ class UpstreamFormatError(ValueError):
     """
 
 
+class DeadlineExceeded(TimeoutError):
+    """A ``utils.deadline.time_budget`` ran out: the work stopped before its next request."""
+
+
 class UpstreamUnavailable(requests.exceptions.ConnectionError):
     """A site's circuit is open (utils/circuit_breaker.py): the request was not sent.
 

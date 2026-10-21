@@ -10,7 +10,8 @@ from urllib.parse import urlsplit
 
 from .types import TWSEDataItem
 from .config import APIConfig
-from .circuit_breaker import CircuitBreaker, failure_of_exception, failure_of_response
+from .circuit_breaker import CircuitBreaker, failure_of_exception, failure_of_response, is_timeout
+from .deadline import budget_exceeded, request_timeout
 from .http_transport import new_site_session
 
 logger = logging.getLogger(__name__)
@@ -117,7 +118,8 @@ class TWSEAPIClient:
         query page ties a one-time form token to a JSESSIONID cookie); that session is used as is.
         The outcome goes to the site's circuit breaker; while it is open this raises
         ``UpstreamUnavailable`` without sending. ``expect_json`` lets an empty body or an HTML page
-        count as a failure (see utils/circuit_breaker.py).
+        count as a failure (see utils/circuit_breaker.py). Inside a ``utils.deadline.time_budget``
+        the timeout is cut to what is left, and a spent budget raises ``DeadlineExceeded``.
         """
         site = throttle_key(url)
         self.breaker.check(site)  # fail fast rather than queue behind the site lock
@@ -126,6 +128,8 @@ class TWSEAPIClient:
         with self._site_lock(site):
             self.breaker.check(site)  # the circuit may have opened while this thread waited
             self._throttle(site)
+            # Inside a time_budget: no request once it is spent, and none waits past it.
+            timeout, cut_by_budget = request_timeout(timeout)
             logger.info(f"Fetching {method} {url} params={params}")
             own = session is None
             if own:
@@ -143,6 +147,9 @@ class TWSEAPIClient:
                     timeout=timeout,
                 )
             except requests.RequestException as e:
+                if cut_by_budget and is_timeout(e):
+                    # Our budget ran out, not the site's patience: not a failure of the site.
+                    raise budget_exceeded() from e
                 failure = failure_of_exception(e)
                 if failure is not None:
                     self.breaker.failure(site, failure)

@@ -22,7 +22,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] P1-7 傳輸層（#113）：每網站一個連線池 Session、全部網站開啟 TLS 驗證、Retry（間隔、Retry-After 上限）
 - [x] Phase 1 circuit breaker（#122）：每個網站連續 3 次失敗、或一次被擋（403／429／封鎖頁）就冷卻
   30 秒，冷卻後的試探再失敗就加倍（上限 10 分鐘）；冷卻中直接回錯誤、快取照常可用（`utils/circuit_breaker.py`）
-- [ ] Phase 1 剩餘：慢的 tool 設 `timeout=`
+- [x] Phase 1 慢的 tool 的時間上限（#123）：**不用 `@mcp.tool(timeout=)`**——FastMCP 4 對同步 tool 擋不住
+  （實測 timeout=1 的 3 秒工具 3.2 秒才回，結果被丟掉）。改用 `utils/deadline.time_budget`：預算內每個上游
+  請求的 timeout 縮成剩餘時間，用完就不再送。TAIFEX 往回找最新交易日 60 秒、tick zip 120 秒、TDCC 逐週 90 秒
 
 **P1 的 PR 順序**（每項一個 PR）：
 1. ✅ P1-7 傳輸層（上一行）。
@@ -196,8 +198,8 @@ Investor = Literal["total", "foreign", "trust", "dealer"]
 Side = Literal["abs", "buy", "sell"]
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=True, idempotentHint=True)
 
-# FastMCP 4：同步 tool 自動在 threadpool 跑；timeout 只對 threadpool／async 有效
-@mcp.tool(annotations=READ_ONLY, tags={"twse", "institutional"}, timeout=60, output_schema=None)
+# FastMCP 4：同步 tool 自動在 threadpool 跑。timeout= 擋不住同步 tool（見 Phase 1），時間上限用 time_budget
+@mcp.tool(annotations=READ_ONLY, tags={"twse", "institutional"}, output_schema=None)
 @handle_api_errors()    # 同步 decorator：例外 → ToolError(查詢失敗: …)，isError=true
 def get_twse_institutional_investors_summary(
     date: str = "", category: str = "", sort_by: Investor = "total", side: Side = "abs",
@@ -230,8 +232,16 @@ def get_twse_institutional_investors_summary(
   5xx、期待 JSON 卻拿到空白或 HTML）或一次被擋（403、429、MOPS 封鎖頁）就冷卻 30 秒；冷卻中不送請求、
   直接回 `UpstreamUnavailable`，快取照常可用；冷卻後放一個請求試探，失敗就加倍冷卻（上限 10 分鐘），
   成功就恢復。TAIFEX openapi 偶發的 CSV 形式不計入（它只影響單一端點）。
-- 剩餘：慢的 tool 設 `timeout=`（TAIFEX tick zip、`fetch_period` 往回找、TDCC 13 週）；超過一兩分鐘的
-  考慮 `task=True` 背景任務。
+- ✅ 慢的 tool 的時間上限（`utils/deadline.py`，#123）。原本打算用 `@mcp.tool(timeout=)`，實測 FastMCP 4.1.3
+  做不到：同步 tool 跑在 `anyio.to_thread.run_sync`（不放棄執行緒），取消要等執行緒做完才生效——timeout=1 的
+  3 秒工具 3.2 秒才回，回的是逾時錯誤（英文），做完的結果被丟掉。async 包一層並 `abandon_on_cancel=True`
+  可以準時回，但背景執行緒會繼續打上游、佔住網站鎖。所以改在花時間的地方限制：`time_budget(秒數, 提示)`
+  區塊內，`TWSEAPIClient` 把每個請求的 timeout 縮成剩餘時間，用完就丟 `DeadlineExceeded`（「超過 N 秒仍未完成
+  （已送出 K 個請求）；提示」），不留背景工作。TAIFEX 往回找最新交易日 60 秒、tick zip 120 秒、TDCC 逐週 90 秒
+  （正常各約 1、3、8 秒）。預算縮短而造成的逾時不算網站失敗，不計入 circuit breaker。
+  另外發現：掛了 urllib3 `Retry` 之後，讀取逾時是以 `requests.ConnectionError`（Max retries exceeded …
+  ReadTimeoutError）拋出，不是 `requests.Timeout`；`circuit_breaker.is_timeout` 兩種都認得。
+- 之後可考慮：超過一兩分鐘的工作改 `task=True` 背景任務（需要 client 支援 MCP tasks）。
 
 ### Phase 2：共用核心
 - `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
@@ -277,7 +287,8 @@ def get_twse_institutional_investors_summary(
 | 同步 tool | 預設 `run_in_thread=True`，在 threadpool 執行；3 個無 decorator 的同步 tool 並發 0.39 秒 | `handle_api_errors` 的 async wrapper + `anyio.to_thread` 變多餘 → 改回同步，只做錯誤轉換；`tests/helpers.py` 的 `_run_sync` 跟著拿掉 |
 | 未處理的例外 | 自動 `isError=true`，訊息是英文 `Error calling tool 'x': …` | 中文「查詢失敗」與 log 仍要 `handle_api_errors` |
 | `on_call_tool` middleware | 看不到 tool 的原始例外，FastMCP 已先包成上面那個 `ToolError` | 不能用 middleware 取代 177 個 decorator 來轉中文訊息；decorator 留在 tool 邊界 |
-| `@mcp.tool` 新參數 | `annotations`、`tags`、`timeout`、`task`、`version`、`title`、`output_schema`、`run_in_thread` | Phase 1（timeout/task）、Phase 4（annotations/tags/output_schema） |
+| `@mcp.tool` 新參數 | `annotations`、`tags`、`timeout`、`task`、`version`、`title`、`output_schema`、`run_in_thread` | Phase 1（task）、Phase 4（annotations/tags/output_schema） |
+| `timeout=` 用在同步 tool | `anyio.fail_after` 取消不了 threadpool 裡的執行緒：等它做完才丟逾時錯誤（英文），結果作廢。實測 timeout=1 的 3 秒工具 3.2 秒才回 | 不用；時間上限用 `utils/deadline.time_budget`（#123） |
 | `-> str` 的 outputSchema | 每個 tool 自動 `{"result": string}`，回應同一份文字兩次；`output_schema=None` 可關 | Phase 4 |
 | 參數驗證 | 依 schema（`Literal`、`Field`）驗證，`additionalProperties: false`；docstring `Args:` → 參數說明 | Phase 2 |
 | Search transform | `RegexSearchTransform` 中文可用；`BM25SearchTransform` 不切中文 | Phase 4 |
@@ -315,6 +326,6 @@ def get_twse_institutional_investors_summary(
 - 一次重寫 177 個 tool：一端點一 PR，contract test 當安全網。
 - 引入 DI 框架：`register_tools(mcp, client)` closure 注入已夠。
 - 先全面 async（httpx）：FastMCP 4 已把同步 tool 放進 threadpool，改 async 沒有額外效益。
-- 自己做 FastMCP 已有的東西：tool 過濾用 `Visibility`、timeout 用 `@mcp.tool(timeout=)`、輸出上限用
-  `ResponseLimitingMiddleware`。
+- 自己做 FastMCP 已有的東西：tool 過濾用 `Visibility`、輸出上限用 `ResponseLimitingMiddleware`。
+  （例外：時間上限。`@mcp.tool(timeout=)` 擋不住同步 tool，所以用 `utils/deadline.time_budget`，見 Phase 1。）
 - 為 pattern 而 pattern：透傳型 tool 就該是一行 factory。

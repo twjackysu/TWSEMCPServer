@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from typing import Callable, List, Optional, Tuple
 
 from .date_helper import taipei_today  # noqa: F401  (re-exported; fetch_period and tools use it)
+from .deadline import time_budget
 
 # TAIFEX requires a browser-like User-Agent (the default stock-mcp/1.0 gets HTML)
 TAIFEX_HEADERS = {
@@ -31,6 +32,9 @@ TAIFEX_CACHE_TTL = 300
 # How far back the "latest trading day" lookup walks. Covers the longest market closures
 # (Lunar New Year) with room to spare.
 LATEST_LOOKBACK_DAYS = 12
+# Time for that walk (utils/deadline.py). A normal lookup takes about a second (one to four
+# small requests); without a limit, 12 requests to a hanging site could take ten minutes.
+LATEST_LOOKUP_BUDGET = 60
 
 ParsedCsv = Tuple[List[str], List[List[str]]]
 
@@ -127,11 +131,12 @@ def fetch_period(
     """
     if not start_date and not end_date:
         day = taipei_today()
-        for _ in range(LATEST_LOOKBACK_DAYS):
-            parsed = fetch(day, day)
-            if parsed is not None and (is_complete is None or is_complete(parsed)):
-                return parsed, f"{day:%Y%m%d}（最新交易日）", None
-            day -= timedelta(days=1)
+        with time_budget(LATEST_LOOKUP_BUDGET, "可改指定日期，或稍後再試"):
+            for _ in range(LATEST_LOOKBACK_DAYS):
+                parsed = fetch(day, day)
+                if parsed is not None and (is_complete is None or is_complete(parsed)):
+                    return parsed, f"{day:%Y%m%d}（最新交易日）", None
+                day -= timedelta(days=1)
         return None, "最新交易日", None
 
     start_date, end_date = start_date or end_date, end_date or start_date

@@ -170,6 +170,15 @@ def test_client_opens_at_once_on_a_rate_limit():
         assert len(seen) == 1
 
 
+def test_a_read_timeout_wrapped_by_the_retry_counts_as_a_timeout():
+    """掛了 urllib3 Retry 之後，讀取逾時是以 ConnectionError（Max retries exceeded … ReadTimeoutError）拋出."""
+    with scripted_server((200, {}, b"{}", 1.0)) as (url, _seen):
+        with pytest.raises(requests.ConnectionError) as info:
+            _client().fetch_json(url, timeout=0.2)
+    assert not isinstance(info.value, requests.Timeout)
+    assert failure_of_exception(info.value) == Failure("逾時")
+
+
 def test_html_pages_fetched_as_bytes_do_not_count():
     page = (200, {}, b"<html>MOPS legacy table</html>")
     with scripted_server(page, page, page, page) as (url, seen):
