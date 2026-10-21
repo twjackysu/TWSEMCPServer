@@ -6,14 +6,15 @@ The day-trading and index tools replace OpenAPI versions (/exchangeReport/TWTB4U
 /exchangeReport/MI_INDEX) that only covered the latest day with fewer columns.
 """
 
+from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
+from utils import TWSEAPIClient, InvalidArgument, format_list_response, DEFAULT_DISPLAY_LIMIT, printed
 from toolkit import handle_api_errors
 from sources.twse.mi_index import index_quotes
+from sources.twse.twt49u import exright_results
 
-TWT49U_URL = "https://www.twse.com.tw/rwd/zh/exRight/TWT49U"
 TWTB4U_URL = "https://www.twse.com.tw/rwd/zh/dayTrading/TWTB4U"
 
 
@@ -61,23 +62,26 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        resp = _client.fetch_json(
-            TWT49U_URL, params={"startDate": start_date, "endDate": end_date, "response": "json"}
-        )
-        if not resp or resp.get("stat") != "OK":
-            return f"查無 {start_date}～{end_date} 的除權除息計算結果（{(resp or {}).get('stat', '無回應')}）"
-        rows = resp.get("data") or []
+        try:
+            start, end = (datetime.strptime(d.strip(), "%Y%m%d").date() for d in (start_date, end_date))
+        except ValueError:
+            raise InvalidArgument(
+                f"日期格式錯誤，請使用 YYYYMMDD，例如 \"20260101\"（收到：{start_date}、{end_date}）"
+            ) from None
+
+        report = exright_results(_client, start, end)
+        if not report.found:
+            return f"查無 {start_date}～{end_date} 的除權除息計算結果（{report.stat}）"
+        rows = report.results
         if stock_no:
-            rows = [r for r in rows if r[1].strip() == stock_no.strip()]
+            rows = [r for r in rows if r.code == stock_no.strip()]
 
         def fmt(r):
-            # r: 資料日期,股票代號,股票名稱,除權息前收盤價,除權息參考價,權值+息值,權/息,
-            #    漲停價格,跌停價格,開盤競價基準,減除股利參考價,詳細資料,
-            #    最近一次申報資料季別/日期,最近一次申報每股淨值,最近一次申報每股盈餘
             return (
-                f"{r[0]} | {r[1]} {r[2]} | {r[6]} | 前收:{r[3]} 參考價:{r[4]} 權值+息值:{r[5]} | "
-                f"漲停:{r[7]} 跌停:{r[8]} 競價基準:{r[9]} 減除股利參考價:{r[10]} | "
-                f"每股淨值:{r[13]} 每股盈餘:{r[14]}\n"
+                f"{r.day.year - 1911}年{r.day:%m}月{r.day:%d}日 | {r.code} {r.name} | {r.kind} | "
+                f"前收:{printed(r.close_before)} 參考價:{printed(r.reference)} 權值+息值:{printed(r.rights_and_dividend)} | "
+                f"漲停:{printed(r.limit_up)} 跌停:{printed(r.limit_down)} 競價基準:{printed(r.opening_reference)} "
+                f"減除股利參考價:{printed(r.ex_dividend_reference)} | 每股淨值:{r.nav_per_share} 每股盈餘:{r.eps}\n"
             )
 
         return format_list_response(rows, f" {start_date}～{end_date} 除權除息計算結果", fmt, limit, offset)
