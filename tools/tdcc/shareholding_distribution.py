@@ -153,8 +153,12 @@ def week_metrics(levels: Dict[str, Tuple[int, int, float]]) -> Dict[str, float]:
     }
 
 
-def format_trend(code: str, weekly: List[Tuple[str, Dict[str, float]]]) -> str:
-    """Newest-first trend lines with the change against the previous (older) week."""
+def format_trend(code: str, weekly: List[Tuple[str, Dict[str, float]]], queried: List[str]) -> str:
+    """Newest-first trend lines with the change against the previous (older) week shown.
+
+    ``queried`` is every week asked for, newest first. When a week in between had no data the
+    comparison is against an older week, and the label names that week instead of 較前週.
+    """
     lines = [f"【{code} 集保股權分散週趨勢】（共 {len(weekly)} 週，由新到舊；pp＝百分點）\n"]
     for i, (date, m) in enumerate(weekly):
         line = (
@@ -164,9 +168,11 @@ def format_trend(code: str, weekly: List[Tuple[str, Dict[str, float]]]) -> str:
             f"10張以下 {m['small_pct']:.2f}%（{m['small_people']:,} 人）"
         )
         if i + 1 < len(weekly):
-            prev = weekly[i + 1][1]
+            prev_date, prev = weekly[i + 1]
+            adjacent = queried.index(prev_date) == queried.index(date) + 1
+            label = "較前週" if adjacent else f"較 {prev_date[4:6]}-{prev_date[6:]}"
             line += (
-                f" | 較前週: 千張大戶 {m['big_pct'] - prev['big_pct']:+.2f}pp（{m['big_people'] - prev['big_people']:+,} 人）、"
+                f" | {label}: 千張大戶 {m['big_pct'] - prev['big_pct']:+.2f}pp（{m['big_people'] - prev['big_people']:+,} 人）、"
                 f"400張以上 {m['b400_pct'] - prev['b400_pct']:+.2f}pp、"
                 f"10張以下 {m['small_pct'] - prev['small_pct']:+.2f}pp（{m['small_people'] - prev['small_people']:+,} 人）"
             )
@@ -216,7 +222,12 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                 token = nxt.group(1) if nxt else get_page()[0]
                 levels = parse_result_rows(body)
                 if "total" not in levels:
-                    if not weekly and "查無此資料" in body:
+                    if "查無此資料" not in body:
+                        # Neither the table nor TDCC's no-data notice: an error or a redesigned
+                        # page. Skipping it would drop the week from the trend (or, if every week
+                        # failed, claim the stock has no data).
+                        raise ValueError(f"集保查詢頁 {date} 週的回應無法解析（頁面可能改版或暫時無法使用）")
+                    if not weekly:
                         return f"查無證券代號 {code} 的集保股權分散資料"
                     continue  # no data for that week
                 with week_cache_lock:
@@ -226,7 +237,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             weekly.append((date, week_metrics(levels)))
         if not weekly:
             return f"查無證券代號 {code} 的集保股權分散資料"
-        return format_trend(code, weekly)
+        return format_trend(code, weekly, dates[:weeks])
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)

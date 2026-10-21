@@ -286,12 +286,37 @@ def test_tdcc_weekly_trend_chains_tokens_and_shows_week_over_week_change():
 def test_tdcc_weekly_trend_skips_weeks_without_data_and_reloads_page_when_token_missing():
     site = _FakeTdccSite(_TDCC_WEEKS, empty_dates=("20260918",))
     text = _tdcc_fn(site)("2330", weeks=3)
-    assert "共 2 週" in text.splitlines()[0] and "2026-09-18" not in text
+    lines = text.splitlines()
+    assert "共 2 週" in lines[0] and "2026-09-18" not in text
+    # 09-18 沒資料：09-24 比的是 09-11，標籤要寫出比較的那一週，不能寫「較前週」
+    assert "較 09-11: 千張大戶 +1.50pp" in lines[2] and "較前週" not in text
 
     site = _FakeTdccSite(_TDCC_WEEKS, no_token_after=1)  # 第 1 次 POST 之後的回應都不帶 token
     text = _tdcc_fn(site)("2330", weeks=3)
     assert "共 3 週" in text.splitlines()[0]
     assert site.gets > 1, "回應沒帶 token 時應重新載入查詢頁取得新 token"
+
+
+class _ErrorPageWeeks(_FakeTdccSite):
+    """指定的週回錯誤頁：沒有資料表，也沒有「查無此資料」，token 照樣發."""
+
+    def __init__(self, broken):
+        super().__init__(_TDCC_WEEKS)
+        self.broken = set(broken)
+
+    def __call__(self, params, body):
+        if body and body["scaDate"] in self.broken:
+            self.posts.append((body["scaDate"], body["stockNo"]))
+            return (f'<html>系統忙碌中，請稍後再試<input name="SYNCHRONIZER_TOKEN" value="{self._new_token()}" />'
+                    "</html>").encode("utf-8")
+        return super().__call__(params, body)
+
+
+@pytest.mark.parametrize("broken", [set(_TDCC_WEEKS), {"20260918"}], ids=["every-week", "middle-week"])
+def test_tdcc_weekly_trend_unparsable_reply_is_an_error_not_missing_data(broken):
+    """錯誤頁不是「沒資料」：全部週都失敗時不能說查無此股，中間一週失敗時不能默默跳過、拿更早的週當「前週」."""
+    with pytest.raises(ToolError, match="無法解析"):
+        _tdcc_fn(_ErrorPageWeeks(broken))("2330", weeks=3)
 
 
 def test_tdcc_weekly_trend_unknown_code_and_cached_weeks():
