@@ -113,8 +113,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             contract: 契約代碼（例如 TXF 臺股期貨、MXF 小型臺指、EXF 電子期貨）或中文名稱
                 （例如「臺股期貨」）；留空＝全部契約。注意此處代碼與 get_daily_futures_market_report 的 TX/MTX 不同
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
         rows, label, not_found = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
         if not_found:
@@ -133,8 +133,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             contract: 契約代碼（例如 TXO 臺指選擇權）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
         rows, label, not_found = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
         if not_found:
@@ -155,8 +155,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             contract: 契約代碼（例如 TXO）或中文名稱（例如「臺指選擇權」）；留空＝全部契約
             call_put: 篩選 CALL 或 PUT，留空則顯示全部
-            start_date: 起始日期 YYYYMMDD（選填，留空＝最新交易日）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
         rows, label, not_found = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
         if not_found:

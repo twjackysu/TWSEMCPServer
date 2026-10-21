@@ -188,7 +188,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             contract: 期貨商品代號，預設 TX（臺股期貨）；也可填 MTX、TMF、TE、TF，
                 或股票／ETF 代號（例如 "2330"），會自動換成對應的股票期貨。留空則列出當日所有商品代號
-            date: 交易日 YYYYMMDD（選填，留空＝最近一個交易日）；夜盤屬於隔天的交易日
+            date: 交易日 西元 YYYYMMDD（選填，留空＝最近一個交易日）；夜盤屬於隔天的交易日
             interval: K 線分鐘數，1、5（預設）、15、30、60
             session: day（日盤，預設）、night（夜盤）、all（夜盤＋日盤）
             month: 到期月份，例如 "202611"、"202610W4"（選填，留空＝當日成交量最大的月份，通常是近月）

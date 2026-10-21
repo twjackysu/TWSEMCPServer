@@ -56,8 +56,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         漲跌停價、開盤競價基準、減除股利參考價、最近一季每股淨值與每股盈餘
 
         Args:
-            start_date: 起始日期，格式 YYYYMMDD，例如 "20260101"
-            end_date: 結束日期，格式 YYYYMMDD，例如 "20260831"
+            start_date: 起始日期，格式 西元 YYYYMMDD，例如 "20260101"
+            end_date: 結束日期，格式 西元 YYYYMMDD，例如 "20260831"
             stock_no: 股票代號（選填），指定則只回傳該股票
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
@@ -93,7 +93,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         當沖成交股數、當沖買進/賣出成交金額
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填）
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）
@@ -151,7 +151,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         證交所／跨市場／臺灣指數公司」分組
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260803"（選填，留空＝最新交易日）
             category: 指數分類：
                 - "major": 主要市場指數（加權、寶島、臺灣50、中型100等，預設）
                 - "sector": 產業類指數（半導體類、金融保險類等）

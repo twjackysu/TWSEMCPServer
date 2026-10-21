@@ -37,8 +37,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         是否執行完畢、已買回股數與金額、平均每股價格、佔預定股數與已發行股數比例
 
         Args:
-            start_date: 董事會決議日期起 YYYYMMDD（選填，預設 90 天前）
-            end_date: 董事會決議日期迄 YYYYMMDD（選填，預設今天）
+            start_date: 董事會決議日期起 西元 YYYYMMDD（選填，預設 90 天前）
+            end_date: 董事會決議日期迄 西元 YYYYMMDD（選填，預設今天）
             market: sii＝上市（預設）、otc＝上櫃、rotc＝興櫃、pub＝公開發行
             code: 股票代號（選填）
             limit: 回傳筆數上限（預設 50）

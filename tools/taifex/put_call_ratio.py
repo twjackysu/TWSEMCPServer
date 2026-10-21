@@ -39,8 +39,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每個交易日的成交量 PCR、未平倉量 PCR，以及 put/call 各自的成交量與未平倉量
 
         Args:
-            start_date: 起始日期，格式 YYYYMMDD，例如 "20260501"（選填，留空＝近 30 天）
-            end_date: 結束日期，格式 YYYYMMDD（選填，預設同 start_date）。區間不可超過 30 天
+            start_date: 起始日期，格式 西元 YYYYMMDD，例如 "20260501"（選填，留空＝近 30 天）
+            end_date: 結束日期，格式 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 30 天
         """
         if not start_date and not end_date:
             end_dt = taipei_today()

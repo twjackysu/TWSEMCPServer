@@ -29,7 +29,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）
-            date: 任意日期 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年（留空＝今年）
+            date: 任意日期 西元 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年（留空＝今年）
         """
         params = {"response": "json", "stockNo": stock_no}
         if date:

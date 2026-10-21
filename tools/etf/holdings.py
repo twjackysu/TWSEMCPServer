@@ -82,7 +82,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             code: ETF 代號，例如 "0050"、"00878"、"00981A"、"00679B"
-            period: 月份 YYYYMM（選填，留空＝最新一期）。quarterly=True 時須為季末月，例如 "202606"
+            period: 月份 西元 YYYYMM（選填，留空＝最新一期）。quarterly=True 時須為季末月，例如 "202606"
             quarterly: False＝每月前十大（預設）；True＝每季占淨值 1% 以上的全部持股
         """
         code = code.strip().upper()

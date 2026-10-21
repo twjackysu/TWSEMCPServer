@@ -252,6 +252,9 @@ def get_twse_institutional_investors_summary(
   字串原樣交給工具，轉成上游格式集中在 `utils.date_helper`：`roc_date`（`115/09/30`；`sep=""` → `1150930`）、
   `roc_year_of`、`slash_date`（TPEx `2026/09/30`），取代各處手寫的 `- 1911` 與切字串。驗證：56 個日期參數逐一
   實際呼叫，攔下 main 與分支送出的 93 個上游請求逐筆比對，全部相同。`Page` 取代手刻分頁已在 #115 完成。
+- ✅ 參數西元、回覆民國的落差寫清楚（#127）：回覆沿用來源的民國日期（至少 27 支自訂工具與大多數 OpenAPI 透傳
+  欄位），不改輸出；改用 server `instructions` 說明慣例與換算、60 個日期／月份參數說明標明「西元」、把民國樣式的
+  輸入在錯誤訊息裡直接換算成西元。
 - ✅ 列舉參數改 `Literal`、範圍改 `Field`（#125）：23 個列舉、所有 `limit`／`offset`（`toolkit.Limit`／`Offset`）
   與 `months`／`weeks`／`limit` 上限（`toolkit.bounded`）；刪掉 19 個模組裡的手寫檢查與 `check_choice`。
   FastMCP 依 schema 擋下錯誤值，回的是 pydantic 英文訊息；`toolkit.validation.ArgumentErrorsInChinese`

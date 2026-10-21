@@ -20,8 +20,19 @@ from utils.api_client import TWSEAPIClient
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger(__name__)
 
+# Sent once to every client at initialization (MCP `instructions`), so the date convention that holds
+# for all tools is not repeated in 177 tool descriptions. Replies keep the sources' ROC (民國) dates.
+SERVER_INSTRUCTIONS = """台灣證券市場資料：證交所、櫃買中心、期交所、公開資訊觀測站、集保結算所、投信投顧公會、國發會、中央銀行。
+
+日期慣例：
+- 工具的日期參數（date、start_date、end_date）一律是西元 YYYYMMDD，例如 20260930；月份參數（YYYYMM）也是西元。
+- 回覆中的日期常沿用資料來源的民國紀年，民國年 + 1911 = 西元年：115/09/30、115年09月30日、1150930 都是 2026-09-30，115年09月 是 2026 年 9 月。
+- 財報期別 115/2、115Q2 是 2026 年第 2 季；股利年度 114 是 2025 年。
+- 拿回覆中的民國日期再查詢時，先換算成西元，例如 1150930 → 20260930。
+- 少數參數是「年度」而不是日期（例如公開資訊觀測站財報、股利、重大訊息的 year），西元或民國皆可，以各參數說明為準。"""
+
 # Initialize FastMCP server
-mcp = FastMCP("TWSE Stock Trend Analysis 🚀")
+mcp = FastMCP("TWSE Stock Trend Analysis 🚀", instructions=SERVER_INSTRUCTIONS)
 # FastMCP rejects arguments outside a tool's schema (toolkit/params.py); say why in Chinese.
 mcp.add_middleware(ArgumentErrorsInChinese())
 

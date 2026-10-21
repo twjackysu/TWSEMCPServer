@@ -51,7 +51,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：依指定方式排序的個股，每筆含外資、投信、自營商與三大法人合計的買賣超股數
 
         Args:
-            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            date: 查詢日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             category: 範圍（選填）：留空＝不含權證、牛熊證（含 ETF）；"stock"＝再排除 ETF
                 （仍含少數特別股、ETN、受益證券）；"etf"＝只看 ETF；"all"＝含權證；
                 或產業代碼，例如 "24"（半導體業）、"28"（電子零組件業）
@@ -114,7 +114,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             stock_no: 股票代號，例如 "2330"（台積電）、"0050"（元大台灣50）
-            date: 查詢日期 YYYYMMDD（選填，留空＝最新交易日）
+            date: 查詢日期 西元 YYYYMMDD（選填，留空＝最新交易日）
         """
         day = t86_flows(_client, "ALL", date.strip())
 

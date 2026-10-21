@@ -25,7 +25,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：該月份每個交易日的加權指數開盤、最高、最低、收盤指數
 
         Args:
-            date: 欲查詢的月份，格式 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
+            date: 欲查詢的月份，格式 西元 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
         """
         params = {"response": "json"}
         if date:

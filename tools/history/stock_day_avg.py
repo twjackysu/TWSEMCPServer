@@ -26,7 +26,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         Args:
             stock_no: 股票代號，例如 "2330"
-            date: 查詢月份 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月；留空＝本月）
+            date: 查詢月份 西元 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月；留空＝本月）
         """
         params = {"response": "json", "stockNo": stock_no}
         if date:

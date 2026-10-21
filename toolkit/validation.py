@@ -10,11 +10,44 @@ are already ``ToolError`` (toolkit/decorators.py).
 """
 
 import re
-from typing import Any, Dict
+from datetime import date
+from typing import Any, Dict, Optional
 
 import pydantic
 from fastmcp.exceptions import ToolError, ValidationError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+
+
+# Replies keep the sources' ROC (民國) dates — 115/09/30, 115年09月30日, 1150930 — so a client that passes
+# one back as a date parameter gets the Gregorian value it meant, worked out.
+_ROC_SEPARATED = re.compile(r"^\s*(\d{2,3})\s*[/.\-年]\s*(\d{1,2})\s*[/.\-月]\s*(\d{1,2})\s*日?\s*$")
+_ROC_COMPACT = re.compile(r"^\s*(\d{3})(\d{2})(\d{2})\s*$")
+_GREGORIAN_SEPARATED = re.compile(r"^\s*(\d{4})\s*[/.\-年]\s*(\d{1,2})\s*[/.\-月]\s*(\d{1,2})\s*日?\s*$")
+
+
+def _ymd(year: int, month: int, day: int) -> Optional[str]:
+    try:
+        return f"{date(year, month, day):%Y%m%d}"
+    except ValueError:
+        return None
+
+
+def describe_date_mismatch(name: str, received: Any) -> str:
+    """A date parameter that is not YYYYMMDD: name the Gregorian value meant when it can be worked out."""
+    text = str(received)
+    roc = _ROC_SEPARATED.match(text) or _ROC_COMPACT.match(text)
+    if roc:
+        year, month, day = (int(g) for g in roc.groups())
+        meant = _ymd(year + 1911, month, day) if year <= 200 else None
+        if meant:
+            return (f"{name} 看起來是民國日期，請換算成西元 YYYYMMDD（民國年 + 1911）："
+                    f"{text.strip()} → {meant}")
+    gregorian = _GREGORIAN_SEPARATED.match(text)
+    if gregorian:
+        meant = _ymd(*(int(g) for g in gregorian.groups()))
+        if meant:
+            return f"{name} 日期格式錯誤，請使用西元 YYYYMMDD，不加分隔符號：{text.strip()} → {meant}"
+    return f"{name} 日期格式錯誤，請使用西元 YYYYMMDD，例如 \"20260930\"（收到 {received!r}）"
 
 
 def describe(error: Dict[str, Any]) -> str:
@@ -35,7 +68,7 @@ def describe(error: Dict[str, Any]) -> str:
         return f"{name} 不可大於 {bound}（收到 {received!r}）" if kind == "less_than_equal" else f"{name} 必須小於 {bound}（收到 {received!r}）"
     if kind == "string_pattern_mismatch":
         if r"\d{8}" in str(ctx.get("pattern", "")):  # toolkit.params.TradingDate
-            return f"{name} 日期格式錯誤，請使用西元 YYYYMMDD，例如 \"20260930\"（收到 {received!r}）"
+            return describe_date_mismatch(name, received)
         return f"{name} 格式不符（收到 {received!r}）"
     if kind == "value_error":  # an AfterValidator's ValueError, e.g. a date that does not exist
         return f"{name} {ctx.get('error')}（收到 {received!r}）"

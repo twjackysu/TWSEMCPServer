@@ -27,7 +27,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         回傳：每支股票的代號、名稱、成交股數、成交金額、開高低收、漲跌、本益比
 
         Args:
-            date: 查詢日期，格式 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
+            date: 查詢日期，格式 西元 YYYYMMDD，例如 "20260610"（選填，留空＝最新交易日）
             stock_no: 股票代號（選填），指定則只回傳該股票
             name: 股票名稱關鍵字（選填）
             limit: 回傳筆數上限（預設 50）

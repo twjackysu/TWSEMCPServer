@@ -32,8 +32,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         開始交易基準價、現金股利、每仟股無償配股、現金增資股數與認購價
 
         Args:
-            start_date: 起始日期 YYYYMMDD（選填，留空＝今天起）
-            end_date: 結束日期 YYYYMMDD（選填，預設同 start_date）
+            start_date: 起始日期 西元 YYYYMMDD（選填，留空＝今天起）
+            end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）
             stock_no: 股票代號（選填）
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
