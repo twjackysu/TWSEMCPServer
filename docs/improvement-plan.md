@@ -20,7 +20,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
   `applylistingLocal` 整排錯位（#112）
 - [ ] Phase 0 剩餘：`ruff check` 進 CI
 - [x] P1-7 傳輸層（#113）：每網站一個連線池 Session、全部網站開啟 TLS 驗證、Retry（間隔、Retry-After 上限）
-- [ ] Phase 1 剩餘：circuit breaker（見「防止被鎖 IP」）
+- [x] Phase 1 circuit breaker（#122）：每個網站連續 3 次失敗、或一次被擋（403／429／封鎖頁）就冷卻
+  30 秒，冷卻後的試探再失敗就加倍（上限 10 分鐘）；冷卻中直接回錯誤、快取照常可用（`utils/circuit_breaker.py`）
+- [ ] Phase 1 剩餘：慢的 tool 設 `timeout=`
 
 **P1 的 PR 順序**（每項一個 PR）：
 1. ✅ P1-7 傳輸層（上一行）。
@@ -224,7 +226,10 @@ def get_twse_institutional_investors_summary(
   `VERIFY_X509_STRICT`）、Retry：502/503/504 與連線失敗最多 2 次，間隔至少 1 秒再 2 秒加 jitter，
   帶 `Retry-After` 的 413/429/503 照它等、超過 10 秒就放棄（`utils/http_transport.py`，#113）。
   上游重試放在 HTTP 層，不用 FastMCP 的 `RetryMiddleware`（見對照表）。
-- 剩餘：circuit breaker。
+- ✅ 每個網站一個 circuit breaker（`utils/circuit_breaker.py`，#122）：連續 3 次失敗（連線失敗、逾時、
+  5xx、期待 JSON 卻拿到空白或 HTML）或一次被擋（403、429、MOPS 封鎖頁）就冷卻 30 秒；冷卻中不送請求、
+  直接回 `UpstreamUnavailable`，快取照常可用；冷卻後放一個請求試探，失敗就加倍冷卻（上限 10 分鐘），
+  成功就恢復。TAIFEX openapi 偶發的 CSV 形式不計入（它只影響單一端點）。
 - 剩餘：慢的 tool 設 `timeout=`（TAIFEX tick zip、`fetch_period` 往回找、TDCC 13 週）；超過一兩分鐘的
   考慮 `task=True` 背景任務。
 
@@ -299,8 +304,9 @@ def get_twse_institutional_investors_summary(
 3. **被限流時退讓**
    - 已加：429/503 尊重 `Retry-After`（超過 10 秒就放棄，不重試）；沒有 `Retry-After` 的 429 不重試；
      502/503/504 重試時間隔至少 1 秒、再 2 秒，加 jitter（#113）。
-   - 可加：per-site circuit breaker：連續失敗或偵測到封鎖頁（例如 MOPS 的 `FOR SECURITY REASONS`）就停打
-     該網站一段冷卻時間，直接回錯誤。被擋時繼續打只會延長封鎖。
+   - 已加：per-site circuit breaker（#122）：連續失敗或被擋（403／429、MOPS 的 `FOR SECURITY REASONS`）就停打
+     該網站一段冷卻時間，直接回錯誤。被擋時繼續打只會延長封鎖：2026-10-21 一個每 0.5 秒重打同一頁、
+     持續數分鐘的腳本，讓證交所對 Python client 回非 JSON 好幾分鐘，停手後才自行恢復。
 4. **連線重用**：已加，每網站一個 `requests.Session` 連線池（#113）。
 5. **不做**：用代理池輪換 IP 規避封鎖，違反資料來源的使用條款。
 

@@ -59,6 +59,22 @@ class APIConfig:
         '256'
     ))
 
+    # Per-site circuit breaker (utils/circuit_breaker.py): this many failed requests in a row to
+    # one site (or one refusal: HTTP 403/429, a block page) stop requests to it for the cooldown,
+    # which doubles each time the probe after it fails, up to the maximum. 0 disables the breaker.
+    BREAKER_FAILURES: Final[int] = int(os.getenv(
+        'TWSE_BREAKER_FAILURES',
+        '3'
+    ))
+    BREAKER_COOLDOWN: Final[float] = float(os.getenv(
+        'TWSE_BREAKER_COOLDOWN',
+        '30'
+    ))
+    BREAKER_MAX_COOLDOWN: Final[float] = float(os.getenv(
+        'TWSE_BREAKER_MAX_COOLDOWN',
+        '600'
+    ))
+
 
 class DisplayConfig:
     """Display and formatting configuration."""

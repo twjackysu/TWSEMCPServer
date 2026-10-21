@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 from .types import TWSEDataItem
 from .config import APIConfig
+from .circuit_breaker import CircuitBreaker, failure_of_exception, failure_of_response
 from .http_transport import new_site_session
 
 logger = logging.getLogger(__name__)
@@ -42,13 +43,17 @@ class TWSEAPIClient:
                  user_agent: str = APIConfig.USER_AGENT,
                  request_interval: float = APIConfig.REQUEST_INTERVAL,
                  verify_ssl: bool = APIConfig.VERIFY_SSL,
-                 cache_ttl: float = APIConfig.CACHE_TTL):
+                 cache_ttl: float = APIConfig.CACHE_TTL,
+                 breaker: Optional[CircuitBreaker] = None):
         """Initialize the API client."""
         self.base_url = base_url
         self.user_agent = user_agent
         self.request_interval = request_interval
         self.verify_ssl = verify_ssl
         self.cache_ttl = cache_ttl
+        # Stops requests to a site that keeps failing or refuses us (utils/circuit_breaker.py).
+        self.breaker = breaker if breaker is not None else CircuitBreaker(
+            APIConfig.BREAKER_FAILURES, APIConfig.BREAKER_COOLDOWN, APIConfig.BREAKER_MAX_COOLDOWN)
         # Tools run in worker threads (see handle_api_errors), so every piece of shared
         # state below is guarded. One throttle clock and lock per site (throttle_key):
         # requests to one site stay one at a time and spaced, other sites proceed meanwhile.
@@ -103,17 +108,23 @@ class TWSEAPIClient:
         data: Optional[Dict[str, Any]] = None,
         json_body: Optional[Dict[str, Any]] = None,
         session: Optional[requests.Session] = None,
+        expect_json: bool = False,
     ) -> requests.Response:
         """Throttle, send GET/POST, stamp last-request time, and return the response.
 
         Sent through the site's pooled session (TLS policy and retries: utils/http_transport.py).
         Pass ``session`` for flows that need cookies carried between requests (the TDCC
         query page ties a one-time form token to a JSESSIONID cookie); that session is used as is.
+        The outcome goes to the site's circuit breaker; while it is open this raises
+        ``UpstreamUnavailable`` without sending. ``expect_json`` lets an empty body or an HTML page
+        count as a failure (see utils/circuit_breaker.py).
         """
         site = throttle_key(url)
+        self.breaker.check(site)  # fail fast rather than queue behind the site lock
         # Held through the request, not just the wait: two threads that both waited out
         # the interval would otherwise send back-to-back. Retries happen inside it too.
         with self._site_lock(site):
+            self.breaker.check(site)  # the circuit may have opened while this thread waited
             self._throttle(site)
             logger.info(f"Fetching {method} {url} params={params}")
             own = session is None
@@ -131,6 +142,11 @@ class TWSEAPIClient:
                     verify=self.verify_ssl,
                     timeout=timeout,
                 )
+            except requests.RequestException as e:
+                failure = failure_of_exception(e)
+                if failure is not None:
+                    self.breaker.failure(site, failure)
+                raise
             finally:
                 # Stamp even when the call raises (timeout, connection error) or the
                 # response turns out to be an error status. A failed request still cost the
@@ -142,6 +158,12 @@ class TWSEAPIClient:
                 self._last_request_at[site] = time.monotonic()
                 if own:
                     session.cookies.clear()  # keep calls stateless; only the pooled connections persist
+            # Recorded before the lock is released, so a request queued behind this one sees it.
+            failure = failure_of_response(resp.status_code, resp.content, expect_json, getattr(resp, "headers", None))
+            if failure is None:
+                self.breaker.success(site)
+            else:
+                self.breaker.failure(site, failure)
         resp.raise_for_status()
         resp.encoding = "utf-8"
         return resp
@@ -156,6 +178,7 @@ class TWSEAPIClient:
         method: str,
         data: Optional[Dict[str, Any]] = None,
         json_body: Optional[Dict[str, Any]] = None,
+        expect_json: bool = False,
     ) -> bytes:
         """Response body for this exact request, served from cache for ``cache_ttl`` seconds.
 
@@ -164,7 +187,7 @@ class TWSEAPIClient:
         """
         if cache_ttl <= 0 or self.cache_ttl <= 0:
             return self._request(url, params=params, headers=headers, timeout=timeout,
-                                 method=method, data=data, json_body=json_body).content
+                                 method=method, data=data, json_body=json_body, expect_json=expect_json).content
         key = json.dumps([method, url, params, data, json_body], sort_keys=True, ensure_ascii=False, default=str)
         with self._flight_lock(key):
             with self._cache_guard:
@@ -172,7 +195,7 @@ class TWSEAPIClient:
             if hit is not None and time.time() - hit[0] < cache_ttl:
                 return hit[1]
             content = self._request(url, params=params, headers=headers, timeout=timeout,
-                                    method=method, data=data, json_body=json_body).content
+                                    method=method, data=data, json_body=json_body, expect_json=expect_json).content
             with self._cache_guard:
                 self._response_cache.pop(key, None)
                 while len(self._response_cache) >= self.response_cache_max_entries:
@@ -203,7 +226,7 @@ class TWSEAPIClient:
                 return cached[1]
 
         try:
-            resp = self._request(url, timeout=timeout)
+            resp = self._request(url, timeout=timeout, expect_json=True)
             try:
                 data = resp.json()
             except Exception as parse_err:
@@ -272,10 +295,12 @@ class TWSEAPIClient:
         try:
             method = "POST" if json_body is not None else "GET"
             if cache_ttl > 0:
-                content = self._cached_content(cache_ttl, url, params, headers, timeout, method, json_body=json_body)
+                content = self._cached_content(cache_ttl, url, params, headers, timeout, method, json_body=json_body,
+                                               expect_json=True)
                 return json.loads(content.decode("utf-8", errors="replace"))
             return self._request(
-                url, params=params, headers=headers, timeout=timeout, method=method, json_body=json_body
+                url, params=params, headers=headers, timeout=timeout, method=method, json_body=json_body,
+                expect_json=True,
             ).json()
         except Exception as e:
             logger.error(f"Failed to fetch JSON from {url}: {e}")

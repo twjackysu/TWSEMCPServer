@@ -5,6 +5,8 @@ turns ``InvalidArgument`` into ``ToolError`` with the message unchanged (no 查�
 caller passed a bad argument, nothing failed upstream.
 """
 
+import requests
+
 
 class InvalidArgument(ValueError):
     """A tool argument the caller has to change; the message says how."""
@@ -15,4 +17,13 @@ class UpstreamFormatError(ValueError):
 
     Raised instead of guessing, so the tool reports 查詢失敗 rather than misreading columns or
     claiming there is no data. The daily contract tests should catch the same change.
+    """
+
+
+class UpstreamUnavailable(requests.exceptions.ConnectionError):
+    """A site's circuit is open (utils/circuit_breaker.py): the request was not sent.
+
+    A ``ConnectionError`` because to every caller it is one — the upstream cannot be reached right
+    now — and code that already treats connection failures as transient (the contract tests'
+    ``*_or_skip`` helpers) handles it the same way.
     """

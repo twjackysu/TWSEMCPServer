@@ -4,15 +4,13 @@ retry 在 urllib3 的 connection pool 裡發生，monkeypatch 假 response 測�
 127.0.0.1 上真的 HTTP 伺服器，照腳本一個一個回應。
 """
 
-import http.server
 import ssl
-import threading
 import time
-from contextlib import contextmanager
 
 import pytest
 import requests
 
+from tests.helpers import scripted_server
 from utils import http_transport
 from utils.api_client import TWSEAPIClient
 
@@ -25,44 +23,6 @@ def fast_retries(monkeypatch):
     monkeypatch.setattr(http_transport.UpstreamRetry, "MIN_BACKOFF", 0.05)
     monkeypatch.setattr(http_transport, "RETRY_BACKOFF_FACTOR", 0.05)
     monkeypatch.setattr(http_transport, "RETRY_JITTER", 0.0)
-
-
-@contextmanager
-def scripted_server(*replies):
-    """依序回覆 ``replies``（(status, headers, body)），之後一律 200。記錄每個請求."""
-    seen = []
-    queue = list(replies)
-
-    class Handler(http.server.BaseHTTPRequestHandler):
-        protocol_version = "HTTP/1.1"  # keep-alive，連線才能重用
-
-        def _reply(self):
-            length = int(self.headers.get("Content-Length") or 0)
-            if length:
-                self.rfile.read(length)
-            seen.append({"method": self.command, "port": self.client_address[1],
-                         "cookie": self.headers.get("Cookie"), "at": time.monotonic()})
-            status, headers, body = queue.pop(0) if queue else (200, {}, b'{"ok": true}')
-            self.send_response(status)
-            for k, v in headers.items():
-                self.send_header(k, v)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        do_GET = do_POST = _reply
-
-        def log_message(self, *args):
-            pass
-
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True)
-    thread.start()
-    try:
-        yield f"http://127.0.0.1:{server.server_address[1]}/data", seen
-    finally:
-        server.shutdown()
-        server.server_close()
 
 
 def _client():
