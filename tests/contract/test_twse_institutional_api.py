@@ -1,45 +1,35 @@
 """
 測試 twse.com.tw/rwd/zh/fund/T86 三大法人買賣超 API。
-只驗證 tools 中有寫死用到的欄位索引，足以偵測來源 API 結構異動。
+透過 sources/twse/t86.py 驗證三種欄位格式都還讀得出來，以及 selectType 的篩選。
 """
 
-import pytest
-from tests.helpers import fetch_or_skip
+from sources.twse.t86 import t86_flows
+from tests.helpers import gateway_or_skip
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 FIXED_STOCK = "2330"     # 台積電，流動性高必有法人進出
 
-T86_URL = "https://www.twse.com.tw/rwd/zh/fund/T86"
 
+class TestT86Gateway:
+    """get_twse_institutional_investors_summary / get_twse_institutional_investors_by_stock 只透過
+    sources/twse/t86.py 讀 T86；gateway 依欄名取值，欄位改名、列寬不符或格子不是股數都會丟 UpstreamFormatError。"""
 
-@pytest.fixture(scope="class")
-def t86_data():
-    return fetch_or_skip(
-        T86_URL,
-        params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-    )
+    def test_fixed_day_parses_current_layout(self):
+        day = gateway_or_skip(t86_flows, "ALL", FIXED_DATE)
+        assert day is not None and day.date == FIXED_DATE and day.flows, "固定歷史交易日應有資料"
+        tsmc = next((f for f in day.flows if f.code == FIXED_STOCK), None)
+        assert tsmc is not None and tsmc.name == "台積電", f"{FIXED_DATE} 找不到 {FIXED_STOCK}"
+        assert tsmc.foreign_ex_dealer is not None and tsmc.dealer_self is not None, "19 欄格式應拆外資自營商與自營商自行／避險"
 
-
-class TestT86API:
-    """T86 三大法人買賣超日報 API 結構測試。
-
-    tool 依賴的欄位索引：
-      row[0]  證券代號（get_by_stock 篩選用）
-      row[18] 三大法人合計買賣超（summary 排序 / 過濾用）
-    """
-
-    def test_standard_rows_have_19_columns(self, t86_data):
-        """主力資料列應為 19 欄，確保 row[18]（IDX_TOTAL_NET）可存取."""
-        assert t86_data.get("stat") == "OK"
-        rows_19 = [r for r in t86_data["data"] if len(r) == 19]
-        assert len(rows_19) > 0, "找不到 19 欄資料列，欄位結構可能已變更"
-
-    def test_stock_code_at_index_0_and_total_net_at_index_18(self, t86_data):
-        """row[0] 應為股票代號，row[18] 應可解析為整數（兩個 tool 的核心依賴）."""
-        assert t86_data.get("stat") == "OK"
-        tsmc = next((r for r in t86_data["data"] if len(r) == 19 and r[0] == FIXED_STOCK), None)
-        assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 可能已不再是股票代號"
-        int(tsmc[18].replace(",", ""))  # 拋出 ValueError 即代表欄位位移
+    def test_older_layouts_still_parse(self):
+        """2017-10-03 是 16 欄（外資未拆）、2014-10-03 是 12 欄（自營商也未拆）。"""
+        for date, foreign_split, dealer_split in (("20171003", False, True), ("20141003", False, False)):
+            day = gateway_or_skip(t86_flows, "24", date)
+            assert day is not None and day.flows, f"{date} 應有資料"
+            f = day.flows[0]
+            assert (f.foreign_ex_dealer is not None, f.dealer_self is not None) == (foreign_split, dealer_split), (
+                f"{date} 的欄位格式與預期不同"
+            )
 
 
 class TestT86SelectType:
@@ -48,9 +38,9 @@ class TestT86SelectType:
 
     @staticmethod
     def _codes(select_type: str) -> set:
-        resp = fetch_or_skip(T86_URL, params={"response": "json", "date": FIXED_DATE, "selectType": select_type})
-        assert resp.get("stat") == "OK", f"selectType={select_type} 不再被接受: {resp.get('stat')}"
-        return {row[0].strip() for row in resp.get("data") or []}
+        day = gateway_or_skip(t86_flows, select_type, FIXED_DATE)
+        assert day is not None, f"selectType={select_type} 不再被接受"
+        return {f.code for f in day.flows}
 
     def test_select_types_filter(self):
         everything, no_warrants = self._codes("ALL"), self._codes("ALLBUT0999")

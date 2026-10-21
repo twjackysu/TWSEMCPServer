@@ -1,22 +1,18 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
-tools/otc/history.py reads these rows by position, so each test pins the field list (or,
-where TPEx repeats identical column names, an arithmetic invariant that only holds for the
-column order the tool assumes).
+tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade
+goes through its gateway (sources/tpex/insti_daily.py), which checks its fields and column sums itself.
 """
 
 import pytest
 
-from tests.helpers import fetch_or_skip
-from tools.otc.history import TRADING_STOCK_URL, INSTI_DAILY_URL, MARGIN_BALANCE_URL
+from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
+from tests.helpers import fetch_or_skip, gateway_or_skip
+from tools.otc.history import TRADING_STOCK_URL, MARGIN_BALANCE_URL
 from tools.otc.institutional_summary import INSTI_SUMMARY_URL
 
 FIXED_DATE = "2025/01/03"  # 固定歷史交易日
 FIXED_OTC_STOCK = "6488"   # 環球晶
-
-
-def _num(value: str) -> int:
-    return int(value.replace(",", "").strip() or 0)
 
 
 def _first_table(resp) -> dict:
@@ -41,31 +37,15 @@ class TestOTCStockHistoryAPI:
         assert all(len(r) == 9 for r in rows)
 
 
-class TestOTCInstitutionalHistoryAPI:
-    """insti/dailyTrade：24 欄，其中 7 組「買進/賣出/買賣超」欄名完全相同，只能靠
-    加總關係確認 tool 假設的分組順序（外資不含自營商、外資自營商、外資合計、投信、
-    自營商自行、自營商避險、自營商合計、三大法人合計）。"""
+class TestOTCInstitutionalGateway:
+    """insti/dailyTrade（sources/tpex/insti_daily.py）：7 組「買進/賣出/買賣超」欄名完全相同，gateway 依順序
+    對應外資不含自營商、外資自營商、外資合計、投信、自營商自行、自營商避險、自營商合計，並逐列檢查這個順序
+    蘊含的加總；欄位或順序變了就丟 UpstreamFormatError。"""
 
-    def _rows(self):
-        table = _first_table(fetch_or_skip(
-            INSTI_DAILY_URL,
-            params={"type": "Daily", "sect": "EW", "date": FIXED_DATE, "response": "json"},
-        ))
-        fields = table.get("fields") or []
-        assert len(fields) == 24 and fields[:2] == ["代號", "名稱"], f"欄位已變更: {fields}"
-        assert fields[-1] == "三大法人買賣超股數合計", f"最末欄已變更: {fields[-1]}"
-        rows = table.get("data") or []
-        assert rows, "固定歷史交易日應有資料"
-        return rows
-
-    def test_column_groups_sum_as_the_tool_assumes(self):
-        for r in self._rows():
-            assert len(r) == 24, f"列寬不為 24: {r}"
-            foreign = _num(r[4]) + _num(r[7])
-            assert foreign == _num(r[10]), f"外資合計 != 不含自營商 + 外資自營商: {r}"
-            dealer = _num(r[16]) + _num(r[19])
-            assert dealer == _num(r[22]), f"自營商合計 != 自行 + 避險: {r}"
-            assert _num(r[10]) + _num(r[13]) + _num(r[22]) == _num(r[23]), f"三大法人合計不符: {r}"
+    def test_fixed_day_parses_with_consistent_sums(self):
+        day = gateway_or_skip(tpex_flows, "AL", FIXED_DATE.replace("/", ""))
+        assert day is not None and day.date == FIXED_DATE.replace("/", "") and day.flows, "固定歷史交易日應有資料"
+        assert any(f.code == FIXED_OTC_STOCK for f in day.flows), f"找不到 {FIXED_OTC_STOCK}"
 
 
 class TestOTCMarginHistoryAPI:
@@ -160,9 +140,9 @@ class TestOTCInstitutionalSectAPI:
 
     @staticmethod
     def _codes(sect: str) -> set:
-        table = _first_table(fetch_or_skip(
-            INSTI_DAILY_URL, params={"type": "Daily", "sect": sect, "date": FIXED_DATE, "response": "json"}))
-        return {row[0].strip() for row in table.get("data") or []}
+        day = gateway_or_skip(tpex_flows, sect, FIXED_DATE.replace("/", ""))
+        assert day is not None, f"sect={sect} 固定歷史交易日沒有資料"
+        return {f.code for f in day.flows}
 
     def test_etf_sect_is_exactly_the_00_prefixed_rows(self):
         etf, default = self._codes("EE"), self._codes("EW")

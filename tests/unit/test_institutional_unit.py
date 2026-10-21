@@ -14,6 +14,13 @@ from tools.otc import institutional_summary
 pytestmark = pytest.mark.offline
 
 
+T86_FIELDS = ["證券代號", "證券名稱", "外陸資買進股數(不含外資自營商)", "外陸資賣出股數(不含外資自營商)",
+              "外陸資買賣超股數(不含外資自營商)", "外資自營商買進股數", "外資自營商賣出股數", "外資自營商買賣超股數",
+              "投信買進股數", "投信賣出股數", "投信買賣超股數", "自營商買賣超股數", "自營商買進股數(自行買賣)",
+              "自營商賣出股數(自行買賣)", "自營商買賣超股數(自行買賣)", "自營商買進股數(避險)", "自營商賣出股數(避險)",
+              "自營商買賣超股數(避險)", "三大法人買賣超股數"]
+
+
 def _t86_row(code, foreign, foreign_dealer, trust, dealer, total):
     row = [code, f"名稱{code}"] + ["0"] * 17
     row[4], row[7], row[10], row[11], row[18] = foreign, foreign_dealer, trust, dealer, total
@@ -31,7 +38,7 @@ T86_ROWS = [
 def _summary_fn(seen):
     def route(params, _body):
         seen.append(params)
-        return {"stat": "OK", "title": "T86", "data": T86_ROWS}
+        return {"stat": "OK", "title": "T86", "fields": T86_FIELDS, "data": T86_ROWS}
     return register_module_tools(institutional, OfflineClient({"/fund/T86": route}))["get_twse_institutional_investors_summary"]
 
 
@@ -94,3 +101,17 @@ def test_otc_summary_maps_period_and_scope():
     assert seen[-1] == {"type": "Daily", "prod": "1", "response": "json"}
     with pytest.raises(ToolError, match="scope 必須是"):
         fn(scope="otc")
+
+
+def test_by_stock_renders_an_older_t86_layout():
+    """舊格式的 T86（外資未拆外資自營商、自營商未拆自行／避險）照當時公布的欄位呈現，不再回「查無」."""
+    fields = ["證券代號", "證券名稱", "外資買進股數", "外資賣出股數", "外資買賣超股數", "投信買進股數", "投信賣出股數",
+              "投信買賣超股數", "自營商買賣超股數", "自營商買進股數", "自營商賣出股數", "三大法人買賣超股數"]
+    row = ["2330", "台積電          ", "1,050", "300", "750", "20", "30", "-10", "-5", "10", "15", "735"]
+    reply = {"stat": "OK", "title": "103年10月03日 三大法人買賣超日報", "fields": fields, "data": [row]}
+    fn = register_module_tools(institutional, OfflineClient({"/fund/T86": reply}))["get_twse_institutional_investors_by_stock"]
+    text = fn("2330", "20141003")
+    assert "股票名稱：台積電\n" in text
+    assert "─── 外資 ───\n  買進：1,050 股\n  賣出：300 股\n  買賣超：750 股" in text and "外資自營商" not in text
+    assert "─── 自營商 ───\n  買進：10 股\n  賣出：15 股\n  買賣超：-5 股" in text
+    assert text.endswith("═══ 三大法人合計買賣超 ═══\n  735 股")
