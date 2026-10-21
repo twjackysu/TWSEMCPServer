@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 import logging
 
 from prompts import register_all_prompts
-from toolkit import ArgumentErrorsInChinese
+from toolkit import ArgumentErrorsInChinese, response_limit
 from tools import SOURCES, enabled_sources, register_all_tools, show_only_sources
 from utils.api_client import TWSEAPIClient
 from utils.config import ServerConfig
@@ -31,6 +31,10 @@ SERVER_INSTRUCTIONS = f"""台灣證券市場資料：{'、'.join(name for tag, n
 mcp = FastMCP("TWSE Stock Trend Analysis 🚀", instructions=SERVER_INSTRUCTIONS)
 # FastMCP rejects arguments outside a tool's schema (toolkit/params.py); say why in Chinese.
 mcp.add_middleware(ArgumentErrorsInChinese())
+# Last resort against a runaway reply (e.g. limit=100000 on 44,717 warrants): cut it past
+# TWSE_MAX_RESPONSE_BYTES (0 = off) and say so. Tools still limit their own rows.
+if ServerConfig.MAX_RESPONSE_BYTES:
+    mcp.add_middleware(response_limit(ServerConfig.MAX_RESPONSE_BYTES))
 
 # Initialize API Client
 # This is the root of our Dependency Injection tree
