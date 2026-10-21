@@ -27,8 +27,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 2. ✅ P1-9 + P1-11（#114）：`decorators.py`、`tool_factory.py` 移到新的 `toolkit/`，`utils/` 不再 import
    fastmcp、循環 import 解掉（`test_layering_unit.py` 把關）；7 份位置 tuple 改成 `CompanyToolSpec` /
    `ListToolSpec`。`tools/list` 與 main 逐字相同。
-3. P1-8：分頁統一成一個 `Page`，取代 13 份手刻分頁；profitability 的 `page_size/page_number` 改成
-   `limit/offset`（breaking，記 changelog）。
+3. ✅ P1-8（#115）：`utils.Page` 取代 13 個模組裡 16 段手刻分頁與 `format_list_response` 內的分頁；
+   錯誤的 `limit`/`offset` 丟 `utils.errors.InvalidArgument` → `ToolError`；profitability 改成
+   `limit`/`offset`（breaking，記在 PR 說明；repo 沒有 CHANGELOG）。`test_pagination_unit.py` 擋手刻分頁。
 4. P1-6 / P1-10（Phase 3 起點）：被重複解析的 STOCK_DAY、MI_INDEX、TWT49U、BWIBBU_d 各收成一個
    gateway；T86 改依 `fields` 取欄位，TPEx dailyTrade 走 Adapter，兩市場共用排行與呈現。
 - [ ] Phase 2 共用核心
@@ -85,7 +86,7 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
    classmethod 全在一類。後果：全域單一節流時鐘（查 MOPS 等 TAIFEX）；`time.time()` 計時；每次新建連線、
    無 Session、無 retry；`verify_ssl=False` 套用到所有 host。（更正：2026-10-21 實測 13 個 host 在
    Python 3.13 下都能驗證，包括 TWSE；只有 `cpx.cbc.gov.tw` 過不了 3.13 的 `VERIFY_X509_STRICT`。）
-8. **分頁兩種寫法**：多數 `limit/offset`，profitability 用 `page_size/page_number`。
+8. **分頁兩種寫法**：多數 `limit/offset`，profitability 用 `page_size/page_number`。（已修，#115：`utils.Page`）
 9. **依賴方向反**：`utils/tool_factory.py` import `fastmcp`（基礎層依賴呈現層）；`utils/__init__` ↔
    `tool_factory` 循環 import。（已修，#114：移到 `toolkit/`）
 10. **測試只能比對字串**：邏輯和呈現綁死，unit test 寫 `assert "外資:120（不含自營商 100…" in text`。
@@ -216,7 +217,7 @@ def get_twse_institutional_investors_summary(
 
 ### Phase 2：共用核心
 - `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
-- `TradingDate` 取代 13 份日期驗證；`Page` 取代 13 份手刻分頁。
+- `TradingDate` 取代 13 份日期驗證（驗證失敗丟 `InvalidArgument`）；`Page` 取代手刻分頁已在 #115 完成。
 - 列舉參數全改 `Literal`、範圍用 `Annotated[int, Field(ge=…, le=…)]`：FastMCP 4 依 schema 驗證，錯了直接回
   `isError`，不必在函式裡手寫檢查（手寫檢查目前已 `raise ToolError`，#110；改成 schema 後可刪掉那些檢查）。
 - 統一 profitability 分頁寫法（參數改名屬 breaking，記 changelog）。
