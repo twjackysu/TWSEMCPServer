@@ -24,6 +24,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
+from utils.deadline import time_budget
 
 TDCC_DISTRIBUTION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
 # Weekly data in one ~2.3 MB file: without a cache every single-stock lookup re-downloads
@@ -36,6 +37,9 @@ TDCC_PAGE_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Ap
 # Each week costs one POST (plus 0.5 s of client throttling), so keep a call to about a quarter.
 MAX_WEEKS = 13
 MAX_CACHED_WEEKS = 2048
+# Time for a trend's requests (utils/deadline.py). 13 weeks normally take under 10 s; each of
+# the up to 14 requests may wait 60 s on a slow site.
+TREND_BUDGET = 90
 
 # 持股分級 1-17. Levels 1-15 are holding-size brackets in shares (1 張 = 1,000 股),
 # 16 is TDCC's 差異數調整 (reconciliation with the share register), 17 is the total.
@@ -198,6 +202,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         header = f"【{code} 集保戶股權分散表】資料日期: {data_date[:4]}-{data_date[4:6]}-{data_date[6:]}\n"
         return header + summarize(rows)
 
+    @time_budget(TREND_BUDGET, "已查到的週次會留在快取，可稍後再試或減少 weeks")
     def _weekly_trend(code: str, weeks: int) -> str:
         session = requests.Session()
 

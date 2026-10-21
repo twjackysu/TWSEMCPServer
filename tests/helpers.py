@@ -15,7 +15,8 @@ TAIFEX_OPENAPI_HOST = "openapi.taifex.com.tw"
 
 @contextmanager
 def scripted_server(*replies):
-    """127.0.0.1 上的 HTTP 伺服器：依序回覆 ``replies``（(status, headers, body)），之後一律 200 JSON。
+    """127.0.0.1 上的 HTTP 伺服器：依序回覆 ``replies``（(status, headers, body) 或
+    (status, headers, body, 延遲秒數)），之後一律 200 JSON。
 
     yield (url, seen)，seen 記錄每個請求的 method、client port、Cookie 與時間。傳輸層的行為（urllib3 的
     retry、連線重用、circuit breaker 看到的真實 response）用假 response 測不到，所以用它。
@@ -32,7 +33,9 @@ def scripted_server(*replies):
                 self.rfile.read(length)
             seen.append({"method": self.command, "port": self.client_address[1],
                          "cookie": self.headers.get("Cookie"), "at": time.monotonic()})
-            status, headers, body = queue.pop(0) if queue else (200, {}, b'{"ok": true}')
+            status, headers, body, *delay = queue.pop(0) if queue else (200, {}, b'{"ok": true}')
+            if delay:
+                time.sleep(delay[0])
             self.send_response(status)
             for k, v in headers.items():
                 self.send_header(k, v)

@@ -23,6 +23,7 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
+from utils.deadline import time_budget
 from utils.taifex import TAIFEX_DOWNLOAD_BASE, TAIFEX_HEADERS, is_stock_code, stock_futures_contracts
 
 TICK_PAGE_URL = f"{TAIFEX_DOWNLOAD_BASE}/dlFutPrevious30DaysSalesData"
@@ -38,6 +39,9 @@ DAY_START, DAY_END = 8 * 60 + 45, 13 * 60 + 45  # minutes since midnight
 NIGHT_START, NIGHT_END = 15 * 60, 5 * 60
 MAX_BARS = 300
 MAX_PARSED = 16
+# Time for one call's requests (utils/deadline.py): the page plus up to three zips (looking for
+# a day that already has its day session). Normally a few seconds; each zip may wait up to 120 s.
+INTRADAY_BUDGET = 120
 
 Tick = Tuple[str, str, int, float, int]  # date, contract month, HHMMSS, price, volume (B+S)
 
@@ -168,6 +172,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
+    @time_budget(INTRADAY_BUDGET, "已下載的交易日會快取，稍後再試會較快")
     def get_futures_intraday(contract: str = "TX", date: str = "", interval: int = 5, session: str = "day",
                              month: str = "") -> str:
         """查詢期貨「盤中走勢」：由期交所每筆成交資料彙總成分鐘 K 線，看一整天的多空拉鋸，

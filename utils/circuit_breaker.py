@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from typing import Callable, Dict, Optional
 
 import requests
+import urllib3
 
 from .errors import UpstreamUnavailable
 
@@ -46,9 +47,22 @@ class Failure:
     retry_after: float = 0.0   # seconds the site asked us to wait (Retry-After), if any
 
 
+def is_timeout(exc: BaseException) -> bool:
+    """True for a connect or read timeout, however requests wraps it.
+
+    With a urllib3 ``Retry`` mounted (utils/http_transport.py) a read timeout ends the retries, and
+    requests reports the resulting ``MaxRetryError(ReadTimeoutError)`` as a plain ``ConnectionError``,
+    not as ``requests.Timeout``.
+    """
+    if isinstance(exc, requests.exceptions.Timeout):
+        return True
+    reason = getattr(exc.args[0], "reason", None) if exc.args else None
+    return isinstance(reason, urllib3.exceptions.TimeoutError)
+
+
 def failure_of_exception(exc: BaseException) -> Optional[Failure]:
     """The failure an exception from sending a request stands for; None if it says nothing about the site."""
-    if isinstance(exc, requests.exceptions.Timeout):
+    if is_timeout(exc):
         return Failure("逾時")
     if isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError)):
         return Failure(f"連線失敗（{type(exc).__name__}）")
