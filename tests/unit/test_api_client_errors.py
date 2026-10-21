@@ -13,6 +13,7 @@ import requests
 from fastmcp.exceptions import ToolError
 
 from utils.api_client import TWSEAPIClient
+from utils.circuit_breaker import CircuitBreaker
 from toolkit import CompanyToolSpec, create_company_tool
 from tests.helpers import _CapturingMCP
 
@@ -98,7 +99,8 @@ def test_rate_limit_still_applies_after_a_failure(monkeypatch, fake_request):
     會在上游最脆弱的時候變成毫無間隔的連續請求。
     """
     interval = 0.05
-    probe = TWSEAPIClient(request_interval=interval, cache_ttl=0)
+    # 這裡測節流；連續失敗會讓 circuit breaker 擋下第 4 次（見 test_circuit_breaker_unit.py），所以關掉它
+    probe = TWSEAPIClient(request_interval=interval, cache_ttl=0, breaker=CircuitBreaker(threshold=0))
     monkeypatch.setattr(requests.Session, "request", fake_request)
 
     attempts = 4
@@ -117,6 +119,7 @@ class _ListWithoutTarget:
 
     status_code = 200
     encoding = "utf-8"
+    content = '[{"公司代號": "2330", "公司名稱": "台積電"}]'.encode("utf-8")
 
     def raise_for_status(self):
         pass

@@ -26,7 +26,8 @@ class _CountingClient(TWSEAPIClient):
         self.calls = []
         self.bodies = bodies or {}
 
-    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None, json_body=None):
+    def _request(self, url, params=None, headers=None, timeout=None, method="GET", data=None, json_body=None,
+                 expect_json=False):
         self.calls.append((method, url, params, data, json_body))
         body = self.bodies.get(url, b'{"rows": [1, 2]}')
         if isinstance(body, Exception):
