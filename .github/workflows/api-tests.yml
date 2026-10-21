@@ -30,20 +30,14 @@ jobs:
       issues: write
 
     env:
-      # API 請求之間的延遲（秒）
-      API_REQUEST_DELAY: '1.0'
       # 測試之間的延遲（秒）
       PYTEST_DELAY_SECONDS: '1.5'
-    
+
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-    
-    - name: 🐍 Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    
+
+    # Python 版本由 uv 依 .python-version 安裝（與 pyproject 的 requires-python 一致）
     - name: 📦 Install uv
       uses: astral-sh/setup-uv@v5
       with:

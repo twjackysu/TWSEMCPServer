@@ -4,6 +4,7 @@
 """
 
 import pytest
+from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
@@ -375,4 +376,5 @@ def test_etf_holdings_column_guard():
         return page(params, body)
 
     fn = register_module_tools(holdings, OfflineClient(_holdings_routes(renamed_columns)))["get_etf_holdings"]
-    assert "欄位已變更" in fn("0050")
+    with pytest.raises(ToolError, match="欄位已變更"):
+        fn("0050")

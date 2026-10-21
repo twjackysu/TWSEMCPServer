@@ -1,6 +1,10 @@
 """Shared test helpers for the live contract tests (tests/contract/) and offline unit tests."""
 
+import functools
+import inspect
 import json
+
+import anyio
 import pytest
 import requests
 from utils.api_client import TWSEAPIClient
@@ -101,13 +105,30 @@ def records_or_skip(data, source: str) -> list:
     return data
 
 
+def _run_sync(fn):
+    """A blocking callable for an async tool, so tests can call ``fn(...)`` and get the text.
+
+    Tools are async — ``handle_api_errors`` runs the body in a worker thread — so this runs
+    each call to completion on its own event loop, through the same thread hop and
+    ``ToolError`` translation the server uses.
+    """
+    if not inspect.iscoroutinefunction(fn):
+        return fn
+
+    @functools.wraps(fn)
+    def run(*args, **kwargs):
+        return anyio.run(functools.partial(fn, *args, **kwargs))
+
+    return run
+
+
 class _CapturingMCP:
     """Minimal stand-in for FastMCP that records the functions modules register.
 
     ``register_tools`` only ever needs ``.tool`` — either bare (``@mcp.tool``) or
     called with keywords (``mcp.tool(name=..., description=...)``). Capturing the
-    undecorated callables lets tests exercise a tool end-to-end without spinning
-    up a server.
+    registered callables lets tests exercise a tool end-to-end without spinning
+    up a server. A failing tool raises ``ToolError`` (MCP ``isError``).
     """
 
     def __init__(self):
@@ -116,13 +137,13 @@ class _CapturingMCP:
     def tool(self, *args, **kwargs):
         if args and callable(args[0]):
             fn = args[0]
-            self.tools[fn.__name__] = fn
+            self.tools[fn.__name__] = _run_sync(fn)
             return fn
 
         name = kwargs.get("name")
 
         def decorator(fn):
-            self.tools[name or fn.__name__] = fn
+            self.tools[name or fn.__name__] = _run_sync(fn)
             return fn
 
         return decorator

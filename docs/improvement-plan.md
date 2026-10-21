@@ -1,0 +1,235 @@
+# 改善計畫（2026-10-21 review）
+
+以「寫出 Design Patterns 的作者們會怎麼做」為標準，對整個 repo 做的 review 與分階段計畫。
+每個階段可獨立成一個 PR；完成後在下方「進度」打勾並註記 PR。
+
+## 進度
+
+- [x] P0 修正（2026-10-21，分支 `worktree-p0-runtime-fixes`，尚未 commit／PR）：
+  P0-1 thread offload；P0-2 失敗改 `ToolError`；P0-3 profitability 排序；P0-4 註冊 fail-fast；
+  P0-5 PR 跑 unit test、CI Python 版本。另含 per-site thread-safe 節流、single-flight。
+  未做：參數錯誤仍以一般文字回傳（13 處日期驗證、`check_choice`）→ 併入 Phase 2。
+- [ ] Phase 0 剩餘：`ruff check` 進 CI
+- [ ] Phase 1 剩餘：Session + Retry、backoff、circuit breaker、per-site policy（見「防止被鎖 IP」）
+- [ ] Phase 2 共用核心
+- [ ] Phase 3 來源層 + 領域層
+- [ ] Phase 4 MCP 介面
+- [ ] Phase 5 打包
+
+## 結論
+
+**保留的優點**：上游怪癖都寫在註解（T86 selectType、TAIFEX CSV fallback、MOPS 406）；contract / unit
+測試嚴格分離；「API 掛掉不可偽裝成查無資料」的錯誤哲學。
+
+**核心問題**：177 個 Transaction Script。每個 tool 函式自己做「驗證 → 打 API → 用 `r[3]` 解析 →
+排序／篩選 → 分頁 → 拼字串」。正確風格已存在於 `utils/price_series.py`（frozen `Bar` / `ExRightEvent`）
+與 `utils/market_snapshot.py`（`StockSnapshot`），只是沒推廣，兩種風格並存。
+
+GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先組合而非繼承」。缺的不是更多 pattern，是**分層**。
+
+## 實測數字（2026-10-21）
+
+| 項目 | 數字 |
+|---|---|
+| 註冊 tool | 177 個，tool schema 約 120K 字元（每個 client 每次對話都載入） |
+| 位置索引 `r[n]` / `row[n]` | tools/ + utils/ 共 398 處 |
+| 各自實作的數字解析 | 9 份，語意不一：`to_int` 髒值回 0，`_num` 回 None |
+| 手刻分頁 | tools/ 13 個檔（`format_list_response` 沒被用） |
+| 「日期格式錯誤」訊息副本 | 13 份 |
+| 參數用 `Literal` 列舉 | 0 |
+| unit test | 233 個，2.1 秒全過，但 PR 不跑 |
+| 3 個同步 tool 並發（各 1 秒） | 3.02 秒：序列化，event loop 被擋 |
+
+## 發現
+
+### P0：執行期正確性
+
+1. **同步 tool 擋住整個 server**。FastMCP 2.12.3 `FunctionTool.run` 在 event loop 上直接呼叫同步函式；
+   177 個 tool 全同步，含 `requests` + `time.sleep` 節流。HTTP 模式下一次 TAIFEX「往回找最新交易日」
+   （最多 12 次請求）或 45MB tick zip 會讓所有 client 一起卡住。
+2. **錯誤當成功回傳**。`handle_api_errors` 回傳 `"查詢失敗: ..."` 字串 → MCP `isError=false`，client 無法
+   程式化分辨失敗。參數錯誤（13 處「日期格式錯誤」、`check_choice`）同樣。應 `raise ToolError`。
+3. **靜默改輸入 → 結果錯**。`get_company_profitability_analysis_summary`：docstring 叫 LLM 傳 `毛利率(%)`，
+   程式只收 `毛利率(%)(營業毛利)/(營業收入)`，不符就默默依「公司代號」排序；docstring 寫預設 `'asc'`，
+   簽名是 `"desc"`。
+4. **tool 模組載入失敗被吞**。`register_all_tools` 只 log，server 照常啟動、少一整組 tool。
+5. **PR 沒有 CI 把關**。`api-tests.yml` 只排程跑 contract；`ghcr-publish.yaml` 只 build。CI 用
+   Python 3.12，pyproject 要 `>=3.13`；`API_REQUEST_DELAY` 沒有程式讀取。
+
+### P1：設計
+
+6. **沒有資料源層，同端點多處解析**：STOCK_DAY ×2、MI_INDEX ×3、TWT49U ×2、BWIBBU_d ×2。上游動一欄要修
+   2–3 處，contract test 只守一處。T86 回應自帶 19 個 `fields`，程式卻用 `IDX_* = 0..18` 寫死位置。
+7. **`TWSEAPIClient` 是 God Object**：傳輸、節流、兩套快取、OpenAPI 正規化、公司篩選、Singleton、相容
+   classmethod 全在一類。後果：全域單一節流時鐘（查 MOPS 等 TAIFEX）；`time.time()` 計時；每次新建連線、
+   無 Session、無 retry；`verify_ssl=False` 套用到 10 個 host（只有 TWSE 需要）。
+8. **分頁兩種寫法**：多數 `limit/offset`，profitability 用 `page_size/page_number`。
+9. **依賴方向反**：`utils/tool_factory.py` import `fastmcp`（基礎層依賴呈現層）；`utils/__init__` ↔
+   `tool_factory` 循環 import。
+10. **測試只能比對字串**：邏輯和呈現綁死，unit test 寫 `assert "外資:120（不含自營商 100…" in text`。
+11. **`SIMPLE_LIST_TOOLS` 用 8 欄位置 tuple**，欄位順序靠註解記。
+
+### P2：產品與維運
+
+12. **177 tools 全曝露**：吃 client context，LLM 易選錯。無 tags、無 `mount`。
+13. **無 tool annotations**：全唯讀卻沒標 `readOnlyHint` / `openWorldHint` / `idempotentHint`。
+14. **打包**：Dockerfile 裝用不到的 Node.js、root 執行、單階段；`requirements*.txt` 與 `uv.lock` 重複；
+    `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。
+15. **prompts 手寫註冊**：`server.py` 9 個 wrapper，tools 卻自動發現。
+
+## 目標架構
+
+```
+tools/       MCP 介面層：薄。Literal 參數、ToolError、annotations、tags
+render/      呈現層：dataclass → 文字（Template Method：表頭／列／分頁尾）
+services/    服務層：純函式 rank、paginate、adjust、screen
+domain/      領域層：frozen dataclass + Value Object（TradingDate、StockCode、Market）
+sources/     來源層：每端點一個 Gateway，全專案唯一知道 r[3] 是開盤價的地方
+http/        傳輸層：Session ← Retry ← Throttle(per site) ← Cache（Decorator 鏈）
+```
+
+| 問題 | Pattern |
+|---|---|
+| 同端點多處解析、398 個 `r[n]` | Gateway / Repository |
+| T86 與 TPEx dailyTrade 兩套排行 | Adapter → 共同 `InstitutionalFlow`，一套 rank + render |
+| God client、全域節流、全域關 TLS | Decorator 鏈 + Strategy（每個 site 一份 `HostPolicy`） |
+| 13 份分頁、13 份日期驗證 | Value Object（`TradingDate`、`Page`） |
+| 錯誤當成功回傳 | 例外階層，只在 tool 邊界轉 `ToolError` |
+
+### 示範：傳輸層
+
+```python
+@dataclass(frozen=True)
+class HostPolicy:                       # Strategy
+    interval: float = 0.5
+    verify_tls: bool = True             # 只有 www.twse.com.tw 設 False
+    headers: Mapping[str, str] = MappingProxyType({})
+
+class Throttled:                        # Decorator：每個 site 一把鎖、一個時鐘，thread-safe
+    def get(self, req: Request) -> bytes:
+        site = site_of(req.url)
+        with self._locks[site]:
+            self._wait(site)            # time.monotonic()
+            try:
+                return self._inner.get(req)
+            finally:
+                self._stamp[site] = time.monotonic()
+
+http = Cached(Throttled(SessionTransport(POLICIES), POLICIES), max_entries=256)
+```
+
+### 示範：領域層 + Gateway（欄名為示意）
+
+```python
+@dataclass(frozen=True, slots=True)
+class InstitutionalFlow:
+    code: str
+    name: str
+    foreign: int   # 含外資自營商
+    trust: int
+    dealer: int
+    total: int
+
+class T86Gateway:                                       # sources/twse_rwd/t86.py
+    def daily(self, day: TradingDate | None, select_type: str) -> Dated[list[InstitutionalFlow]]:
+        resp = self._http.get_json(T86_URL, {"response": "json", "selectType": select_type, **day_param(day)})
+        col = ColumnMap(resp["fields"])                 # 依欄名取值，上游搬欄位也不壞
+        return Dated(resp["date"], [
+            InstitutionalFlow(
+                code=r[col["證券代號"]].strip(), name=r[col["證券名稱"]].strip(),
+                foreign=int_or_zero(r[col["外陸資買賣超股數(不含外資自營商)"]]) + int_or_zero(r[col["外資自營商買賣超股數"]]),
+                trust=int_or_zero(r[col["投信買賣超股數"]]),
+                dealer=int_or_zero(r[col["自營商買賣超股數"]]),
+                total=int_or_zero(r[col["三大法人買賣超股數"]]),
+            ) for r in resp["data"] if len(r) == len(col)
+        ])
+
+class TpexInstiGateway:                                 # 7 組欄名重複，只能靠位置：Adapter 藏起來
+    _NET = {"foreign": 10, "trust": 13, "dealer": 22, "total": 23}
+    def daily(self, day, sect) -> Dated[list[InstitutionalFlow]]: ...
+```
+
+### 示範：Tool 層（約 140 行 → 8 行，排行與呈現和上櫃共用）
+
+```python
+Investor = Literal["total", "foreign", "trust", "dealer"]
+Side = Literal["abs", "buy", "sell"]
+READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=True, idempotentHint=True)
+
+@mcp.tool(annotations=READ_ONLY, tags={"twse", "institutional"})
+@tool_boundary          # 同步工作丟 thread；InvalidArgument/UpstreamError → ToolError(isError=true)
+def get_twse_institutional_investors_summary(
+    date: str = "", category: str = "", sort_by: Investor = "total", side: Side = "abs",
+    limit: Annotated[int, Field(ge=1, le=500)] = 50, offset: Annotated[int, Field(ge=0)] = 0,
+) -> str:
+    """（docstring 不變）"""
+    snap = twse.t86.daily(TradingDate.parse_optional(date), select_type(category))
+    ranked = rank(snap.value, by=sort_by, side=side)
+    return render.institutional_ranking(snap, ranked, Page(limit, offset), by=sort_by, side=side)
+```
+
+分層後 unit test 斷言 `InstitutionalFlow`，不比字串；呈現層 snapshot 測一次。
+
+## 分階段計畫
+
+### Phase 0：護欄（小）
+- 新 `ci.yml`：PR 跑 unit test（之後加 `ruff check`）；修 Python 版本；刪 `API_REQUEST_DELAY`。
+- `register_all_tools` fail-fast，加測試確認全部 tool 模組註冊成功。
+- 修 P0-3 profitability bug。
+- 驗收：PR 頁面出現 unit 綠燈；故意弄壞一個模組 → server 啟動失敗。
+
+### Phase 1：執行期
+- 同步 tool 丟 thread；失敗回 `isError=true`（`ToolError`）。
+- client thread-safe：per-site 節流鎖、`monotonic` 計時、single-flight（並發相同請求只打一次上游）。
+- 之後：Session + Retry（尊重 `Retry-After`、指數退避 + jitter）、per-site policy（TLS 只對 TWSE 關）。
+- 驗收：3 並發 3.02 秒 → 約 1 秒。
+- 注意：行為變更，斷言「查詢失敗」字串的測試改斷言 `ToolError`。
+
+### Phase 2：共用核心
+- `utils/parse.py`：`int_or_zero` / `int_or_none` / `float_or_none` 取代 9 份數字解析。
+- `TradingDate` 取代 13 份日期驗證；`Page` 取代 13 份手刻分頁。
+- 列舉參數全改 `Literal`；參數錯誤改 `raise ToolError`；統一 profitability 分頁寫法（參數改名屬 breaking，記 changelog）。
+- 驗收：grep 計數 9→1、13→1、13→0。
+
+### Phase 3：來源層 + 領域層（Strangler Fig，一端點一 PR）
+- 順序：先做被重複解析的 STOCK_DAY、MI_INDEX、TWT49U、BWIBBU_d；再做 T86 + TPEx（Adapter 示範）；其餘逐步。
+- contract test 改測 gateway：真實回應要能建出 dataclass（比「欄位存在」強，型別／單位變了也抓得到）。
+- 105 個 OpenAPI 透傳 tool 不動，`create_company_tool` 已是對的抽象。
+- 驗收：`r[n]` 只出現在 `sources/`，tools/ 內 0 處。
+
+### Phase 4：MCP 介面
+- 全部 tool 加 `READ_ONLY` annotations、依來源加 tags。
+- `MCP_INCLUDE_TAGS` 環境變數讓使用者只載入需要的子集（或 `mcp.mount()` 子伺服器）。
+- prompts 改自動發現。
+- 選做：screener、技術指標回 structured output。
+
+### Phase 5：打包
+- Dockerfile 多階段、non-root、去 Node.js、`--no-dev`、HEALTHCHECK。
+- 移除 `requirements*.txt` 與未用依賴；pyright basic 模式。
+
+## 防止被第三方鎖 IP
+
+問題不在 `time.sleep`，在於睡在 event loop 上。工具改在 worker thread 執行後，節流等待只擋
+那一個請求。節流本身仍然需要；能再做的事，依效果排序：
+
+1. **少打請求（最有效）**
+   - 已有：記憶體快取、整批端點抓一次本地篩選。
+   - 已加：single-flight，並發的相同請求只打一次上游（`fetch_data` 與有 `cache_ttl` 的呼叫）。
+   - 可加：不變的歷史資料（過去月份日K、過去週的集保）存磁碟快取（sqlite / diskcache），重啟不用重抓。
+2. **控制速率形狀**
+   - 已加：依網站（`throttle_key`，`*.twse.com.tw` 共用一個時鐘）一次一個請求、間隔 0.5 秒。
+   - 可加：per-site 設定間隔或 token bucket。社群經驗值（twstock 等套件文件，非官方）是證交所約
+     每 5 秒 3 個請求；目前 0.5 秒＝每 5 秒最多 10 個，對 `twse.com.tw` 可能偏快，應可個別調整。
+3. **被限流時退讓**
+   - 429/503 尊重 `Retry-After`；指數退避 + jitter。
+   - per-site circuit breaker：連續失敗或偵測到封鎖頁（例如 MOPS 的 `FOR SECURITY REASONS`）就停打該網站
+     一段冷卻時間，直接回錯誤。被擋時繼續打只會延長封鎖。
+4. **連線重用**：`requests.Session` keep-alive，少做 TCP/TLS 握手。
+5. **不做**：用代理池輪換 IP 規避封鎖，違反資料來源的使用條款。
+
+## 不要做的事
+
+- 一次重寫 177 個 tool：一端點一 PR，contract test 當安全網。
+- 引入 DI 框架：`register_tools(mcp, client)` closure 注入已夠。
+- 先全面 async（httpx）：thread offload 用很小成本拿到大部分效益。
+- 為 pattern 而 pattern：透傳型 tool 就該是一行 factory。

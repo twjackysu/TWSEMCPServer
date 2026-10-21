@@ -1,0 +1,32 @@
+name: Unit Tests
+
+# Offline unit tests (tests/unit/) gate every PR. They never touch the network, so they are
+# fast and deterministic, unlike the live contract tests in api-tests.yml.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # Python 版本由 uv 依 .python-version 安裝
+      - name: 📦 Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: 📦 Install dependencies
+        run: uv sync --extra dev
+
+      - name: 🧪 Run offline unit tests
+        run: uv run pytest tests/unit --tb=short
