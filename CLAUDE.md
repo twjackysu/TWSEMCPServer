@@ -8,7 +8,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **TWSE OpenAPI** (`openapi.twse.com.tw`) — 105 tools: 公司治理、ESG、財務比率、公告名單、權證、券商
 - **TWSE Web API** (`twse.com.tw`) — 19 tools（不帶 date 即回最新交易日／本月；取代了同資料的 OpenAPI 僅最新版）: 歷史日K、月均價、融資融券（`/exchangeReport`）；估值（`/rwd/zh/afterTrading/BWIBBU_d` —— `/exchangeReport/BWIBBU_ALL` 會忽略 `date` 參數，只回最新交易日，不可用於歷史查詢）；三大法人買賣超日報、個股明細（`/rwd/zh/fund/T86`）；三大法人買賣金額、全市場收盤行情、市場成交量值、加權指數歷史、外資持股歷史（`/rwd/zh/...`，可查任意過去日期，與同名 openapi.twse.com.tw 端點僅回傳最近約12個交易日不同）；個股月/年成交彙總、鉅額交易明細（無伺服器端股票篩選，本地端過濾）、融券借券餘額/成交、除權除息計算結果（TWT49U）、當日沖銷交易（TWTB4U）、全部指數含類股指數（MI_INDEX type=IND）（`/rwd/zh/...`）（legacy JSON，非 Swagger）
 - **MIS** (`mis.twse.com.tw`) — 2 tools: 盤中多股即時報價；ETF 已發行單位數／預估淨值／折溢價（`stock/data/all_etf.txt`，`get_etf_daily_nav`）
-- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 5 tools: 上櫃日收盤（最新一日；`get_otc_daily` 帶 date 時改用網站 afterTrading/otc，該來源不含定價交易、無均價）、注意股、處置股、零股、櫃買指數
+- **TPEx OpenAPI** (`tpex.org.tw/openapi`) — 5 tools: 上櫃日收盤（最新一日；`get_otc_daily` 帶 date 時改用網站 afterTrading/otc（`sources/tpex/daily_quotes.py`），該來源不含定價交易、無均價）、注意股、處置股、零股、櫃買指數
 - **TAIFEX OpenAPI** (`openapi.taifex.com.tw`) — 6 tools: 選擇權分析（Delta/OI增減）、保證金、年月統計（這些沒有下載頁對應）
 - **TPEx 網站** (`www.tpex.org.tw/www/zh-tw/...`) — 7 tools: 上櫃個股日K、三大法人明細（`insti/dailyTrade`，可依外資／投信／自營商排行）、三大法人買賣金額彙總（`insti/summary` 日／週／月，2026-10-19 與 openapi `tpex_3insti_summary` 8 列逐列相同後取代之）、融資融券、本益比/殖利率/淨值比、外資持股排行、除權除息計算結果（預設最新交易日，可查任意過去日期）
 - **MOPS 公開資訊觀測站** (`mops.twse.com.tw/mops/api`, `mopsov.twse.com.tw`): 綜合損益表／資產負債表／現金流量表、月營收、股利（預設最新一期，可查任意過去期間；上市櫃、興櫃、公發公司皆可）、重大訊息（t05st01/t05st02 + 全文 *_detail）、董監持股與設質（stapap1）、內部人持股異動（query6_1）、庫藏股（t35sc09）、背書保證與資金貸與（t05st11）、法說會 — 11 tools
@@ -68,7 +68,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── twse/t86.py               # T86 → t86_flows() (all three historical column layouts, by name)
 ├── tpex/insti_daily.py       # insti/dailyTrade → tpex_flows() (Adapter: groups by order, checked by their sums)
 ├── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
-└── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)
+├── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)
+└── tpex/daily_quotes.py      # afterTrading/otc → otc_daily_quotes() OtcQuoteDay (EW / AL / industry code; 最後買量・賣量 only from 2020-04-30)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)

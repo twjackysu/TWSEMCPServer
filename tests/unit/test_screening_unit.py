@@ -14,6 +14,8 @@ pytestmark = pytest.mark.offline
 QUOTE_FIELDS = ["證券代號", "證券名稱", "成交股數", "成交筆數", "成交金額", "開盤價", "最高價", "最低價", "收盤價",
                 "漲跌(+/-)", "漲跌價差", "最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量", "本益比"]
 BWIBBU_FIELDS = ["證券代號", "證券名稱", "收盤價", "殖利率(%)", "股利年度", "本益比", "股價淨值比", "財報年/季"]
+OTC_QUOTE_FIELDS = ["代號", "名稱", "收盤 ", "漲跌", "開盤 ", "最高 ", "最低", "成交股數  ", " 成交金額(元)", " 成交筆數 ",
+                    "最後買價", "最後買量<br>(張數)", "最後賣價", "最後賣量<br>(張數)", "發行股數 ", "次日漲停價 ", "次日跌停價"]
 
 
 def _routes(seen):
@@ -25,9 +27,10 @@ def _routes(seen):
 
     def otc_quotes(params, _b):
         seen["otc_quotes_date"] = params.get("date")
+        row = ["6488", "環球晶", "945.00", "-3.00", "1", "1", "1", "9,000"] + ["0"] * 9
         if params.get("type") == "24":
-            return {"tables": [{"category": "半導體類", "data": [["6488", "環球晶"]]}]}
-        return {"tables": [{"data": [["6488", "環球晶", "945.00", "-3.00", "1", "1", "1", "9,000"]]}]}
+            return {"tables": [{"category": "半導體類", "fields": OTC_QUOTE_FIELDS, "data": [row]}]}
+        return {"tables": [{"fields": OTC_QUOTE_FIELDS, "data": [row]}]}
 
     def listed_members(params, _b):
         if params.get("type") == "24":
