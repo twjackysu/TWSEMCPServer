@@ -1,6 +1,7 @@
 """TPEx (上櫃) valuation ratios and foreign shareholding, latest day or any past date.
 
-Sources: www.tpex.org.tw website JSON afterTrading/peQryDate and insti/qfii.
+Sources: www.tpex.org.tw website JSON afterTrading/peQryDate (through sources/tpex/pe_qry_date.py)
+and insti/qfii.
 
 peQryDate replaces the openapi tpex_mainboard_peratio_analysis tool: on 2026-09-29 both had
 the same 889 stocks and, row by row, identical P/E, dividend per share, yield and P/B; the
@@ -12,9 +13,9 @@ from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
+from sources.tpex.pe_qry_date import otc_valuation_ratios
 from .history import TPEX_WWW, date_params, first_table, resp_date
 
-PE_QRY_DATE_URL = f"{TPEX_WWW}/afterTrading/peQryDate"
 QFII_URL = f"{TPEX_WWW}/insti/qfii"
 
 
@@ -46,21 +47,24 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = date_params(date)
-        resp = _client.fetch_json(PE_QRY_DATE_URL, params={**params, "response": "json"})
-        rows = first_table(resp).get("data") or []
-        if not rows:
+        report = otc_valuation_ratios(_client, date)
+        if not report.valuations:
             return f"查無 {date or '最新交易日'} 的上櫃估值資料，請確認該日期為交易日（非假日或週末）"
-        rows = _filter(rows, stock_no, name, 0, 1)
+        valuations = [v for v in report.valuations
+                      if (not stock_no or v.code == stock_no.strip()) and (not name or name in v.name)]
 
-        def fmt(r):
-            # r: 股票代號,公司名稱,本益比,每股股利,股利年度,殖利率(%),股價淨值比,財報年/季
+        def text(value):
+            return "N/A" if value is None else f"{value:f}"  # as TPEx prints it: no separators, all its decimals
+
+        def fmt(v):
+            fiscal = f"（財報 {v.fiscal}）" if v.fiscal else ""  # 財報年/季 is published from 2025-01-02
             return (
-                f"{r[0]} {r[1].strip()} | 本益比: {r[2]} | 殖利率: {r[5]}%（每股股利 {r[3]}，股利年度 {r[4]}）| "
-                f"股價淨值比: {r[6]}（財報 {r[7]}）\n"
+                f"{v.code} {v.name} | 本益比: {text(v.pe)} | 殖利率: {text(v.dividend_yield)}%（每股股利 "
+                f"{text(v.dividend_per_share)}，股利年度 {v.dividend_year}）| 股價淨值比: {text(v.pb)}{fiscal}\n"
             )
 
-        return format_list_response(rows, f" {resp_date(resp, date)} 上櫃股票本益比、殖利率及股價淨值比", fmt, limit, offset)
+        day = report.date or date or "最新交易日"
+        return format_list_response(valuations, f" {day} 上櫃股票本益比、殖利率及股價淨值比", fmt, limit, offset)
 
     @mcp.tool
     @handle_api_errors()

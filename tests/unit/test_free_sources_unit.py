@@ -402,6 +402,7 @@ from tools.otc import valuation_holdings as otc_valuation_holdings  # noqa: E402
 
 OTC_QUOTE_FIELDS = ["代號", "名稱", "收盤 ", "漲跌", "開盤 ", "最高 ", "最低", "成交股數  ", " 成交金額(元)", " 成交筆數 ",
                     "最後買價", "最後買量<br>(張數)", "最後賣價", "最後賣量<br>(張數)", "發行股數 ", "次日漲停價 ", "次日跌停價"]
+PE_FIELDS = ["股票代號", "公司名稱", "本益比", "每股股利", "股利年度", "殖利率(%)", "股價淨值比", "財報年/季"]
 
 
 def _quote_row(code, name):
@@ -443,5 +444,6 @@ def test_otc_foreign_holdings_filters_on_the_code_column_not_the_rank():
 
 def test_otc_valuation_shows_dividend_year_and_fiscal_quarter():
     rows = [["6488", "環球晶          ", "45.87", "7.7", 114, "0.81", "4.67", "115Q2"]]
-    fn = register_module_tools(otc_valuation_holdings, OfflineClient({"/afterTrading/peQryDate": {"date": "20260929", "tables": [{"data": rows}]}}))["get_otc_valuation"]
+    payload = {"date": "20260929", "tables": [{"fields": PE_FIELDS, "data": rows}]}
+    fn = register_module_tools(otc_valuation_holdings, OfflineClient({"/afterTrading/peQryDate": payload}))["get_otc_valuation"]
     assert "6488 環球晶 | 本益比: 45.87 | 殖利率: 0.81%（每股股利 7.7，股利年度 114）| 股價淨值比: 4.67（財報 115Q2）" in fn()

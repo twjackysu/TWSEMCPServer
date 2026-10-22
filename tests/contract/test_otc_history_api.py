@@ -1,15 +1,18 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
 tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade,
-tradingStock and afterTrading/otc go through their gateways (sources/tpex/), which check their fields themselves.
+tradingStock, afterTrading/otc and peQryDate go through their gateways (sources/tpex/), which check their
+fields themselves.
 """
 
+import re
 from decimal import Decimal
 
 import pytest
 
 from sources.tpex.daily_quotes import otc_daily_quotes
 from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
+from sources.tpex.pe_qry_date import otc_valuation_ratios
 from sources.tpex.trading_stock import trading_stock_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
 from tools.otc.history import MARGIN_BALANCE_URL
@@ -111,18 +114,24 @@ class TestOTCDailyQuotesGateway:
             assert q.last_ask >= q.close * Decimal("0.9") - Decimal("0.01"), q
 
 
-class TestOTCValuationByDateAPI:
-    """afterTrading/peQryDate：get_otc_valuation 使用 row[0]~row[7]。"""
+class TestOTCValuationGateway:
+    """上櫃個股本益比、殖利率、股價淨值比 - afterTrading/peQryDate（sources/tpex/pe_qry_date.py）
+    get_otc_valuation 與 services/market_snapshot 都只透過這個 gateway 讀；真實回應要能建出 OtcValuationReport。
+    「財報年/季」2025-01-02 起才有，所以改版前後各驗一天。下列條件在 2010–2026 抽樣 7 天全部成立，欄位對錯就會失敗：
+    股利年度是查詢年（民國）的前 1–2 年、本益比與淨值比為 N/A 或正數、殖利率與每股股利有值且不為負。"""
 
-    def test_fields(self):
-        table = _first_table(fetch_or_skip(
-            "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate",
-            params={"date": FIXED_DATE, "response": "json"},
-        ))
-        assert table.get("fields") == [
-            "股票代號", "公司名稱", "本益比", "每股股利", "股利年度", "殖利率(%)", "股價淨值比", "財報年/季",
-        ], f"欄位已變更: {table.get('fields')}"
-        assert table.get("data"), "固定歷史交易日應有資料"
+    @pytest.mark.parametrize("day,has_fiscal", [("20180102", False), (FIXED_DATE.replace("/", ""), True)])
+    def test_fixed_day_values_fit_their_columns(self, day, has_fiscal):
+        report = gateway_or_skip(otc_valuation_ratios, day)
+        assert report.date == day and report.valuations, f"{day} 應有資料"
+        assert any(v.code == FIXED_OTC_STOCK for v in report.valuations)
+        roc = int(day[:4]) - 1911
+        for v in report.valuations:
+            assert int(v.dividend_year) in (roc - 1, roc - 2), v
+            assert (v.pe is None or v.pe > 0) and (v.pb is None or v.pb > 0), v
+            assert v.dividend_yield is not None and v.dividend_yield >= 0, v
+            assert v.dividend_per_share is not None and v.dividend_per_share >= 0, v
+            assert bool(re.fullmatch(r"\d{3}Q[1-4]", v.fiscal)) == has_fiscal, v
 
 
 class TestOTCForeignHoldingsAPI:
@@ -143,10 +152,11 @@ class TestOTCForeignHoldingsAPI:
 
 def test_new_endpoints_return_latest_day_without_date():
     """get_otc_valuation / get_otc_foreign_holdings 不帶 date 時依賴上游回最新交易日."""
-    for path in ("afterTrading/peQryDate", "insti/qfii"):
-        resp = fetch_or_skip(f"https://www.tpex.org.tw/www/zh-tw/{path}", params={"response": "json"})
-        assert len(str(resp.get("date", ""))) == 8, f"{path} 不帶 date 時不再回傳交易日期: {resp!r:.200}"
-        assert _first_table(resp).get("data"), f"{path} 不帶 date 時沒有資料"
+    report = gateway_or_skip(otc_valuation_ratios)
+    assert len(report.date) == 8 and report.valuations, f"peQryDate 不帶 date 時不再回傳交易日期或資料: {report.date!r}"
+    resp = fetch_or_skip("https://www.tpex.org.tw/www/zh-tw/insti/qfii", params={"response": "json"})
+    assert len(str(resp.get("date", ""))) == 8, f"insti/qfii 不帶 date 時不再回傳交易日期: {resp!r:.200}"
+    assert _first_table(resp).get("data"), "insti/qfii 不帶 date 時沒有資料"
 
 
 class TestOTCInstitutionalSectAPI:

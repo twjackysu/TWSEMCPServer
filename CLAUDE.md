@@ -70,7 +70,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── tpex/insti_daily.py       # insti/dailyTrade → tpex_flows() (Adapter: groups by order, checked by their sums)
 ├── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
 ├── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)
-└── tpex/daily_quotes.py      # afterTrading/otc → otc_daily_quotes() OtcQuoteDay (EW / AL / industry code; 最後買量・賣量 only from 2020-04-30)
+├── tpex/daily_quotes.py      # afterTrading/otc → otc_daily_quotes() OtcQuoteDay (EW / AL / industry code; 最後買量・賣量 only from 2020-04-30)
+└── tpex/pe_qry_date.py       # afterTrading/peQryDate → otc_valuation_ratios() OtcValuationReport (財報年/季 only from 2025-01-02)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)
