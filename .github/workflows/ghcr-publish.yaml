@@ -1,24 +1,73 @@
 name: Build and Push Docker Image
+
+# PRs only check that the image builds and starts (`build`); pushes to main and v* tags publish the
+# multi-arch image to GHCR (`publish`), which the README's Docker setup pulls as :latest.
 on:
   push:
     branches:
       - main
-      - master
-      - cicd
     tags:
       - 'v*'
   pull_request:
     branches:
       - main
-      - master
   workflow_dispatch:
+
+# A new commit on a PR cancels its running build; publishes of the same ref queue instead, so
+# :latest always ends on the newest commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
+  # Nothing is pushed here, so no registry login and no packages permission. amd64 only: arm64
+  # would build under QEMU emulation, slowly, and the Dockerfile has nothing arch-specific.
+  build:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Reads the cache main's publish writes; a PR does not write it (the 10 GB per-repo
+      # limit would otherwise evict main's layers).
+      - name: Build image (linux/amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: twse-mcp:pr
+          cache-from: type=gha
+
+      # The image builds and the server starts: GET /health (no upstream call) under the default
+      # HTTP transport. Catches an import error or a package left out of the Dockerfile.
+      - name: Start the container and wait for /health
+        run: |
+          docker run -d --name twse-mcp -p 8000:8000 twse-mcp:pr
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health; then
+              echo
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs twse-mcp
+          exit 1
+
+  publish:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,6 +76,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # arm64 is built under emulation on the x86 runner
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -45,21 +98,19 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          network: host
