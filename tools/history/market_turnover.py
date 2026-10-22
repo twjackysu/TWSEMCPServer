@@ -1,11 +1,11 @@
-"""TWSE daily market turnover history (whole month per call)."""
+"""TWSE daily market turnover history (whole month per call), through the FMTQIK gateway (``sources.twse.fmtqik``)."""
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient
+from sources.twse.fmtqik import market_turnover
+from utils import TWSEAPIClient, printed
+from utils.date_helper import roc_day
 from toolkit import TradingDate, handle_api_errors
-
-FMTQIK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -25,26 +25,19 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         Args:
             date: 欲查詢的月份，格式 西元 YYYYMMDD（日期隨意，例如 "20260601" 查 2026 年 6 月整月；留空＝本月）
         """
-        params = {"response": "json"}
-        if date:
-            params["date"] = date
-        resp = _client.fetch_json(FMTQIK_URL, params=params)
-        date = date or (resp or {}).get("date") or "本月"
+        month = market_turnover(_client, date)
+        date = date or (month.date if month else "") or "本月"
 
-        if not resp or resp.get("stat") != "OK":
+        if month is None:
             return f"查無 {date[:6]} 的市場成交資訊，請確認日期是否有效"
-
-        data = resp.get("data", [])
-        if not data:
+        if not month.days:
             return f"查無 {date[:6]} 的市場成交資訊"
 
-        title = resp.get("title", f"{date[:6]} 市場成交資訊")
-        lines = [f"【{title}】\n"]
-        for row in data:
-            # row: 日期,成交股數,成交金額,成交筆數,發行量加權股價指數,漲跌點數
-            d, volume, value, tx, index, change = row
+        lines = [f"【{month.title or f'{date[:6]} 市場成交資訊'}】\n"]
+        for d in month.days:
             lines.append(
-                f"{d} | 加權指數:{index}（{change}）| 成交量:{volume} | 成交金額:{value} | 筆數:{tx}"
+                f"{roc_day(d.day)} | 加權指數:{printed(d.index)}（{printed(d.change)}）| 成交量:{printed(d.volume)} | "
+                f"成交金額:{printed(d.value)} | 筆數:{printed(d.transactions)}"
             )
 
         return "\n".join(lines)

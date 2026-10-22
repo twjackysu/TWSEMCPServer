@@ -4,9 +4,11 @@
 原本各工具自己寫的轉換逐字相同，否則送出的請求就變了。
 """
 
+from datetime import date
+
 import pytest
 
-from utils.date_helper import roc_date, roc_year_of, slash_date
+from utils.date_helper import roc_date, roc_day, roc_year_of, slash_date
 
 pytestmark = pytest.mark.offline
 
@@ -24,3 +26,9 @@ def test_roc_forms(ymd, slashed, compact, year):
 
 def test_slash_date_for_tpex():
     assert slash_date("20260930") == "2026/09/30"
+
+
+def test_roc_day_as_twse_monthly_reports_print_it():
+    """FMTQIK / MI_5MINS_HIST 印的日期：民國 100 年以前前面補一個空白."""
+    assert roc_day(date(2005, 1, 3)) == " 94/01/03"
+    assert roc_day(date(2025, 1, 2)) == "114/01/02"

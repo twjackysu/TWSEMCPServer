@@ -34,6 +34,12 @@ def roc_date(ymd: str, sep: str = "/") -> str:
     return f"{roc_year_of(ymd)}{sep}{ymd[4:6]}{sep}{ymd[6:]}"
 
 
+def roc_day(day: date) -> str:
+    """date(2005, 1, 3) → ' 94/01/03': a day the way TWSE's monthly reports (FMTQIK, MI_5MINS_HIST) print it,
+    the ROC year right-aligned to three places ('114/01/02' from 2011)."""
+    return f"{roc_date(f'{day:%Y%m%d}'):>9}"
+
+
 def slash_date(ymd: str) -> str:
     """'20260930' → '2026/09/30', the form TPEx's website endpoints take."""
     return f"{ymd[:4]}/{ymd[4:6]}/{ymd[6:]}"
