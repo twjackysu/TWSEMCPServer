@@ -5,6 +5,7 @@
 
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.stock_day import stock_day_month
+from sources.twse.stock_day_avg import monthly_closes
 from tests.helpers import fetch_or_skip, gateway_or_skip
 
 # Use a fixed historical trading day to ensure data stability
@@ -70,21 +71,17 @@ class TestMarginBalanceAPI:
         assert len(tables[1].get("data", [])) > 0
 
 
-class TestStockDayAvgAPI:
-    """個股月均價 - STOCK_DAY_AVG
-    Tool get_stock_monthly_average 使用 row[0] 作為日期（需含 /），row[1] 作為均價。
+class TestStockMonthlyAverageGateway:
+    """個股月均價 - STOCK_DAY_AVG（sources/twse/stock_day_avg.py）
+    get_stock_monthly_average 只透過這個 gateway 讀；欄位改名、日期格式改變、末列標籤不再是「月平均收盤價」時，
+    gateway 丟 UpstreamFormatError。
     """
 
-    def test_row_structure(self):
-        """row[0] 需含 / (ROC 日期格式)，row[1] 為均價。"""
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG",
-            params={"response": "json", "stockNo": FIXED_STOCK, "date": FIXED_DATE},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        # find first row with date (last row may be summary without /)
-        date_rows = [r for r in data if "/" in r[0]]
-        assert date_rows, "找不到含 / 的日期列，row[0] 日期格式可能已變更"
-        assert len(date_rows[0]) >= 2, "row[1] 均價欄位不存在，欄位數不足"
+    def test_fixed_month_parses(self):
+        month = gateway_or_skip(monthly_closes, FIXED_STOCK, FIXED_DATE)
+        assert month is not None and month.closes, f"{FIXED_STOCK} 2025-01 應有收盤價"
+        assert month.average is not None, "末列月平均收盤價的數字格式已變更"
+        assert None not in [c.close for c in month.closes], f"收盤價格式已變更：{month.closes[:3]}"
+
+    def test_unknown_code_is_no_data_not_an_error(self):
+        assert gateway_or_skip(monthly_closes, "9999", FIXED_DATE) is None
