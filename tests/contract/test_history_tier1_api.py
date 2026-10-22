@@ -5,10 +5,10 @@
 
 import pytest
 from sources.twse.mi_index import stock_quotes
+from sources.twse.mi_qfiis import foreign_holdings
 from tests.helpers import fetch_or_skip, gateway_or_skip
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
-FIXED_STOCK = "2330"     # 台積電
 
 
 class TestMarketInstitutionalAmountsAPI:
@@ -94,25 +94,14 @@ class TestTaiexIndexHistoryAPI:
         assert len(data[0]) == 5, f"欄位數不為 5，row 結構可能已變更: {data[0]}"
 
 
-class TestForeignHoldingsHistoryAPI:
-    """外資及陸資持股統計 - MI_QFIIS
-    Tool get_foreign_holdings 使用 row[0],row[1],row[3],row[5]~row[8]：
-    代號、名稱、發行股數、持有股數、尚可投資比率、持股比率、投資上限比率；sort_by="ratio" 以 row[7] 排序。
-    """
+class TestForeignHoldingsGateway:
+    """get_foreign_holdings 只透過 sources/twse/mi_qfiis.py 讀；欄位依名稱取（2009-04-30 以前是「外資」名稱），
+    欄位改名會丟 UpstreamFormatError。"""
 
-    def test_row_has_stock_code_and_holding_fields(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS",
-            params={"response": "json", "date": FIXED_DATE, "selectType": "ALLBUT0999"},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        tsmc = next((r for r in data if r[0] == FIXED_STOCK), None)
-        assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 可能已不再是股票代號"
-        assert len(tsmc) >= 8, f"欄位數不足 8，row 結構可能已變更: {tsmc}"
-        float(str(tsmc[7]))  # 持股比率需可轉數字，拋出例外即代表欄位位移
-        fields = result.get("fields", [])
-        assert fields[5:9] == [
-            "全體外資及陸資持有股數", "外資及陸資尚可投資比率", "全體外資及陸資持股比率", "外資及陸資共用法令投資上限比率",
-        ], f"持股欄位位置已變更: {fields}"
+    @pytest.mark.parametrize("day", [FIXED_DATE, "20050103"])
+    def test_fixed_day_parses(self, day):
+        report = gateway_or_skip(foreign_holdings, day)
+        assert report is not None and report.holdings, f"固定歷史交易日 {day} 應有資料"
+        h = report.holdings[0]
+        assert None not in (h.issued_shares, h.available_shares, h.held_shares, h.available_pct, h.held_pct,
+                            h.limit_pct), f"數字格式已變更：{h}"
