@@ -70,7 +70,7 @@ class TestFinancialStatementsAPI:
 
     def test_unpublished_quarter_returns_code_406(self):
         """mops_post 把 406 當成「查無資料」（回 None），其他非 200 碼才視為錯誤."""
-        future_roc_year = str(date.today().year - 1911 + 2)
+        future_roc_year = str(date.today().year - 1911 + 2)  # contract-ok: 組請求參數（未來的民國年），不是驗資料
         resp = _mops("t164sb04", _statement_body(future_roc_year))
         assert str(resp["code"]) == "406", (
             f"查詢尚未公告的季度不再回 406（實際 {resp['code']} {resp.get('message')}），"

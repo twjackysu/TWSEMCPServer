@@ -39,9 +39,9 @@ class TestT86SelectType:
 
     def test_select_types_filter(self):
         everything, no_warrants = self._codes("ALL"), self._codes("ALLBUT0999")
-        assert no_warrants < everything, "ALLBUT0999 不再是 ALL 的子集（排除權證的篩選失效）"
+        assert no_warrants < everything, "ALLBUT0999 不再是 ALL 的子集（排除權證的篩選失效）"  # contract-ok: 代號集合的子集，工具依賴 selectType 篩選
         semiconductor = self._codes("24")
-        assert semiconductor and semiconductor < no_warrants, "產業代碼 selectType 不再篩選"
+        assert semiconductor and semiconductor < no_warrants, "產業代碼 selectType 不再篩選"  # contract-ok: 同上，產業代碼篩選
 
     def test_etf_codes_are_exactly_the_00_prefixed_rows(self):
         etf, no_warrants = self._codes("0099P"), self._codes("ALLBUT0999")
