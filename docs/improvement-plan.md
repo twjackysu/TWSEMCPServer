@@ -161,9 +161,15 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      工具往後一天再查的邏輯不變。2005–2026 四個欄位相同，單位名稱照當時公布（2014 年底起自營商分自行買賣／避險）。
      12 組呼叫（最新、2005／2010／2014／2025 日報、週一休市的週、2010 週、本月與 2018 月、星期日，加上上櫃彙總確認
      搬動後不變）與 main 逐字相同，送出的請求也相同。證交所 exchangeReport／rwd 端點中，工具依位置讀的至此都收成 gateway。
+   - ✅ TPEx margin/balance／insti/qfii（#157）：`sources/tpex/margin_balance.py` 的 `otc_margin_balances()`（每檔融資／融券
+     與 summary 的全市場合計）與 `sources/tpex/qfii.py` 的 `otc_foreign_holdings()`（依持股比率排行）。欄位依名稱取；
+     qfii 的三個比率帶 % 號（「87.86%」「100%」），gateway 去掉 % 存成 Decimal，工具印回時再加上。工具原本共用的
+     `date_params`／`first_table`／`resp_date`／`filter_rows` 不再需要，刪除。2010–2026 欄位相同（2005 沒有資料）。
+     17 組呼叫中 16 組與 main 逐字相同；2014-01-02 的融資融券那一組，櫃買當天的代號後面補了空白（「1259  」），舊版
+     原樣印出，現在 gateway 去掉空白，只差代號與名稱之間的空白。工具讀的 TPEx 網站端點至此都收成 gateway。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#156；盤點出的格式問題都已修好，剩格式沒變過、
-  只在一處依位置讀的端點：MOPS 其餘頁面、TWSE rwd、TPEx 網站）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#157；盤點出的格式問題都已修好，TWSE rwd／
+  exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway；剩 MOPS 其餘頁面）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

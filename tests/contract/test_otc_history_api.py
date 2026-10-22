@@ -1,8 +1,7 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
-tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade,
-insti/summary, tradingStock, afterTrading/otc and peQryDate go through their gateways (sources/tpex/),
-which check their fields themselves.
+tools/otc/ reads every one of these through its gateway (sources/tpex/), which finds the columns by name
+and raises UpstreamFormatError when one is gone; the tests call the gateways on fixed past days.
 """
 
 import pytest
@@ -10,10 +9,11 @@ import pytest
 from sources.tpex.daily_quotes import otc_daily_quotes
 from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
 from sources.tpex.insti_summary import otc_institutional_amounts
+from sources.tpex.margin_balance import MARGIN_BALANCE_URL, otc_margin_balances
 from sources.tpex.pe_qry_date import otc_valuation_ratios
+from sources.tpex.qfii import otc_foreign_holdings
 from sources.tpex.trading_stock import trading_stock_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
-from tools.otc.history import MARGIN_BALANCE_URL
 
 FIXED_DATE = "2025/01/03"  # 固定歷史交易日
 FIXED_OTC_STOCK = "6488"   # 環球晶
@@ -60,23 +60,18 @@ class TestOTCInstitutionalGateway:
         assert day is not None and day.date == FIXED_DATE.replace("/", "") and day.flows, "固定歷史交易日應有資料"
 
 
-class TestOTCMarginHistoryAPI:
-    """margin/balance：get_otc_margin_balance 使用 row[0]~row[19] 與 summary。"""
+class TestOtcMarginGateway:
+    """上櫃融資融券餘額 - margin/balance（sources/tpex/margin_balance.py）
+    get_otc_margin_balance 只透過這個 gateway 讀；欄位依名稱取（summary 的全市場合計也是），改名時 gateway 丟
+    UpstreamFormatError。"""
 
-    EXPECTED_FIELDS = [
-        "代號", "名稱", "前資餘額(張)", "資買", "資賣", "現償", "資餘額", "資屬證金", "資使用率(%)", "資限額",
-        "前券餘額(張)", "券賣", "券買", "券償", "券餘額", "券屬證金", "券使用率(%)", "券限額", "資券相抵(張)", "備註",
-    ]
-
-    def test_fields_and_summary(self):
-        table = _first_table(fetch_or_skip(MARGIN_BALANCE_URL, params={"date": FIXED_DATE, "response": "json"}))
-        assert table.get("fields") == self.EXPECTED_FIELDS, f"欄位已變更: {table.get('fields')}"
-        rows = table.get("data") or []
-        assert rows and all(len(r) == 20 for r in rows)
-        summary = table.get("summary")
-        assert isinstance(summary, list) and summary and len(summary[0]) == 20, (
-            f"summary（全市場合計）結構已變更: {summary!r:.200}"
-        )
+    def test_fixed_day_parses_with_market_totals(self):
+        day = gateway_or_skip(otc_margin_balances, FIXED_DATE.replace("/", ""))
+        assert day.balances, "固定歷史交易日應有資料"
+        b = next((b for b in day.balances if b.code == FIXED_OTC_STOCK), None)
+        assert b is not None, f"找不到 {FIXED_OTC_STOCK}"
+        assert None not in (b.margin.balance, b.margin.usage, b.margin.limit, b.short.balance, b.offset), f"數字格式已變更：{b}"
+        assert day.totals and day.totals[0].margin_balance is not None, f"summary（全市場合計）已變更：{day.totals}"
 
 
 def test_omitting_date_returns_latest_day():
@@ -116,29 +111,26 @@ class TestOTCValuationGateway:
         assert None not in (v.dividend_per_share, v.dividend_yield), f"數字格式已變更：{v}"
 
 
-class TestOTCForeignHoldingsAPI:
-    """insti/qfii：get_otc_foreign_holdings 使用 row[0]~row[9]（row[0] 是排行，代號在 row[1]）。"""
+class TestOtcForeignHoldingsGateway:
+    """上櫃僑外資及陸資持股 - insti/qfii（sources/tpex/qfii.py）
+    get_otc_foreign_holdings 只透過這個 gateway 讀；欄位依名稱取，改名時 gateway 丟 UpstreamFormatError。工具標示
+    「依持股比率排行」，依賴回應本身照排行排列。"""
 
-    def test_fields_and_ranking(self):
-        table = _first_table(fetch_or_skip(
-            "https://www.tpex.org.tw/www/zh-tw/insti/qfii",
-            params={"date": FIXED_DATE, "response": "json"},
-        ))
-        fields = table.get("fields") or []
-        assert fields[:3] == ["排行", "代號", "名稱"] and "持股比率" in fields[7] and "上限" in fields[8], (
-            f"欄位已變更: {fields}"
-        )
-        rows = table.get("data") or []
-        assert rows and rows[0][0] == "1", f"資料不再依持股比率排行: {rows[:1]}"
+    def test_fixed_day_parses_in_rank_order(self):
+        day = gateway_or_skip(otc_foreign_holdings, FIXED_DATE.replace("/", ""))
+        assert day.holdings, "固定歷史交易日應有資料"
+        h = day.holdings[0]
+        assert h.rank == 1, f"資料不再依持股比率排行：{h}"
+        assert None not in (h.issued_shares, h.held_shares, h.available_pct, h.held_pct, h.limit_pct), (
+            f"數字或百分比格式已變更：{h}")
 
 
 def test_new_endpoints_return_latest_day_without_date():
     """get_otc_valuation / get_otc_foreign_holdings 不帶 date 時依賴上游回最新交易日."""
     report = gateway_or_skip(otc_valuation_ratios)
     assert len(report.date) == 8 and report.valuations, f"peQryDate 不帶 date 時不再回傳交易日期或資料: {report.date!r}"
-    resp = fetch_or_skip("https://www.tpex.org.tw/www/zh-tw/insti/qfii", params={"response": "json"})
-    assert len(str(resp.get("date", ""))) == 8, f"insti/qfii 不帶 date 時不再回傳交易日期: {resp!r:.200}"
-    assert _first_table(resp).get("data"), "insti/qfii 不帶 date 時沒有資料"
+    holdings = gateway_or_skip(otc_foreign_holdings)
+    assert len(holdings.date) == 8, f"insti/qfii 不帶 date 時不再回傳交易日期: {holdings.date!r}"
 
 
 class TestOTCInstitutionalSectAPI:
