@@ -1,18 +1,20 @@
 """測試 www.taifex.com.tw 期交所資料下載端點（Big5/cp950 CSV，非 openapi.taifex.com.tw）。
 
 tools/taifex/ 的期貨、選擇權行情、三大法人、大額交易人、PCR 工具都讀這些端點（最新交易日與歷史
-皆然）。這裡只驗證 tool 依賴的介面：欄位「順序」（index）、契約篩選方式，以及無資料日回 HTML
-（工具靠它往前找最新交易日）。
+皆然）。這裡只驗證 tool 依賴的介面：欄位「順序」（index）或標題名稱（已收成 gateway 的 futDataDown／
+optDataDown，sources/taifex/）、契約篩選方式，以及無資料日回 HTML（工具靠它往前找最新交易日）。
 """
 
 import csv
 import io
 import zipfile
+from datetime import date
 
 import pytest
 import requests
 
-from tests.helpers import fetch_bytes_or_skip, fetch_or_skip, records_or_skip
+from sources.taifex.daily_report import ALL_CONTRACTS, futures_quotes, option_quotes
+from tests.helpers import fetch_bytes_or_skip, fetch_or_skip, gateway_or_skip, records_or_skip
 from tools.taifex.intraday import TICK_PAGE_URL, TICK_ZIP_BASE, available_days, parse_ticks
 from utils.taifex import SSF_LISTS_URL, TAIFEX_HEADERS
 
@@ -27,31 +29,16 @@ def _post_csv(url: str, data: dict) -> list:
     return list(csv.reader(io.StringIO(text)))
 
 
-class TestFuturesDailyHistoryAPI:
-    """Tool get_daily_futures_market_report 依 index 存取的欄位順序：
-    0=交易日期 1=契約 2=到期月份(週別) 3=開盤價 4=最高價 5=最低價 6=收盤價
-    7=漲跌價 8=漲跌% 9=成交量 10=結算價 11=未沖銷契約數 12=最後最佳買價 13=最後最佳賣價 ... 17=交易時段
-    """
+class TestFuturesDailyGateway:
+    """get_daily_futures_market_report 只透過 sources/taifex/daily_report.py 讀 futDataDown；欄位依 CSV 標題取，
+    標題改了 gateway 丟 UpstreamFormatError。最新交易日往回找時，靠交易時段的「一般」判斷那天是否完整。"""
 
-    def test_hardcoded_column_order(self):
-        rows = _post_csv(
-            "https://www.taifex.com.tw/cht/3/futDataDown",
-            {
-                "down_type": "1",
-                "commodity_id": "TX",
-                "commodity_id2": "",
-                "queryStartDate": "2026/07/01",
-                "queryEndDate": "2026/07/03",
-            },
-        )
-        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
-        header = rows[0]
-        expected = [
-            "交易日期", "契約", "到期月份(週別)", "開盤價", "最高價", "最低價", "收盤價",
-            "漲跌價", "漲跌%", "成交量", "結算價", "未沖銷契約數", "最後最佳買價", "最後最佳賣價",
-        ]
-        assert header[:len(expected)] == expected, f"欄位順序異動: {header}"
-        assert header[17] == "交易時段", f"交易時段欄位位置異動: {header}"
+    def test_fixed_days_parse(self):
+        quotes = gateway_or_skip(futures_quotes, "TX", date(2026, 7, 1), date(2026, 7, 3))
+        assert quotes, "固定歷史區間應有資料"
+        q = next((q for q in quotes if q.session == "一般" and "/" not in q.month), None)
+        assert q is not None, "交易時段不再有「一般」，最新交易日判斷需要調整"
+        assert None not in (q.open, q.close, q.volume, q.settlement, q.open_interest), f"數字格式已變更：{q}"
 
 
 class TestInstitutionalTradersByFuturesHistoryAPI:
@@ -182,49 +169,17 @@ class TestLargeTradersOptionsAPI:
         assert "TXO" in {r[1].strip() for r in rows[1:] if len(r) > 1}, "找不到預設契約 TXO"
 
 
-class TestOptionsDailyHistoryAPI:
-    """Tool get_daily_options_market_report 依 index 存取的欄位順序：
-    0=交易日期 1=契約 2=到期月份(週別) 3=履約價 4=買賣權 5=開盤價 6=最高價 7=最低價 8=收盤價
-    9=成交量 10=結算價 11=未沖銷契約數 12=最後最佳買價 13=最後最佳賣價 ... 17=交易時段
-    注意：header 列尾端多一個逗號（欄位數比實際資料列多 1），tool 的共用 decode_and_parse_csv()
-    容忍此落差；此測試僅比對已知欄位前綴，不比對完整長度。
-    """
+class TestOptionsDailyGateway:
+    """get_daily_options_market_report 只透過 sources/taifex/daily_report.py 讀 optDataDown（標題列尾端多一個逗號，
+    共用的 decode_and_parse_csv 容忍）；欄位依 CSV 標題取。工具以「買權」「賣權」篩選 call_put。"""
 
-    def test_hardcoded_column_order(self):
-        rows = _post_csv(
-            "https://www.taifex.com.tw/cht/3/optDataDown",
-            {
-                "down_type": "1",
-                "commodity_id": "TXO",
-                "commodity_id2": "",
-                "queryStartDate": "2026/06/01",
-                "queryEndDate": "2026/06/01",
-            },
-        )
-        assert len(rows) > 1, "查無資料，無法驗證欄位順序"
-        header = rows[0]
-        expected = [
-            "交易日期", "契約", "到期月份(週別)", "履約價", "買賣權",
-            "開盤價", "最高價", "最低價", "收盤價", "成交量", "結算價", "未沖銷契約數",
-            "最後最佳買價", "最後最佳賣價",
-        ]
-        assert header[:len(expected)] == expected, f"欄位順序異動: {header}"
-        assert header[17] == "交易時段", f"交易時段欄位位置異動: {header}"
-
-    def test_commodity_id_filters_server_side(self):
-        """確認 commodity_id 參數真的在伺服器端篩選（與 largeTraderFutDown 行為不同）。"""
-        rows = _post_csv(
-            "https://www.taifex.com.tw/cht/3/optDataDown",
-            {
-                "down_type": "1",
-                "commodity_id": "TXO",
-                "commodity_id2": "",
-                "queryStartDate": "2026/06/01",
-                "queryEndDate": "2026/06/01",
-            },
-        )
-        contracts = set(r[1].strip() for r in rows[1:] if r and len(r) > 1)
-        assert contracts == {"TXO"}, f"commodity_id 篩選行為可能已變更: {contracts}"
+    def test_fixed_day_parses_and_commodity_id_filters_server_side(self):
+        quotes = gateway_or_skip(option_quotes, "TXO", date(2026, 6, 1), date(2026, 6, 1))
+        assert quotes, "固定歷史交易日應有資料"
+        assert {q.contract for q in quotes} == {"TXO"}, "commodity_id 不再在伺服器端篩選"
+        assert {q.call_put for q in quotes} <= {"買權", "賣權"}, "買賣權欄的值已變更（工具以此篩選）"
+        q = next((q for q in quotes if q.volume), None)
+        assert q is not None and None not in (q.strike, q.close, q.settlement), f"數字格式已變更：{q}"
 
 
 class TestInstitutionalTotalHistoryAPI:
@@ -305,14 +260,10 @@ class TestDownloadPageBehaviourToolsRelyOn:
 
     def test_commodity_all_lists_every_contract(self):
         """contract 留空時，工具以 commodity_id=all 取得全部契約再列出可用代碼."""
-        for path in ("futDataDown", "optDataDown"):
-            rows = _post_csv(
-                f"https://www.taifex.com.tw/cht/3/{path}",
-                {"down_type": "1", "commodity_id": "all", "commodity_id2": "",
-                 "queryStartDate": "2026/06/01", "queryEndDate": "2026/06/01"},
-            )
-            contracts = {r[1].strip() for r in rows[1:] if len(r) > 1}
-            assert len(contracts) > 1, f"{path} commodity_id=all 不再回傳全部契約: {sorted(contracts)[:10]}"
+        for gateway in (futures_quotes, option_quotes):
+            quotes = gateway_or_skip(gateway, ALL_CONTRACTS, date(2026, 6, 1), date(2026, 6, 1)) or []
+            contracts = {q.contract for q in quotes}
+            assert len(contracts) > 1, f"{gateway.__name__} commodity_id=all 不再回傳全部契約: {sorted(contracts)[:10]}"
 
     def test_non_trading_day_returns_html_not_csv(self):
         """不帶日期時，工具從今天往前逐日查詢，靠「無資料日回 HTML 頁」判斷該日沒有資料."""
