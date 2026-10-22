@@ -6,6 +6,8 @@
 import pytest
 
 from sources.twse.bfiauu import BFIAUU_URL, block_trades
+from sources.twse.fmnptk import yearly_trading
+from sources.twse.fmsrfk import monthly_trading
 from sources.twse.twt93u import TWT93U_URL, short_sale_lending_balances
 from sources.twse.twtasu import TWTASU_URL, short_lending_sales
 from tests.helpers import fetch_or_skip, gateway_or_skip
@@ -15,40 +17,36 @@ FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 FIXED_STOCK = "2330"     # 台積電
 
 
-class TestStockMonthlyHistoryAPI:
-    """個股月成交資訊 - FMSRFK
-    Tool get_stock_monthly_trading 使用 row[0]~row[8]：
-    年度、月份、最高價、最低價、加權平均價、成交筆數、成交金額、成交股數、週轉率。
+class TestMonthlyTradingGateway:
+    """個股月成交資訊 - FMSRFK（sources/twse/fmsrfk.py）
+    get_stock_monthly_trading 只透過這個 gateway 讀；欄位依名稱取，改名時 gateway 丟 UpstreamFormatError。
     """
 
-    def test_row_has_9_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/FMSRFK",
-            params={"response": "json", "date": FIXED_DATE, "stockNo": FIXED_STOCK},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 9, f"欄位數不為 9，row 結構可能已變更: {data[0]}"
+    def test_fixed_year_parses(self):
+        year = gateway_or_skip(monthly_trading, FIXED_STOCK, FIXED_DATE)
+        assert year is not None and year.months, f"{FIXED_STOCK} 2025 應有逐月資料"
+        m = year.months[0]
+        assert None not in (m.high, m.low, m.average, m.transactions, m.value, m.volume, m.turnover), f"數字格式已變更：{m}"
+
+    def test_unknown_code_is_no_data_not_an_error(self):
+        assert gateway_or_skip(monthly_trading, "9999", FIXED_DATE) is None
 
 
-class TestStockYearlyHistoryAPI:
-    """個股歷年成交資訊 - FMNPTK
-    Tool get_stock_yearly_trading 使用 tables[0] 的 row[0]~row[8]：
-    年度、成交股數、成交金額、成交筆數、最高價、日期、最低價、日期、收盤平均價。
+class TestYearlyTradingGateway:
+    """個股歷年成交資訊 - FMNPTK（sources/twse/fmnptk.py）
+    get_stock_yearly_trading 只透過這個 gateway 讀；年度表依「年度」欄找，兩個「日期」各依前一欄（最高價、最低價）
+    命名，欄位改名或日期不再緊接在價格後面時 gateway 丟 UpstreamFormatError。
     """
 
-    def test_yearly_table_exists_with_9_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/FMNPTK",
-            params={"response": "json", "date": FIXED_DATE, "stockNo": FIXED_STOCK},
-        )
-        assert result.get("stat") == "OK"
-        tables = result.get("tables", [])
-        assert len(tables) > 0, "tables 結構可能已變更"
-        data = tables[0].get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 9, f"欄位數不為 9，tables[0] row 結構可能已變更: {data[0]}"
+    def test_fixed_date_parses(self):
+        years = gateway_or_skip(yearly_trading, FIXED_STOCK, FIXED_DATE)
+        assert years, f"{FIXED_STOCK} 應有歷年資料"
+        y = years[0]
+        assert None not in (y.volume, y.value, y.transactions, y.high, y.low, y.average_close), f"數字格式已變更：{y}"
+        assert y.high_date and y.low_date, f"最高、最低價日期欄已變更：{y}"
+
+    def test_unknown_code_is_no_data_not_an_error(self):
+        assert gateway_or_skip(yearly_trading, "9999", FIXED_DATE) is None
 
 
 class TestBlockTradesGateway:
