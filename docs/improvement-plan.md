@@ -109,10 +109,15 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      沒值是 `-`）；`sources/taifex/daily_report.py` 的 `futures_quotes()`／`option_quotes()` 回 `FuturesQuote`／
      `OptionQuote`，`has_regular_session()` 用於最新交易日往回找。`utils.taifex.fetch_period` 改成泛型，可直接收
      gateway 的結果。兩支每日行情工具 19 組呼叫（最新一日、2005／2010／2018 整月、股票期貨、各種篩選）與 main
-     逐字相同。其餘 TAIFEX 下載頁（三大法人 4 個、大額交易人 2 個、PCR）照同一寫法。
+     逐字相同。
+   - ✅ 其餘 TAIFEX 下載頁（#147）：三大法人 5 頁（`sources/taifex/institutional.py`：總表、期貨／選擇權分計、
+     各期貨契約、各選擇權契約、買賣權分計，共用 12 欄的 `Positions`）、大額交易人 2 頁（`large_traders.py`）、
+     PCR（`put_call_ratio.py`）都依標題名稱讀。數字輸出改用共用的 `utils.plain()`（原樣小數、沒值印 `-`）。
+     39 組呼叫（最新一日、2005–2026 的單日與整月、契約代碼／中文名稱／買賣權篩選、列出契約、超出保存期限、
+     非交易日、區間錯誤）與 main 逐字相同，送出的請求也相同。工具讀的期交所下載頁全部收成 gateway（tick zip 除外）。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146；盤點出的格式問題都已修好，剩格式沒變過、
-  只在一處依位置讀的端點：其餘 TAIFEX 下載頁、MOPS、TWSE rwd、TPEx 網站）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146、#147；盤點出的格式問題都已修好，剩格式沒變過、
+  只在一處依位置讀的端點：MOPS、TWSE rwd、TPEx 網站）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

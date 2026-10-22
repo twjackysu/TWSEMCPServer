@@ -1,7 +1,7 @@
 """TAIFEX 台指選擇權 Put/Call Ratio, recent window or any past period.
 
-Source: www.taifex.com.tw download page pcRatioDown. Replaces the openapi PutCallRatio
-tool, whose rolling ~20-trading-day window matched this endpoint row for row on 2026-09-29
+Source: www.taifex.com.tw download page pcRatioDown (``sources.taifex.put_call_ratio``). Replaces the
+openapi PutCallRatio tool, whose rolling ~20-trading-day window matched this endpoint row for row on 2026-09-29
 but could not reach further back.
 """
 
@@ -9,19 +9,11 @@ from datetime import timedelta
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient
+from sources.taifex.put_call_ratio import put_call_ratios
+from utils import TWSEAPIClient, plain
 from toolkit import TradingDate, handle_api_errors
-from utils.taifex import (
-    TAIFEX_CACHE_TTL,
-    TAIFEX_DOWNLOAD_BASE,
-    TAIFEX_HEADERS,
-    decode_and_parse_csv,
-    download_form,
-    parse_date_range,
-    taipei_today,
-)
+from utils.taifex import parse_date_range, taipei_today
 
-PC_RATIO_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/pcRatioDown"
 # Server-enforced max span: 30 calendar days.
 MAX_SPAN_DAYS = 30
 
@@ -54,24 +46,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_dt, end_dt = checked
             label = f"{start_date}～{end_date}"
 
-        body = _client.fetch_bytes(
-            PC_RATIO_DOWN_URL,
-            method="POST",
-            headers=TAIFEX_HEADERS,
-            data=download_form(start_dt, end_dt),
-            cache_ttl=TAIFEX_CACHE_TTL,
-        )
-        parsed = decode_and_parse_csv(body)
-        if parsed is None:
+        days = put_call_ratios(_client, start_dt, end_dt)
+        if days is None:
             return f"查無 {label} 的 Put/Call Ratio 資料，日期區間可能無效或超出範圍"
 
-        _header, data_rows = parsed
-        lines = [f"【台指選擇權 Put/Call Ratio】{label}（共 {len(data_rows)} 個交易日）\n"]
-        for r in data_rows:
-            # r: 日期,賣權成交量,買權成交量,買賣權成交量比率%,賣權未平倉量,買權未平倉量,買賣權未平倉量比率%
-            date, put_vol, call_vol, pcr_vol, put_oi, call_oi, pcr_oi = r[0], r[1], r[2], r[3], r[4], r[5], r[6]
+        lines = [f"【台指選擇權 Put/Call Ratio】{label}（共 {len(days)} 個交易日）\n"]
+        for d in days:
             lines.append(
-                f"{date} | 成交量 PCR:{pcr_vol}%（Put:{put_vol} Call:{call_vol}） | "
-                f"未平倉 PCR:{pcr_oi}%（Put:{put_oi} Call:{call_oi}）"
+                f"{d.day:%Y/%m/%d} | 成交量 PCR:{plain(d.volume_ratio)}%"
+                f"（Put:{plain(d.put_volume)} Call:{plain(d.call_volume)}） | "
+                f"未平倉 PCR:{plain(d.oi_ratio)}%（Put:{plain(d.put_oi)} Call:{plain(d.call_oi)}）"
             )
         return "\n".join(lines)
