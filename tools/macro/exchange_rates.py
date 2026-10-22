@@ -1,22 +1,18 @@
 """中央銀行 daily inter-bank exchange rates (我國與主要貿易對手通貨對美元之匯率).
 
-cpx.cbc.gov.tw's DataAPI serves dataset BP01D01 as JSON: ``data.structure.Table1`` names
-the currency columns and ``data.dataSets`` holds one row per day (``[YYYYMMDD, ...]``)
-back to 1993. CBC refreshes the file about monthly, so the latest weeks may be missing.
+The whole BP01D01 file (1993 to date) is read through ``sources.cbc.exchange_rates``; this
+module picks the currencies and the days. CBC refreshes the file about monthly, so the latest
+weeks may be missing.
 """
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient
+from sources.cbc.exchange_rates import exchange_rates
+from utils import TWSEAPIClient, plain
 from toolkit import TradingDate, handle_api_errors
 
-CBC_FX_URL = "https://cpx.cbc.gov.tw/API/DataAPI/Get"
-CBC_FX_FILE = "BP01D01"
 DEFAULT_DAYS = 10
 MAX_DAYS = 120
-# The whole 1993-to-date file (~1.3 MB) comes back on every request and CBC refreshes it
-# about monthly.
-CBC_CACHE_TTL = 3600
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -37,34 +33,31 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             end_date: 結束日期 西元 YYYYMMDD（選填，預設到最新）。區間最多回傳 120 個交易日
             currency: 幣別關鍵字（選填），例如 "新台幣"、"NTD"、"JPY"、"人民幣"；可用逗號分隔多個
         """
-        resp = _client.fetch_json(CBC_FX_URL, params={"FileName": CBC_FX_FILE}, timeout=60, cache_ttl=CBC_CACHE_TTL)
-        data = (resp or {}).get("data") or {}
-        columns = [c.get("data", "").strip() for c in (data.get("structure") or {}).get("Table1", [])]
-        rows = data.get("dataSets") or []
-        if not columns or not rows:
+        table = exchange_rates(_client)
+        if table is None:
             return "目前沒有央行匯率資料。"
 
         keys = [k.strip().upper() for k in currency.split(",") if k.strip()]
-        picked = [i for i, c in enumerate(columns) if not keys or any(k in c.upper() for k in keys)]
+        picked = [i for i, c in enumerate(table.currencies) if not keys or any(k in c.upper() for k in keys)]
         if not picked:
-            return f"查無幣別「{currency}」，可用幣別: {', '.join(columns)}"
+            return f"查無幣別「{currency}」，可用幣別: {', '.join(table.currencies)}"
 
+        days = table.days
         if start_date:
-            rows = [r for r in rows if start_date <= r[0] <= (end_date or "99999999")]
+            days = [d for d in days if start_date <= f"{d.date:%Y%m%d}" <= (end_date or "99999999")]
         elif end_date:
-            rows = [r for r in rows if r[0] <= end_date][-DEFAULT_DAYS:]
+            days = [d for d in days if f"{d.date:%Y%m%d}" <= end_date][-DEFAULT_DAYS:]
         else:
-            rows = rows[-DEFAULT_DAYS:]
-        if not rows:
-            return f"查無 {start_date}～{end_date or '最新'} 的匯率資料（資料最新至 {data['dataSets'][-1][0]}）"
+            days = days[-DEFAULT_DAYS:]
+        if not days:
+            return f"查無 {start_date}～{end_date or '最新'} 的匯率資料（資料最新至 {table.days[-1].date:%Y%m%d}）"
         note = ""
-        if len(rows) > MAX_DAYS:
-            rows = rows[-MAX_DAYS:]
+        if len(days) > MAX_DAYS:
+            days = days[-MAX_DAYS:]
             note = f"，僅顯示最後 {MAX_DAYS} 個交易日"
 
-        last_updated = (resp.get("meta") or {}).get("last_updated", "")
-        lines = [f"【中央銀行 主要貿易對手通貨對美元匯率】（資料更新至 {last_updated}{note}）"]
-        for r in rows:
-            cells = [f"{columns[i]}:{r[i + 1]}" for i in picked if i + 1 < len(r) and r[i + 1] != "-"]
-            lines.append(f"{r[0][:4]}-{r[0][4:6]}-{r[0][6:]} | " + " | ".join(cells))
+        lines = [f"【中央銀行 主要貿易對手通貨對美元匯率】（資料更新至 {table.last_updated}{note}）"]
+        for d in days:
+            cells = [f"{table.currencies[i]}:{plain(d.rates[i])}" for i in picked if d.rates[i] is not None]
+            lines.append(f"{d.date.isoformat()} | " + " | ".join(cells))
         return "\n".join(lines)
