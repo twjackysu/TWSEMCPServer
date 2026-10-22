@@ -3,14 +3,14 @@
 Replaces the OpenAPI /exchangeReport/STOCK_DAY_AVG_ALL tool: per stock it only gave the
 latest close and this month's average, which on 2026-09-29 equalled this endpoint's
 月平均收盤價 row; this endpoint also lists every day's close and accepts past months.
+Read through the STOCK_DAY_AVG gateway (``sources.twse.stock_day_avg``).
 """
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, roc_to_ad
+from sources.twse.stock_day_avg import AVERAGE_LABEL, monthly_closes
+from utils import TWSEAPIClient, plain, printed
 from toolkit import TradingDate, handle_api_errors
-
-STOCK_DAY_AVG_URL = "https://www.twse.com.tw/exchangeReport/STOCK_DAY_AVG"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -28,30 +28,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             stock_no: 股票代號，例如 "2330"
             date: 查詢月份 西元 YYYYMMDD（日期隨意，例如 "20250101" 查 2025 年 1 月；留空＝本月）
         """
-        params = {"response": "json", "stockNo": stock_no}
-        if date:
-            params["date"] = date
-        resp = _client.fetch_json(STOCK_DAY_AVG_URL, params=params)
-        date = date or (resp or {}).get("date") or "本月"
+        month = monthly_closes(_client, stock_no, date)
+        date = date or (month.date if month else "") or "本月"
 
-        if not resp or resp.get("stat") != "OK":
+        if month is None:
             return f"查無 {stock_no} 在 {date} 的月均價資料，請確認該日期為交易日（非假日或週末）"
-
-        data = resp.get("data", [])
-        if not data:
+        if not month.closes and month.average is None:
             return f"查無 {stock_no} 在 {date[:6]} 的月均價資料"
 
-        title = resp.get("title", f"{stock_no} 月均價")
-        lines = [f"【{title}】\n"]
-
-        for row in data:
-            # row: [日期, 收盤價]
-            # Last row may be a summary (e.g. "月平均收盤價") — not a date
-            if "/" not in row[0]:
-                lines.append(f"{row[0]}: {row[1] if len(row) > 1 else 'N/A'}")
-                continue
-            ad_date = roc_to_ad(row[0])
-            close = row[1] if len(row) > 1 else "N/A"
-            lines.append(f"日期: {ad_date} | 收盤價: {close}")
-
+        lines = [f"【{month.title or f'{stock_no} 月均價'}】\n"]
+        lines += [f"日期: {c.day:%Y-%m-%d} | 收盤價: {printed(c.close)}" for c in month.closes]
+        if month.average is not None:
+            lines.append(f"{AVERAGE_LABEL}: {plain(month.average)}")  # TWSE prints it without thousands separators
         return "\n".join(lines)
