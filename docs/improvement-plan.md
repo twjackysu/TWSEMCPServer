@@ -192,10 +192,16 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      請求 body（最新一季 dataType 1 帶空年季）搬進 gateway。MOPS 金額有千分位、百分比沒有（國泰金 114Q2 兌換損益
      -1362.67），工具分別用 `printed()`／`plain()` 印回。24 組呼叫（2330 最新三表、2013／2019／2025 各季、金控、銀行、
      證券、租賃、上櫃、興櫃、IFRS 前、未公告季度、代號錯誤、年季參數錯誤）與 main 逐字相同，送出的請求也相同。
+   - ✅ TDCC 開放資料 1-5／qryStock 查詢頁（#163）：`sources/tdcc/opendata.py` 的 `latest_distribution()`（CSV 欄位依表頭名稱
+     取，不再要求表頭逐字相同、不再依位置讀 `r[1]`～`r[5]`）與 `sources/tdcc/qry_stock.py` 的 `StockQuery`（一個 session：
+     GET 取週次清單，`week()` 每週 POST 一次並沿用回應發的 token；結果表依表頭找欄，差異數調整不收）。兩者都回
+     `sources/tdcc/levels.py` 的 `LevelHolding`（持股分級、人數、股數、占比 Decimal）。數字讀不出來改成報錯（舊版查詢頁
+     會默默略過該列）。工具的級距與大戶／散戶加總改用 Decimal，輸出相同。14 組呼叫（最新一週 2330／0050／上櫃／興櫃／
+     金控、代號前後空白、未知代號；逐週 2／3／4／5／13 週、週快取、未知代號）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#162；盤點出的格式問題都已修好，TWSE rwd／
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163；盤點出的格式問題都已修好，TWSE rwd／
   exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway，MOPS 依位置讀的頁面也是（股利 t05st09_2 已依欄名讀、
-  背書保證 t05st11 原樣印出表格，沒有搬）；`tools/` 裡依位置讀的還有 TDCC 股權分散 CSV、國發會與央行 CSV、
+  背書保證 t05st11 原樣印出表格，沒有搬），TDCC 兩個來源也是；`tools/` 裡依位置讀的還有國發會與央行 CSV、
   期交所 tick zip，以及 etf/info 在櫃買 ETF 清單比對代號）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；

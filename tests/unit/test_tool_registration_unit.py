@@ -127,6 +127,7 @@ _HOSTS = {"mops.twse.com.tw": "mops", "mopsov.twse.com.tw": "mops", "tpex.org.tw
           "taifex.com.tw": "taifex", "tdcc.com.tw": "tdcc", "sitca.org.tw": "sitca", "ndc.gov.tw": "ndc",
           "cbc.gov.tw": "cbc"}
 _HELPERS = {"utils.mops": "mops", "utils.sitca": "sitca", "utils.taifex": "taifex", "sources.tpex": "tpex",
+            "sources.tdcc": "tdcc",
             "TPEX_WWW": "tpex", "services.price_series": "tpex", "services.market_snapshot": "tpex"}
 
 

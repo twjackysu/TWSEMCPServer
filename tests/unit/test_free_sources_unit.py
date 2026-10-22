@@ -10,6 +10,7 @@ import zipfile
 import pytest
 from fastmcp.exceptions import ToolError
 
+from sources.tdcc.qry_stock import FIELDS as RESULT_FIELDS
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tests.unit.test_twtb4u_gateway_unit import reply as twtb4u_reply
@@ -154,7 +155,7 @@ def test_exright_filters_by_stock():
 
 def _tdcc_csv(code="2330  "):
     lines = ["資料日期,證券代號,持股分級,人數,股數,占集保庫存數比例%"]
-    pct = {"1": "1.00", "2": "2.00", "3": "3.00", "12": "4.00", "13": "5.00", "14": "6.00", "15": "70.00", "17": "100.00"}
+    pct = {1: "1.00", 2: "2.00", 3: "3.00", 12: "4.00", 13: "5.00", 14: "6.00", 15: "70.00", 17: "100.00"}
     for lv in tdcc.LEVELS:
         lines.append(f"20260924,{code},{lv},10,1000,{pct.get(lv, '0.50')}")
     lines.append("20260924,9999  ,1,1,1,100.00")
@@ -169,11 +170,6 @@ def test_tdcc_filters_padded_code_and_summarizes_big_small_holders():
     assert "400張以上大戶: 85.00%" in text
     assert "10張以下散戶: 6.00%" in text
     assert "查無證券代號 0050" in fn("0050")
-
-
-def test_tdcc_header_change_raises():
-    with pytest.raises(ValueError, match="欄位與預期不符"):
-        tdcc.parse_distribution_csv("日期,代號\n1,2".encode("utf-8"))
 
 
 def _query_page(token, dates=("20260924", "20260918", "20260911")):
@@ -195,7 +191,8 @@ def _result_page(token, big_pct, big_people, with_token=True):
         "<tr>" + "".join(f'<td align="right">{c}</td>' for c in r) + "</tr>" for r in rows
     )
     tok = f'<input type="hidden" name="SYNCHRONIZER_TOKEN" value="{token}" />' if with_token else ""
-    return f"<html>{tok}<table><tr><th>序</th><th>級距</th><th>人數</th><th>股數</th><th>占比</th></tr>{body}</table></html>"
+    head = "".join(f"<th>{name}</th>" for name in RESULT_FIELDS)
+    return f"<html>{tok}<table class=\"table\"><thead><tr>{head}</tr></thead>{body}</table></html>"
 
 
 class _FakeTdccSite:
@@ -295,12 +292,9 @@ def test_tdcc_weekly_trend_unknown_code_and_cached_weeks():
     assert len(fn_site.posts) == posts_after_first, "已查過的週不應重送 POST"
 
 
-def test_tdcc_result_rows_ignore_reconciliation_row_and_page_change_raises():
-    levels = tdcc.parse_result_rows(_result_page("t", 70.0, 41))
-    assert sorted(levels, key=lambda k: (k == "total", int(k) if k != "total" else 0))[-2:] == ["15", "total"]
-    assert "16" not in levels and levels["total"] == (1000, 99999, 100.0)
-    with pytest.raises(ValueError, match="頁面可能改版"):
-        tdcc.parse_query_page("<html>changed</html>")
+def test_tdcc_changed_query_page_is_an_error():
+    with pytest.raises(ToolError, match="頁面可能改版"):
+        _tdcc_fn(lambda _params, _body: b"<html>changed</html>")("2330", weeks=3)
 
 
 # ---------- NDC ----------
