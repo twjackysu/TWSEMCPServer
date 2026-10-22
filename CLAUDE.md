@@ -66,6 +66,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
 ├── institutional.py          # InstitutionalFlow / Trades / FlowDay: the 三大法人 record both markets' gateways return
 ├── twse/t86.py               # T86 → t86_flows() (all three historical column layouts, by name)
+├── twse/twt93u.py            # TWT93U → short_sale_lending_balances() (columns by group/name; 借券賣出 layout until 2012-03-16 kept as published)
 ├── tpex/insti_daily.py       # insti/dailyTrade → tpex_flows() (Adapter: groups by order, checked by their sums)
 ├── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
 ├── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)

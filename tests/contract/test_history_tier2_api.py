@@ -3,7 +3,8 @@
 只驗證 tools 中有寫死用到的欄位索引/位置，足以偵測來源 API 結構異動。
 """
 
-from tests.helpers import fetch_or_skip
+from sources.twse.twt93u import short_sale_lending_balances
+from tests.helpers import fetch_or_skip, gateway_or_skip
 from utils.constants import SUMMARY_ROW_LABELS
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
@@ -74,32 +75,32 @@ class TestBlockTradesDetailAPI:
         )
 
 
-class TestShortSaleLendingBalanceHistoryAPI:
-    """信用額度總量管制餘額表 - TWT93U
-    Tool get_short_sale_lending_balance_history 使用 row[0]~row[13]：
-    代號、名稱、融券(前日餘額/賣出/買進/現券/今日餘額/次一營業日限額)、
-    借券(前日餘額/當日賣出/當日還券/當日調整/當日餘額/次一營業日可限額)。
+class TestShortSaleLendingGateway:
+    """信用額度總量管制餘額表 - TWT93U（sources/twse/twt93u.py）
+    get_short_sale_lending_balance_history 只透過這個 gateway 讀；欄位依 groups 的組名＋欄名取，
+    真實回應要能建出 ShortSaleLendingDay。逐列檢查餘額等式，欄位對錯就會失敗：
+    融券 今日 = 前日 + 賣出 − 買進 − 現券；借券 當日 = 前日 + 當日賣出 − 當日還券 + 當日調整
+    （2012-03-16 以前：今日 = 前日 + 賣出 + 庫存異動）。2010、2014、2015、2018、2021、2025 各一天全部成立。
     """
 
-    def test_row_has_at_least_14_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U",
-            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) >= 14, f"欄位數不足 14，row 結構可能已變更: {data[0]}"
+    def test_fixed_day_balances_add_up(self):
+        day = gateway_or_skip(short_sale_lending_balances, FIXED_DATE)
+        assert day is not None and day.rows and day.date == FIXED_DATE
+        assert all(r.name not in SUMMARY_ROW_LABELS for r in day.rows)
+        for r in day.rows:
+            s, b = r.short, r.lending
+            assert not b.old_layout, r
+            assert s.today == s.previous + s.sold - s.bought - s.cash_returned, r
+            assert b.today == b.previous + b.sold - b.returned + b.adjusted, r
 
-    def test_last_row_is_summary(self):
-        """tool 以 row[1] 濾掉末列「合計」."""
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U",
-            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-        )
-        assert result["data"][-1][1].strip() in SUMMARY_ROW_LABELS, (
-            f"末列不再是彙總列: {result['data'][-1]}"
-        )
+    def test_layout_until_2012_03_16_balances_add_up(self):
+        day = gateway_or_skip(short_sale_lending_balances, "20100104")
+        assert day is not None and day.rows
+        for r in day.rows:
+            s, b = r.short, r.lending
+            assert b.old_layout, r
+            assert s.today == s.previous + s.sold - s.bought - s.cash_returned, r
+            assert b.today == b.previous + b.sold + b.inventory_change, r
 
 
 class TestShortSaleLendingTradesHistoryAPI:
