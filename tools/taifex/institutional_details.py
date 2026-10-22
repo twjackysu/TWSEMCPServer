@@ -1,61 +1,52 @@
 """TAIFEX 三大法人 by contract (futures / options) and options by call-put, latest day or any period.
 
 Source: www.taifex.com.tw download pages futContractsDateDown / optContractsDateDown /
-callsAndPutsDateDown. These replace the openapi ...DetailsOfFuturesContracts /
-...DetailsOfOptionsContracts / ...DetailsOfCallsAndPuts tools and the three former
-*_history tools. On 2026-09-29 every openapi row matched these endpoints value for value,
+callsAndPutsDateDown (``sources.taifex.institutional``). These replace the openapi
+...DetailsOfFuturesContracts / ...DetailsOfOptionsContracts / ...DetailsOfCallsAndPuts tools and the three
+former *_history tools. On 2026-09-29 every openapi row matched these endpoints value for value,
 and the futures page additionally carried 臺灣中型100期貨, which openapi omitted.
 """
 
 from collections import OrderedDict
-from typing import Optional
+from typing import List, Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, cap_rows
-from toolkit import TradingDate, handle_api_errors
-from utils.taifex import (
-    TAIFEX_CACHE_TTL,
-    TAIFEX_DOWNLOAD_BASE,
-    TAIFEX_HEADERS,
-    decode_and_parse_csv,
-    download_form,
-    fetch_period,
-    is_contract_code,
+from sources.taifex.institutional import (
+    ContractPositions,
+    calls_puts_positions,
+    futures_contract_positions,
+    option_contract_positions,
 )
+from utils import TWSEAPIClient, cap_rows, plain
+from toolkit import TradingDate, handle_api_errors
+from utils.taifex import fetch_period, is_contract_code
 
-FUT_CONTRACTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/futContractsDateDown"
-OPT_CONTRACTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/optContractsDateDown"
-CALLS_AND_PUTS_DATE_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/callsAndPutsDateDown"
 # No server-enforced span cap observed (3-month pulls work); retention runs out ~3 years back.
 MAX_SPAN_DAYS = 92
 # Unfiltered futures are ~69 rows per day, so a 92-day span is ~6,000 rows.
 MAX_OUTPUT_ROWS = 300
 
 
-def format_trader_rows(rows: list, value_unit: str, offset: int = 0, side_labels=("多", "空")) -> list:
-    """Render download-page rows grouped by date and contract.
-
-    Futures/options-by-contract rows are 日期,商品名稱,身份別, then 12 numbers; calls/puts rows
-    have 買賣權別 before 身份別, which ``offset=1`` accounts for.
-    """
+def format_trader_rows(rows: List[ContractPositions], value_unit: str, side_labels=("多", "空")) -> List[str]:
+    """Render ``ContractPositions`` grouped by date and contract (and CALL / PUT on the calls/puts page)."""
     long_, short_ = side_labels
     groups: "OrderedDict[tuple, list]" = OrderedDict()
     for r in rows:
-        key = (r[0], r[1]) + ((r[2],) if offset else ())
+        key = (f"{r.day:%Y/%m/%d}", r.contract) + ((r.call_put,) if r.call_put else ())
         groups.setdefault(key, []).append(r)
     lines = []
     for key, items in groups.items():
         lines.append(f"▶ {' '.join(key)}")
         for r in items:
-            n = r[3 + offset:]
-            # n: 多方交易口數,多方交易契約金額,空方交易口數,空方交易契約金額,淨口數,淨金額,
-            #    多方未平倉口數,多方未平倉契約金額,空方未平倉口數,空方未平倉契約金額,淨未平倉口數,淨未平倉金額
+            p = r.positions
             lines.append(
-                f"  {r[2 + offset]}\n"
-                f"    交易量: {long_} {n[0]} / {short_} {n[2]} / 淨 {n[4]}\n"
-                f"    交易金額({value_unit}): {long_} {n[1]} / {short_} {n[3]} / 淨 {n[5]}\n"
-                f"    未平倉口數: {long_} {n[6]} / {short_} {n[8]} / 淨 {n[10]}\n"
-                f"    未平倉契約價值({value_unit}): {long_} {n[7]} / {short_} {n[9]} / 淨 {n[11]}"
+                f"  {r.identity}\n"
+                f"    交易量: {long_} {plain(p.long_volume)} / {short_} {plain(p.short_volume)} / 淨 {plain(p.net_volume)}\n"
+                f"    交易金額({value_unit}): {long_} {plain(p.long_value)} / {short_} {plain(p.short_value)} / "
+                f"淨 {plain(p.net_value)}\n"
+                f"    未平倉口數: {long_} {plain(p.long_oi)} / {short_} {plain(p.short_oi)} / 淨 {plain(p.net_oi)}\n"
+                f"    未平倉契約價值({value_unit}): {long_} {plain(p.long_oi_value)} / {short_} {plain(p.short_oi_value)} / "
+                f"淨 {plain(p.net_oi_value)}"
             )
     return lines
 
@@ -63,7 +54,7 @@ def format_trader_rows(rows: list, value_unit: str, offset: int = 0, side_labels
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     _client = client or TWSEAPIClient.get_instance()
 
-    def _query(url: str, contract: str, start_date: str, end_date: str):
+    def _query(gateway, contract: str, start_date: str, end_date: str):
         """Fetch rows for a contract code (server-side filter), a Chinese contract name
         (client-side filter over all contracts) or every contract.
 
@@ -71,36 +62,25 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         match. A bad date range is an argument error and raises ``ToolError``."""
         contract = contract.strip()
         code = contract.upper() if contract and is_contract_code(contract) else ""
-
-        def fetch(start_dt, end_dt):
-            body = _client.fetch_bytes(
-                url,
-                method="POST",
-                headers=TAIFEX_HEADERS,
-                data=download_form(start_dt, end_dt, commodityId=code),
-                cache_ttl=TAIFEX_CACHE_TTL,
-            )
-            return decode_and_parse_csv(body)
-
-        parsed, label, error = fetch_period(fetch, start_date, end_date, MAX_SPAN_DAYS)
+        rows, label, error = fetch_period(lambda s, e: gateway(_client, s, e, code), start_date, end_date,
+                                          MAX_SPAN_DAYS)
         if error:
             raise ToolError(error)
-        if parsed is None:
+        if rows is None:
             return None, label, None
-        rows = parsed[1]
         if contract and not code:
-            matched = [r for r in rows if contract in r[1]]
+            matched = [r for r in rows if contract in r.contract]
             if not matched:
-                names = "、".join(sorted({r[1] for r in rows}))
+                names = "、".join(sorted({r.contract for r in rows}))
                 return None, label, f"查無契約「{contract}」。{label} 可用契約：{names}"
             rows = matched
         return rows, label, None
 
-    def _render(title: str, rows, label: str, value_unit: str, offset: int = 0, side_labels=("多", "空")) -> str:
+    def _render(title: str, rows, label: str, value_unit: str, side_labels=("多", "空")) -> str:
         total = len(rows)
         shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date 或指定 contract")
         lines = [f"【{title}】{label}（共 {total} 筆{cap_note}）\n"]
-        lines += format_trader_rows(shown, value_unit, offset, side_labels)
+        lines += format_trader_rows(shown, value_unit, side_labels)
         return "\n".join(lines)
 
     @mcp.tool
@@ -116,7 +96,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, not_found = _query(FUT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        rows, label, not_found = _query(futures_contract_positions, contract, start_date, end_date)
         if not_found:
             return not_found
         if rows is None:
@@ -136,7 +116,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, not_found = _query(OPT_CONTRACTS_DATE_DOWN_URL, contract, start_date, end_date)
+        rows, label, not_found = _query(option_contract_positions, contract, start_date, end_date)
         if not_found:
             return not_found
         if rows is None:
@@ -158,13 +138,13 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過 92 天
         """
-        rows, label, not_found = _query(CALLS_AND_PUTS_DATE_DOWN_URL, contract, start_date, end_date)
+        rows, label, not_found = _query(calls_puts_positions, contract, start_date, end_date)
         if not_found:
             return not_found
         if rows is None:
             return f"查無 {contract or '全部契約'} 在 {label} 的三大法人買賣權分計資料，請確認契約代碼；日期也可能超出保存範圍（約近 3 年內）"
         if call_put.strip().upper() in ("CALL", "PUT"):
-            rows = [r for r in rows if r[2].strip().upper() == call_put.strip().upper()]
+            rows = [r for r in rows if r.call_put.upper() == call_put.strip().upper()]
             if not rows:
                 return f"查無 {contract or '全部契約'} 在 {label} 的 {call_put.upper()} 資料"
-        return _render("三大法人選擇權買賣權分計", rows, label, "千元", offset=1, side_labels=("買方", "賣方"))
+        return _render("三大法人選擇權買賣權分計", rows, label, "千元", side_labels=("買方", "賣方"))

@@ -15,6 +15,7 @@ import utils.taifex as taifex
 from sources.taifex.daily_report import has_regular_session
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_taifex_institutional_gateway_unit import CONTRACTS_HEADER
 from tools.taifex import daily_market_report, institutional_details, large_traders_oi
 
 pytestmark = pytest.mark.offline
@@ -147,15 +148,12 @@ def test_options_report_takes_top_volume_per_day_or_full_month_chain():
 
 # ---------- institutional details ----------
 
-INST_HEADER = ["日期", "商品名稱", "身份別"] + [f"n{i}" for i in range(12)]
-
-
 def _inst_route(forms):
     def route(_params, form):
         forms.append(dict(form))
         rows = [["2026/09/29", "臺股期貨", "外資及陸資"] + ["1"] * 12,
                 ["2026/09/29", "小型臺指期貨", "外資及陸資"] + ["2"] * 12]
-        return _csv(INST_HEADER, rows)
+        return _csv(CONTRACTS_HEADER, rows)
     return route
 
 

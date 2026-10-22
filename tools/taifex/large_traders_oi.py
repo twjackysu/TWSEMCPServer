@@ -1,9 +1,9 @@
 """TAIFEX large traders (大額交易人) open interest, futures and options, latest day or any period.
 
-Both come from www.taifex.com.tw download pages (largeTraderFutDown / largeTraderOptDown).
-They replace the openapi OpenInterestOfLargeTradersFutures / ...Options tools (the futures one
-had been serving CSV instead of JSON since 2026-07). On 2026-09-29 all 1,386 futures rows, and on
-2026-10-07 all 320 options rows, matched the openapi data value for value; the only difference
+Both come from www.taifex.com.tw download pages (largeTraderFutDown / largeTraderOptDown,
+``sources.taifex.large_traders``). They replace the openapi OpenInterestOfLargeTradersFutures / ...Options
+tools (the futures one had been serving CSV instead of JSON since 2026-07). On 2026-09-29 all 1,386 futures
+rows, and on 2026-10-07 all 320 options rows, matched the openapi data value for value; the only difference
 is that the all-months total is coded 999999 on the download pages instead of openapi's 999912.
 Neither page has a contract filter (any extra field is ignored), so every request returns all
 commodities (~340 futures, ~36 options) and filtering is local.
@@ -12,19 +12,11 @@ commodities (~340 futures, ~36 options) and filtering is local.
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, cap_rows
+from sources.taifex.large_traders import LargeTraderPosition, futures_large_traders, option_large_traders
+from utils import TWSEAPIClient, cap_rows, plain
 from toolkit import TradingDate, handle_api_errors
-from utils.taifex import (
-    TAIFEX_CACHE_TTL,
-    TAIFEX_DOWNLOAD_BASE,
-    TAIFEX_HEADERS,
-    decode_and_parse_csv,
-    download_form,
-    fetch_period,
-)
+from utils.taifex import fetch_period
 
-LARGE_TRADER_FUT_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/largeTraderFutDown"
-LARGE_TRADER_OPT_DOWN_URL = f"{TAIFEX_DOWNLOAD_BASE}/largeTraderOptDown"
 # The payload doesn't shrink with a contract filter (~1,100 futures rows per day), and a full
 # year is rejected by the options page, so keep spans short.
 MAX_SPAN_DAYS = 31
@@ -40,20 +32,14 @@ def month_label(code: str) -> str:
     return _SETTLE_LABELS.get(code, f"到期月 {code}")
 
 
+def _positions(r: LargeTraderPosition) -> str:
+    return (f"{month_label(r.month)} | {_TYPE_LABELS.get(r.trader_type, r.trader_type)} | "
+            f"前五大: 多 {plain(r.top5_buy)} / 空 {plain(r.top5_sell)} | "
+            f"前十大: 多 {plain(r.top10_buy)} / 空 {plain(r.top10_sell)} | 市場總未平倉: {plain(r.market_oi)}")
+
+
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     _client = client or TWSEAPIClient.get_instance()
-
-    def _fetcher(url: str):
-        def fetch(start_dt, end_dt):
-            body = _client.fetch_bytes(
-                url,
-                method="POST",
-                headers=TAIFEX_HEADERS,
-                data=download_form(start_dt, end_dt),
-                cache_ttl=TAIFEX_CACHE_TTL,
-            )
-            return decode_and_parse_csv(body)
-        return fetch
 
     @mcp.tool
     @handle_api_errors()
@@ -69,34 +55,26 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
-        parsed, label, error = fetch_period(
-            _fetcher(LARGE_TRADER_FUT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS
-        )
+        rows, label, error = fetch_period(lambda s, e: futures_large_traders(_client, s, e),
+                                          start_date, end_date, MAX_SPAN_DAYS)
         if error:
             raise ToolError(error)
-        if parsed is None:
+        if rows is None:
             return f"查無 {label} 的期貨大額交易人未沖銷部位資料"
-        rows = parsed[1]
 
         contract = contract.strip().upper()
         if not contract:
-            contracts = sorted({(r[1].strip(), r[2].strip()) for r in rows})
+            contracts = sorted({(r.contract, r.name) for r in rows})
             return f"{label} 可用期貨契約代碼（共 {len(contracts)} 種）：\n" + "、".join(f"{c}({n})" for c, n in contracts)
 
-        # r: 日期,商品(契約),商品名稱(契約名稱),到期月份(週別),交易人類別,前五大買方,前五大賣方,
-        #    前十大買方,前十大賣方,全市場未沖銷部位數
-        rows = [r for r in rows if r[1].strip() == contract]
+        rows = [r for r in rows if r.contract == contract]
         if not rows:
             return f"查無契約 {contract} 在 {label} 的大額交易人資料（留空 contract 可列出可用代碼）"
 
         total = len(rows)
         shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date")
-        lines = [f"【期貨大額交易人未沖銷部位】{contract}（{rows[0][2].strip()}）| {label}（共 {total} 筆{cap_note}）\n"]
-        for r in shown:
-            lines.append(
-                f"{r[0]} | {month_label(r[3])} | {_TYPE_LABELS.get(r[4].strip(), r[4])} | "
-                f"前五大: 多 {r[5]} / 空 {r[6]} | 前十大: 多 {r[7]} / 空 {r[8]} | 市場總未平倉: {r[9]}"
-            )
+        lines = [f"【期貨大額交易人未沖銷部位】{contract}（{rows[0].name}）| {label}（共 {total} 筆{cap_note}）\n"]
+        lines += [f"{r.day:%Y/%m/%d} | {_positions(r)}" for r in shown]
         return "\n".join(lines)
 
     @mcp.tool
@@ -114,36 +92,28 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             start_date: 起始日期 西元 YYYYMMDD（選填，留空＝最新交易日）
             end_date: 結束日期 西元 YYYYMMDD（選填，預設同 start_date）。區間不可超過一個月
         """
-        parsed, label, error = fetch_period(
-            _fetcher(LARGE_TRADER_OPT_DOWN_URL), start_date, end_date, MAX_SPAN_DAYS
-        )
+        rows, label, error = fetch_period(lambda s, e: option_large_traders(_client, s, e),
+                                          start_date, end_date, MAX_SPAN_DAYS)
         if error:
             raise ToolError(error)
-        if parsed is None:
+        if rows is None:
             return f"查無 {label} 的選擇權大額交易人未沖銷部位資料"
-        rows = parsed[1]
 
         contract = contract.strip().upper()
         if not contract:
-            contracts = sorted({(r[1].strip(), r[2].strip()) for r in rows})
+            contracts = sorted({(r.contract, r.name) for r in rows})
             return f"{label} 可用選擇權契約代碼（共 {len(contracts)} 種）：\n" + "、".join(f"{c}({n})" for c, n in contracts)
 
-        # r: 日期,商品(契約),商品名稱(契約名稱),買賣權,到期月份(週別),交易人類別,前五大買方,前五大賣方,
-        #    前十大買方,前十大賣方,全市場未沖銷部位數
-        rows = [r for r in rows if r[1].strip() == contract]
+        rows = [r for r in rows if r.contract == contract]
         if not rows:
             return f"查無契約 {contract} 在 {label} 的大額交易人資料（留空 contract 可列出可用代碼）"
         if call_put in ("買權", "賣權"):
-            rows = [r for r in rows if r[3].strip() == call_put]
+            rows = [r for r in rows if r.call_put == call_put]
             if not rows:
                 return f"查無契約 {contract} 在 {label} 的{call_put}大額交易人資料"
 
         total = len(rows)
         shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS, "請縮小 start_date～end_date，或加上 call_put")
-        lines = [f"【選擇權大額交易人未沖銷部位】{contract}（{rows[0][2].strip()}）| {label}（共 {total} 筆{cap_note}）\n"]
-        for r in shown:
-            lines.append(
-                f"{r[0]} | {r[3].strip()} | {month_label(r[4])} | {_TYPE_LABELS.get(r[5].strip(), r[5])} | "
-                f"前五大: 多 {r[6]} / 空 {r[7]} | 前十大: 多 {r[8]} / 空 {r[9]} | 市場總未平倉: {r[10]}"
-            )
+        lines = [f"【選擇權大額交易人未沖銷部位】{contract}（{rows[0].name}）| {label}（共 {total} 筆{cap_note}）\n"]
+        lines += [f"{r.day:%Y/%m/%d} | {r.call_put} | {_positions(r)}" for r in shown]
         return "\n".join(lines)

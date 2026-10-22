@@ -1,5 +1,6 @@
 """Data formatting utilities."""
 
+from decimal import Decimal
 from typing import Any, Callable, List, Sequence, TypeVar, Union
 from .constants import (
     MSG_TOTAL_RECORDS,
@@ -176,6 +177,17 @@ def printed(value, blank: str = "--") -> str:
     31855287 → "31,855,287"; Decimal("2440.00") → "2,440.00"; None → ``blank``.
     """
     return blank if value is None else f"{value:,}"
+
+
+def plain(value, blank: str = "-") -> str:
+    """A gateway number as sources print it without separators (TAIFEX CSVs): every published decimal kept.
+
+    Decimal("83863.0") → "83863.0"; Decimal("0.00000000") → "0.00000000" (``str()`` would give "0E-8");
+    62488 → "62488"; None → ``blank``.
+    """
+    if value is None:
+        return blank
+    return f"{value:f}" if isinstance(value, Decimal) else str(value)
 
 
 def truncate(text: str, n: int = 100) -> str:

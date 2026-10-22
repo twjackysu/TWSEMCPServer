@@ -9,11 +9,10 @@ best-bid/ask and historical high/low for ~2,000 option rows that openapi left as
 """
 
 from collections import defaultdict
-from decimal import Decimal
-from typing import Optional, Union
+from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, cap_rows
+from utils import TWSEAPIClient, cap_rows, plain
 from toolkit import Limit, TradingDate, handle_api_errors
 from utils.taifex import fetch_period, is_stock_code, stock_futures_contracts
 from sources.taifex.daily_report import ALL_CONTRACTS, futures_quotes, has_regular_session, option_quotes
@@ -23,11 +22,6 @@ MAX_SPAN_DAYS = 31
 # Ceiling on rows written to a response: a month of TX alone is ~500 rows, and a single
 # option contract month is ~23,000 rows over a month.
 MAX_OUTPUT_ROWS = 300
-
-
-def _text(value: Union[Decimal, int, None]) -> str:
-    """A number as TAIFEX prints it: no separators, its published decimals; "-" where there is none."""
-    return "-" if value is None else f"{value:f}" if isinstance(value, Decimal) else str(value)
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -93,10 +87,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         for q in shown:
             month = f"{q.contract} {q.month}" if len(contracts) > 1 else q.month
             lines.append(
-                f"{q.day:%Y/%m/%d} | {month} | {q.session} | 開:{_text(q.open)} 高:{_text(q.high)} 低:{_text(q.low)} "
-                f"收:{_text(q.close)} | 漲跌:{_text(q.change)}({q.change_pct}) | 量:{_text(q.volume)} | "
-                f"結算:{_text(q.settlement)} | 未平倉:{_text(q.open_interest)} | "
-                f"最佳買/賣:{_text(q.best_bid)}/{_text(q.best_ask)}"
+                f"{q.day:%Y/%m/%d} | {month} | {q.session} | 開:{plain(q.open)} 高:{plain(q.high)} 低:{plain(q.low)} "
+                f"收:{plain(q.close)} | 漲跌:{plain(q.change)}({q.change_pct}) | 量:{plain(q.volume)} | "
+                f"結算:{plain(q.settlement)} | 未平倉:{plain(q.open_interest)} | "
+                f"最佳買/賣:{plain(q.best_bid)}/{plain(q.best_ask)}"
             )
         return "\n".join(lines)
 
@@ -159,9 +153,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         lines = [header]
         for q in shown:
             lines.append(
-                f"{q.day:%Y/%m/%d} | {q.month} {q.call_put} 履約:{_text(q.strike)} | {q.session} | 開:{_text(q.open)} "
-                f"高:{_text(q.high)} 低:{_text(q.low)} 收:{_text(q.close)} | 量:{_text(q.volume)} | "
-                f"結算:{_text(q.settlement)} | 未平倉:{_text(q.open_interest)} | "
-                f"最佳買/賣:{_text(q.best_bid)}/{_text(q.best_ask)}"
+                f"{q.day:%Y/%m/%d} | {q.month} {q.call_put} 履約:{plain(q.strike)} | {q.session} | 開:{plain(q.open)} "
+                f"高:{plain(q.high)} 低:{plain(q.low)} 收:{plain(q.close)} | 量:{plain(q.volume)} | "
+                f"結算:{plain(q.settlement)} | 未平倉:{plain(q.open_interest)} | "
+                f"最佳買/賣:{plain(q.best_bid)}/{plain(q.best_ask)}"
             )
         return "\n".join(lines)

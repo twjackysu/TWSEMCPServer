@@ -25,6 +25,7 @@ from .formatters import (
     truncate,
     cap_rows,
     printed,
+    plain,
 )
 from .date_helper import roc_to_ad, ad_to_roc
 from .errors import InvalidArgument
@@ -56,6 +57,7 @@ __all__ = [
     "truncate",
     "cap_rows",
     "printed",
+    "plain",
     "roc_to_ad",
     "ad_to_roc",
     "InvalidArgument",
