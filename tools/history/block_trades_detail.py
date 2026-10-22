@@ -1,16 +1,15 @@
-"""TWSE block trade (鉅額交易) daily detail, per-transaction."""
+"""TWSE block trade (鉅額交易) daily detail, per-transaction, from BFIAUU (sources/twse/bfiauu.py)."""
 
 from typing import Optional
 from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     DEFAULT_DISPLAY_LIMIT,
-    SUMMARY_ROW_LABELS,
     Page,
+    printed,
 )
 from toolkit import Limit, Offset, RequiredTradingDate, handle_api_errors
-
-BFIAUU_URL = "https://www.twse.com.tw/rwd/zh/block/BFIAUU"
+from sources.twse.bfiauu import block_trades
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -35,45 +34,39 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        resp = _client.fetch_json(
-            BFIAUU_URL,
-            params={"response": "json", "date": date},
-        )
-
-        if not resp or resp.get("stat") != "OK":
+        day = block_trades(_client, date)
+        if day is None:
             return f"查無 {date} 的鉅額交易資料，請確認該日期為交易日（非假日或週末）"
 
-        data = resp.get("data", [])
-        # 末列是全市場「總計」，其量/金額為當日所有鉅額交易的加總，與明細列同構。
-        # 留著會讓筆數多一筆，並在清單中出現一筆遠大於真實最大單筆的假交易。
-        data = [row for row in data if row and row[0].strip() not in SUMMARY_ROW_LABELS]
-        if not data:
+        # The gateway leaves out the closing 總計 row (the day's totals): kept, it counted as one more
+        # trade, far larger than any real one.
+        trades = day.trades
+        if not trades:
             return f"查無 {date} 的鉅額交易資料"
 
         if stock_no:
-            data = [row for row in data if row[0].strip() == stock_no]
-            if not data:
+            trades = [t for t in trades if t.code == stock_no]
+            if not trades:
                 return f"查無股票代號 {stock_no} 在 {date} 的鉅額交易資料"
         if name:
-            data = [row for row in data if name in row[1]]
-            if not data:
+            trades = [t for t in trades if name in t.name]
+            if not trades:
                 return f"查無名稱包含「{name}」的股票在 {date} 的鉅額交易資料"
 
-        paged = Page(limit, offset).take(data)
+        paged = Page(limit, offset).take(trades)
         if paged.past_end:
             return paged.out_of_range(f"{date} 的鉅額交易資料")
 
-        title = resp.get("title", f"{date} 鉅額交易日成交資訊")
+        title = day.title or f"{date} 鉅額交易日成交資訊"
         header = f"【{title}】（共 {paged.total} 筆"
         if paged.span():
             header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for row in paged.rows:
-            # row: 證券代號,證券名稱,交易別,成交價,成交股數,成交金額
-            code, sname, kind, price, volume, value = row
-            lines.append(f"{code} {sname} | {kind} | 價:{price} 量:{volume} 金額:{value}")
+        for t in paged.rows:
+            kind = f"{t.kind} {t.settlement}" if t.settlement else t.kind  # 交割期別 until 2011-12-16
+            lines.append(f"{t.code} {t.name} | {kind} | 價:{printed(t.price)} 量:{printed(t.volume)} 金額:{printed(t.value)}")
 
         if paged.more():
             lines.append("\n" + paged.more())

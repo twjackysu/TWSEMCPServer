@@ -16,6 +16,7 @@ import pytest
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_bfiauu_gateway_unit import reply as bfiauu_reply
 from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
 import tools.history.block_trades_detail as block_trades_detail
 import tools.history.short_sale_lending as short_sale_lending
@@ -30,7 +31,7 @@ def _ok(rows):
     return {"stat": "OK", "data": rows}
 
 
-BFIAUU = _ok([
+BFIAUU = bfiauu_reply([
     ["2330", "台積電", "配對交易", "1,000.00", "1,000,000", "1,000,000,000"],
     ["2317", "鴻海", "配對交易", "200.00", "500,000", "100,000,000"],
     ["總計", "", "", "", "1,500,000", "1,100,000,000"],
