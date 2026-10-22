@@ -3,6 +3,9 @@
 只驗證 tools 中有寫死用到的欄位索引/位置，足以偵測來源 API 結構異動。
 """
 
+from decimal import Decimal
+
+from sources.twse.bfiauu import block_trades
 from sources.twse.twt93u import short_sale_lending_balances
 from tests.helpers import fetch_or_skip, gateway_or_skip
 from utils.constants import SUMMARY_ROW_LABELS
@@ -47,32 +50,29 @@ class TestStockYearlyHistoryAPI:
         assert len(data[0]) == 9, f"欄位數不為 9，tables[0] row 結構可能已變更: {data[0]}"
 
 
-class TestBlockTradesDetailAPI:
-    """鉅額交易日成交資訊 - BFIAUU
-    Tool get_block_trades_detail 使用 row[0]~row[5]：
-    證券代號、證券名稱、交易別、成交價、成交股數、成交金額。
-    此端點無伺服器端股票代號篩選，tool 於本地端以 row[0] 過濾。
+class TestBlockTradesGateway:
+    """鉅額交易日成交資訊 - BFIAUU（sources/twse/bfiauu.py）
+    get_block_trades_detail 只透過這個 gateway 讀；欄位依名稱取，真實回應要能建出 BlockTradeDay。
+    2011-12-16 以前多一欄「交割期別」，所以改版前後各驗一天。逐筆檢查 成交價 × 成交股數 ≈ 成交金額
+    （四捨五入到元；2010–2025 抽樣 6 天全部在 0.5 元內），欄位對錯就會失敗。
     """
 
-    def test_row_has_6_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/block/BFIAUU",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 6, f"欄位數不為 6，row 結構可能已變更: {data[0]}"
+    @staticmethod
+    def _check(day):
+        assert day is not None and day.trades, "固定歷史交易日應有鉅額交易"
+        for t in day.trades:
+            assert t.code not in SUMMARY_ROW_LABELS, t
+            assert abs(t.price * t.volume - t.value) <= Decimal("0.5"), t
 
-    def test_last_row_is_summary(self):
-        """tool 以 row[0] 濾掉末列「總計」；上游若不再附彙總列，過濾就成了無效程式碼."""
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/block/BFIAUU",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result["data"][-1][0].strip() in SUMMARY_ROW_LABELS, (
-            f"末列不再是彙總列: {result['data'][-1]}"
-        )
+    def test_fixed_day(self):
+        day = gateway_or_skip(block_trades, FIXED_DATE)
+        self._check(day)
+        assert all(t.settlement == "" for t in day.trades)
+
+    def test_day_until_2011_12_16_has_a_settlement_period(self):
+        day = gateway_or_skip(block_trades, "20100104")
+        self._check(day)
+        assert all(t.settlement for t in day.trades), "2011-12-16 以前應有交割期別"
 
 
 class TestShortSaleLendingGateway:

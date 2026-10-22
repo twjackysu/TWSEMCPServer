@@ -15,6 +15,7 @@ import tools.history.block_trades_detail as block_trades_detail
 import tools.history.foreign_holdings_history as foreign_holdings_history
 import tools.history.institutional as institutional
 import tools.history.short_sale_lending as short_sale_lending
+from tests.unit.test_bfiauu_gateway_unit import reply as bfiauu_reply
 from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
@@ -50,7 +51,7 @@ DAILY_CLOSE_FIELDS = ["證券代號", "證券名稱", "成交股數", "成交筆
                       "漲跌(+/-)", "漲跌價差", "最後揭示買價", "最後揭示買量", "最後揭示賣價", "最後揭示賣量", "本益比"]
 SHORT_SALE_BALANCE_ROW = ["2330", "台積電"] + ["0"] * 13                # 融券 6 + 借券 6 + 備註
 SHORT_SALE_TRADES_ROW = ["2330   台積電", "0", "0", "0", "0"]
-BLOCK_TRADE_ROW = ["2330", "台積電", "鉅額中盤", "1000", "10", "10000"]  # 6 欄，tuple 解包
+BLOCK_TRADE_ROW = ["2330", "台積電", "鉅額中盤", "1000", "10", "10000"]  # 證券代號,證券名稱,交易別,成交價,成交股數,成交金額
 FOREIGN_HOLDINGS_ROW = ["2330", "台積電", "TW0002330008", "100", "10", "90", "10.00", "90.00", "100.00", "100.00", "", "115/04/10"]
 T86_ROW = ["2330", "台積電"] + ["0"] * 16 + ["1,000"]                   # 三大法人合計非 0 才算有法人進出
 T86_FIELDS = ["證券代號", "證券名稱", "外陸資買進股數(不含外資自營商)", "外陸資賣出股數(不含外資自營商)",
@@ -82,7 +83,7 @@ CASES = [
         block_trades_detail,
         "get_block_trades_detail",
         {"date": TRADING_DATE},
-        _legacy([BLOCK_TRADE_ROW]),
+        bfiauu_reply([BLOCK_TRADE_ROW]),
     ),
     (
         foreign_holdings_history,
