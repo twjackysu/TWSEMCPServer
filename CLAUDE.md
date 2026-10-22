@@ -86,6 +86,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── tpex/pe_qry_date.py       # afterTrading/peQryDate → otc_valuation_ratios() OtcValuationReport (財報年/季 only from 2025-01-02)
 ├── tpex/margin_balance.py    # margin/balance → otc_margin_balances() OtcMarginDay (per-stock 融資/融券 + summary totals)
 ├── tpex/qfii.py              # insti/qfii → otc_foreign_holdings() OtcForeignHoldingDay (ratios published with %, rank order kept)
+├── tpex/etf.py               # ETF/list / ETF/detail (form POST) → tpex_etfs() TpexEtf, tpex_etf_detail() DetailSection (HTML links → text; PCF link table left out)
 ├── taifex/download.py        # download_table(): POST a download page's form, decode the cp950 CSV, columns by header name; number() / count()
 ├── taifex/daily_report.py    # futDataDown / optDataDown → futures_quotes() / option_quotes(); has_regular_session() for the latest-day walk-back
 ├── taifex/institutional.py   # 三大法人 pages → institutional_totals() / institutional_split() / *_contract_positions() / calls_puts_positions(): Positions (12 figures)

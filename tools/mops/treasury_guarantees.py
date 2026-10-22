@@ -109,7 +109,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         lines = []
         for t in tables:
             if all(len(r) <= 1 for r in t):
-                lines.append(" ".join(r[0] for r in t if r and r[0]))
+                lines.append(" ".join(c for r in t for c in r if c))
             else:
                 lines.append("")
                 for r in t:

@@ -12,22 +12,18 @@ listed here and a single-code lookup shows all of its fields.
 """
 
 import html
-import json
 import re
 from typing import Dict, List, Optional
 
 from fastmcp import FastMCP
+from sources.tpex.etf import ETF_TYPES, EtfType, tpex_etf_detail, tpex_etfs
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, handle_api_errors
-from utils.sitca import SITCA_CACHE_TTL, SITCA_HEADERS, available_months, query_rows
+from utils.sitca import available_months, query_rows
 
 FUND_BASIC_ENDPOINT = "/opendata/t187ap47_L"
-TPEX_ETF_LIST_URL = "https://www.tpex.org.tw/www/zh-tw/ETF/list"
-TPEX_ETF_DETAIL_URL = "https://www.tpex.org.tw/www/zh-tw/ETF/detail"
-TPEX_ETF_TYPES = ("domestic", "foreign", "bond")
 # t187ap47_L metadata fields not worth echoing.
 _SKIP_TWSE_FIELDS = {"出表日期"}
-_TAG_RE = re.compile(r"<[^>]+>")
 
 
 def _fmt_ymd(text: str) -> str:
@@ -57,32 +53,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         ym = available_months(_client, "etf_info.aspx")[0]
         return sitca_info_records(query_rows(_client, "etf_info2.aspx", ym))
 
-    def _tpex_post(url: str, form: Dict[str, str]) -> dict:
-        body = _client.fetch_bytes(url, data={**form, "response": "json"}, method="POST",
-                                   headers=SITCA_HEADERS, timeout=60, cache_ttl=SITCA_CACHE_TTL)
-        return json.loads(body.decode("utf-8"))
-
-    def _tpex_type(code: str) -> Optional[str]:
-        for etf_type in TPEX_ETF_TYPES:
-            table = (_tpex_post(TPEX_ETF_LIST_URL, {"type": etf_type}).get("tables") or [{}])[0]
-            if any(row and row[0].strip() == code for row in table.get("data") or []):
-                return etf_type
-        return None
+    def _tpex_type(code: str) -> Optional[EtfType]:
+        return next((t for t in ETF_TYPES if any(e.code == code for e in tpex_etfs(_client, t))), None)
 
     def _tpex_detail_lines(code: str) -> List[str]:
         etf_type = _tpex_type(code)
         if etf_type is None:
             return []
-        lines = []
-        for table in _tpex_post(TPEX_ETF_DETAIL_URL, {"type": etf_type, "code": code}).get("tables") or []:
-            fields, data = table.get("fields") or [], table.get("data") or []
-            if not data or len(fields) < 2:
-                continue  # the PCF table is only a link to the issuer's site
-            for name, value in zip(fields, data[0], strict=False):
-                value = " ".join(_TAG_RE.sub(" ", str(value)).split())
-                if value and name not in ("證券代號",):
-                    lines.append(f"{name}: {value}")
-        return lines
+        return [f"{name}: {value}" for section in tpex_etf_detail(_client, etf_type, code)
+                for name, value in section.items if value and name != "證券代號"]
 
     def _single(code: str) -> str:
         sitca = next((r for r in _sitca_info() if r["證券代號"] == code), None)
