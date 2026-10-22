@@ -92,7 +92,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── taifex/large_traders.py   # largeTraderFutDown / largeTraderOptDown → futures_large_traders() / option_large_traders() LargeTraderPosition
 ├── taifex/put_call_ratio.py  # pcRatioDown → put_call_ratios() PutCallRatioDay
 ├── mops/t35sc09.py           # legacy ajax_t35sc09 HTML → treasury_buybacks() Buyback (two-row header joined: 買回價格區間/最低)
-└── mops/major_news.py        # t05st01 / t05st02 / *_detail → company_news(), market_news(), news_detail(): Announcement + NewsLink, by titles
+├── mops/major_news.py        # t05st01 / t05st02 / *_detail → company_news(), market_news(), news_detail(): Announcement + NewsLink, by titles
+└── mops/insiders.py          # stapap1 / query6_1 → board_holdings() (published columns kept), insider_changes() (本月增加/減少 by group title)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)
