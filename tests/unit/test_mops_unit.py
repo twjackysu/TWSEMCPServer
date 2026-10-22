@@ -267,7 +267,7 @@ def test_conference_unexpected_page_is_an_error_not_no_data():
 # ---------- parse_html_tables ----------
 
 from utils.mops import parse_html_tables  # noqa: E402
-from tools.mops import insiders, major_news, treasury_guarantees  # noqa: E402
+from tools.mops import insiders, treasury_guarantees  # noqa: E402
 
 
 def test_parse_html_tables_splits_unclosed_tables():
@@ -280,46 +280,7 @@ def test_parse_html_tables_splits_unclosed_tables():
     assert tables == [[["標題"]], [["1", "6655"]], [["2", "1437"]], [["合計巢狀"]]]
 
 
-# ---------- major news ----------
-
-def _news_link(api, code, serial=1):
-    return {"apiName": api, "parameters": {"marketKind": "otc", "companyId": code, "serialNumber": serial, "enterDate": "1150929"}}
-
-
-def test_company_news_newest_first_with_full_text_capped():
-    rows = [["6488", "環球晶", f"115/09/{d:02d}", "10:00:00", f"主旨{d}", _news_link("t05st01_detail", "6488", d)]
-            for d in range(1, 16)]
-
-    def route(_params, body):
-        if "serialNumber" in body:
-            return _ok({"data": [["1", "115/09/01", "10:00", "發言人", "財務長", "tel", "主旨", "第1款", "115/09/01",
-                                  "說明\n內容"]]})
-        return _ok({"companyAbbreviation": "環球晶", "data": rows})
-
-    client = OfflineClient({"/mops/api/t05st01": route, "/mops/api/t05st01_detail": route})
-    text = register_module_tools(major_news, client)["get_company_major_news"]("6488", year="2026")
-    assert text.index("115/09/15") < text.index("115/09/06")
-    assert "115/09/05" not in text  # 每頁最多 10 則含全文
-    assert text.count("說明:說明") == 10 and "offset=10" in text
-
-
-def test_market_news_walks_back_and_filters_market(monkeypatch):
-    monkeypatch.setattr(major_news, "taipei_today", lambda: __import__("datetime").datetime(2026, 9, 30))
-    asked = []
-
-    def route(_params, body):
-        asked.append(body["day"])
-        if body["day"] != "28":
-            return {"code": 406, "message": "查無相符資料", "result": None}
-        return _ok({"data": [["115/09/28", "20:00", "6488", "環球晶", "主旨\n換行", _news_link("t05st02_detail", "6488")],
-                             ["115/09/28", "20:01", "2330", "台積電", "主旨", {"apiName": "x", "parameters": {"marketKind": "sii"}}]]})
-
-    fn = register_module_tools(major_news, OfflineClient({"/mops/api/t05st02": route}))["get_company_major_news"]
-    text = fn(market="otc")
-    assert asked == ["30", "29", "28"] and "查詢日 20260928" in text
-    assert "上櫃 6488 環球晶 | 主旨 換行" in text and "2330" not in text
-
-
+# ---------- major news: test_mops_major_news_gateway_unit.py ----------
 # ---------- insiders ----------
 
 def test_period_body_latest_and_specific_month():

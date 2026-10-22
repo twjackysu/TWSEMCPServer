@@ -5,15 +5,17 @@ Replaces the OpenAPI /opendata/t187ap04_L tool. On 2026-09-29 all 115 of its ann
 (listed companies, latest day only) were among MOPS t05st02's 205 for that day, which also
 covers OTC, emerging and public companies and any past date. t187ap04_L carried each
 announcement's full text inline; MOPS lists subjects and serves the text per announcement
-(t05st01_detail / t05st02_detail), so this tool fetches it for a named company's page.
+(t05st01_detail / t05st02_detail), so this tool fetches it for a named company's page. All three are
+read through ``sources.mops.major_news``.
 """
 
 from datetime import timedelta
 from typing import Literal, Optional
 from fastmcp import FastMCP
+from sources.mops.major_news import NewsLink, company_news, market_news, news_detail
 from utils import TWSEAPIClient, truncate, Page
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from utils.mops import mops_post, to_roc_year
+from utils.mops import to_roc_year
 from utils.date_helper import roc_date, roc_year_of, taipei_today
 
 Market = Literal["", "sii", "otc", "rotc", "pub"]  # "" (every market) or a key of MARKET_LABELS
@@ -32,47 +34,39 @@ def _one_line(text) -> str:
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     _client = client or TWSEAPIClient.get_instance()
 
-    def _detail(link) -> str:
-        """Full text of one announcement from its 詳細資料 link ({apiName, parameters})."""
-        if not isinstance(link, dict) or not link.get("apiName"):
+    def _detail(link: Optional[NewsLink]) -> str:
+        """Full text of one announcement from its 詳細資料 link."""
+        d = news_detail(_client, link) if link else None
+        if d is None:
             return ""
-        result = mops_post(_client, link["apiName"], link.get("parameters") or {})
-        rows = (result or {}).get("data") or []
-        if not rows:
-            return ""
-        # row: 序號,發言日期,發言時間,發言人,發言人職稱,發言人電話,主旨,符合條款,事實發生日,說明
-        r = rows[0]
         return (
-            f"  符合條款:{r[7]} | 事實發生日:{r[8]} | 發言人:{r[3].strip()}（{r[4].strip()}）\n"
-            f"  說明:{truncate(str(r[9]).strip(), MAX_TEXT_CHARS)}"
+            f"  符合條款:{d.clause} | 事實發生日:{d.fact_date} | 發言人:{d.spokesperson}（{d.spokesperson_title}）\n"
+            f"  說明:{truncate(d.text, MAX_TEXT_CHARS)}"
         )
 
     def _company(code: str, date: str, year: str, limit: int, offset: int) -> str:
         roc_day = roc_date(date) if date else None  # as MOPS prints 發言日期: 115/09/10
         roc_year = to_roc_year(year) if year else (roc_year_of(date) if date else taipei_today().year - 1911)
-        result = mops_post(_client, "t05st01", {
-            "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
-        }) or {}
-        # row: 公司代號,公司名稱,發言日期,發言時間,主旨,詳細資料
-        rows = result.get("data") or []
+        news = company_news(_client, code, roc_year)
+        rows = news.announcements if news else []
         if roc_day:
-            rows = [r for r in rows if r[2] == roc_day]
+            rows = [a for a in rows if a.date == roc_day]
         if not rows:
             scope = roc_day or f"民國{roc_year}年"
             return f"查無 {code} 在 {scope} 的重大訊息"
 
-        rows = sorted(rows, key=lambda r: (r[2], r[3]), reverse=True)
+        rows = sorted(rows, key=lambda a: (a.date, a.time), reverse=True)
         # Each full text costs a MOPS request, so a page holds at most MAX_DETAILED.
         paged = Page(min(limit, MAX_DETAILED), offset).take(rows)
         if paged.past_end:
             return paged.out_of_range(f"{code} 的重大訊息")
-        name = result.get("companyAbbreviation") or rows[0][1]
+        name = (news.name if news else "") or rows[0].name
         span = f"，{paged.span('則')}" if paged.span("則") else ""
         lines = [f"【{name}({code}) 重大訊息 民國{roc_year}年{('（' + roc_day + '）') if roc_day else ''}】"
                  f"（共 {paged.total} 則，由新到舊{span}，每頁最多 {MAX_DETAILED} 則含全文）\n"]
-        for r in paged.rows:
-            lines.append(f"{r[2]} {r[3]} | {_one_line(r[4])}")
-            detail = _detail(r[5] if len(r) > 5 else None)
+        for a in paged.rows:
+            lines.append(f"{a.date} {a.time} | {_one_line(a.subject)}")
+            detail = _detail(a.link)
             if detail:
                 lines.append(detail)
         if paged.more("則"):
@@ -88,28 +82,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         rows, served = [], ""
         for day in days:
-            result = mops_post(_client, "t05st02", {"year": str(roc_year_of(day)), "month": day[4:6], "day": day[6:]})
-            rows = (result or {}).get("data") or []
+            rows = market_news(_client, day)
             if rows:
                 served = day
                 break
         if not rows:
             return f"查無 {date or '最近'} 的重大訊息"
 
-        # row: 發言日期,發言時間,公司代號,公司名稱,主旨,詳細資料({parameters.marketKind})
-        def kind(r):
-            link = r[5] if len(r) > 5 and isinstance(r[5], dict) else {}
-            return (link.get("parameters") or {}).get("marketKind", "")
-
         if market:
-            rows = [r for r in rows if kind(r) == market]
+            rows = [a for a in rows if a.market == market]
         paged = Page(limit, offset).take(rows)
         if paged.past_end:
             return paged.out_of_range(f"{served} 的重大訊息")
         span = f"，{paged.span('則')}" if paged.span("則") else ""
         lines = [f"【查詢日 {served} 全市場重大訊息】（共 {paged.total} 則{span}；指定 code 可看各則全文）\n"]
-        for r in paged.rows:
-            lines.append(f"{r[0]} {r[1]} | {MARKET_LABELS.get(kind(r), kind(r))} {r[2]} {r[3]} | {_one_line(r[4])}")
+        for a in paged.rows:
+            lines.append(f"{a.date} {a.time} | {MARKET_LABELS.get(a.market, a.market)} {a.code} {a.name} | "
+                         f"{_one_line(a.subject)}")
         if paged.more("則"):
             lines.append("\n" + paged.more("則"))
         return "\n".join(lines)
