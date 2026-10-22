@@ -17,12 +17,13 @@ import csv
 import io
 import re
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Annotated, Dict, List, Optional, Tuple
 
 import requests
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import bounded, handle_api_errors
+from pydantic import Field
+from toolkit import handle_api_errors
 from utils.deadline import time_budget
 from utils.parse import float_or_none, int_or_none
 
@@ -133,9 +134,11 @@ def parse_result_rows(html: str) -> Dict[str, Tuple[int, int, float]]:
             key = seq
         else:
             continue
-        counts = (int_or_none(people) if people else 0, int_or_none(shares), float_or_none(pct))
-        if None not in counts:  # a cell that is not a number: skip the row, as before
-            out[key] = counts
+        n_people = int_or_none(people) if people else 0
+        n_shares, ratio = int_or_none(shares), float_or_none(pct)
+        if n_people is not None and n_shares is not None and ratio is not None:
+            out[key] = (n_people, n_shares, ratio)
+        # else a cell that is not a number: skip the row, as before
     return out
 
 
@@ -246,7 +249,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
-    def get_shareholding_distribution(code: str, weeks: bounded(1, MAX_WEEKS) = 1) -> str:
+    def get_shareholding_distribution(code: str, weeks: Annotated[int, Field(ge=1, le=MAX_WEEKS)] = 1) -> str:
         """查詢個股「集保戶股權分散表」，觀察籌碼集中度：預設最新一週的完整級距表；
         weeks > 1 時改為逐週趨勢（最多 13 週）：每週的總人數、千張大戶／400張以上／10張以下散戶的
         持股比例與人數，以及較前一週的增減，可看出大戶是在增持還是減持。

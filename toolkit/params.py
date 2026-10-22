@@ -14,11 +14,8 @@ from pydantic import AfterValidator, Field
 
 Limit = Annotated[int, Field(ge=1)]   # rows in one reply
 Offset = Annotated[int, Field(ge=0)]  # rows skipped before them (paging)
-
-
-def bounded(low: int, high: int):
-    """An int parameter that must lie in ``low``..``high``."""
-    return Annotated[int, Field(ge=low, le=high)]
+# An int within a range is written out where it is used, `Annotated[int, Field(ge=1, le=MAX_ROWS)]`: a
+# helper returning that type would be a call in an annotation, which type checkers reject.
 
 
 def _calendar_date(value: str) -> str:

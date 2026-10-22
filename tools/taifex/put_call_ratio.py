@@ -48,9 +48,10 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             label = "近 30 天"
         else:
             start_date, end_date = start_date or end_date, end_date or start_date
-            start_dt, end_dt, error = parse_date_range(start_date, end_date, MAX_SPAN_DAYS)
-            if error:
-                raise ToolError(error)
+            checked = parse_date_range(start_date, end_date, MAX_SPAN_DAYS)
+            if isinstance(checked, str):
+                raise ToolError(checked)
+            start_dt, end_dt = checked
             label = f"{start_date}～{end_date}"
 
         body = _client.fetch_bytes(

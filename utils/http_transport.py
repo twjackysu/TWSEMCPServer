@@ -15,10 +15,12 @@ this module decides how it is sent.
 """
 
 import ssl
+from typing import cast
 
 import certifi
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import InvalidHeader, MaxRetryError, ResponseError
 from urllib3.util.retry import Retry
 
@@ -57,7 +59,8 @@ class UpstreamRetry(Retry):
             except InvalidHeader:
                 wait = 0.0
             if wait > self.MAX_RETRY_AFTER:
-                raise MaxRetryError(_pool, url, ResponseError(
+                # urllib3's own Retry.increment raises with the same _pool, which may be None.
+                raise MaxRetryError(cast(ConnectionPool, _pool), url, ResponseError(
                     f"upstream asked to retry after {header}s (more than {self.MAX_RETRY_AFTER:g}s); not retrying"))
         return super().increment(method, url, response, error, _pool, _stacktrace)
 

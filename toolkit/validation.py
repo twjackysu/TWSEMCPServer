@@ -11,7 +11,7 @@ are already ``ToolError`` (toolkit/decorators.py).
 
 import re
 from datetime import date
-from typing import Any, Dict, Optional
+from typing import Any, Mapping, Optional
 
 import pydantic
 from fastmcp.exceptions import ToolError, ValidationError
@@ -50,7 +50,7 @@ def describe_date_mismatch(name: str, received: Any) -> str:
     return f"{name} 日期格式錯誤，請使用西元 YYYYMMDD，例如 \"20260930\"（收到 {received!r}）"
 
 
-def describe(error: Dict[str, Any]) -> str:
+def describe(error: Mapping[str, Any]) -> str:
     """One pydantic error as a Chinese sentence naming the parameter."""
     name = ".".join(str(part) for part in error.get("loc", ())) or "參數"
     kind, ctx, received = error.get("type", ""), error.get("ctx") or {}, error.get("input")

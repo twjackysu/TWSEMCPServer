@@ -52,9 +52,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         roc_year = to_roc_year(year) if year else (roc_year_of(date) if date else taipei_today().year - 1911)
         result = mops_post(_client, "t05st01", {
             "companyId": code, "year": str(roc_year), "month": "all", "firstDay": "", "lastDay": "",
-        })
+        }) or {}
         # row: 公司代號,公司名稱,發言日期,發言時間,主旨,詳細資料
-        rows = (result or {}).get("data") or []
+        rows = result.get("data") or []
         if roc_day:
             rows = [r for r in rows if r[2] == roc_day]
         if not rows:

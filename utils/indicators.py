@@ -7,7 +7,7 @@ smoothing, MACD(12,26,9) with DIF/MACD(signal)/OSC, Bollinger(20, 2σ population
 """
 
 from math import sqrt
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple, cast
 
 Series = List[Optional[float]]
 
@@ -81,7 +81,8 @@ def macd(closes: Sequence[float], fast: int = 12, slow: int = 26, signal: int = 
     start = next((i for i, v in enumerate(dif) if v is not None), None)
     sig: Series = [None] * len(closes)
     if start is not None:
-        tail = ema([v for v in dif[start:]], signal)
+        # DIF is defined on every day from `start` on (both EMAs are), so the tail has no None.
+        tail = ema(cast(List[float], dif[start:]), signal)
         sig[start:] = tail
     osc: Series = [d - s if d is not None and s is not None else None for d, s in zip(dif, sig, strict=True)]
     return dif, sig, osc
@@ -93,7 +94,8 @@ def bollinger(closes: Sequence[float], n: int = 20, width: float = 2.0) -> Tuple
     upper: Series = [None] * len(closes)
     lower: Series = [None] * len(closes)
     for i in range(n - 1, len(closes)):
+        m = cast(float, mid[i])  # the n-day SMA is defined from index n - 1 on
         window = closes[i - n + 1:i + 1]
-        sd = sqrt(sum((v - mid[i]) ** 2 for v in window) / n)
-        upper[i], lower[i] = mid[i] + width * sd, mid[i] - width * sd
+        sd = sqrt(sum((v - m) ** 2 for v in window) / n)
+        upper[i], lower[i] = m + width * sd, m - width * sd
     return upper, mid, lower

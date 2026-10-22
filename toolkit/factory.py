@@ -108,13 +108,14 @@ def create_list_tool(
             data = [d for d in data if filter_value in d.get(spec.filter_field, "")]
         return format_list_response(data, spec.label, spec.formatter, limit=limit, offset=offset)
 
-    if spec.filter_field:
-        def tool_fn(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
-            return _render(_client.fetch_data(spec.endpoint), name, limit, offset)
-    else:
-        def tool_fn(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
-            return _render(_client.fetch_data(spec.endpoint), "", limit, offset)
+    def with_name_filter(name: str = "", limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
+        return _render(_client.fetch_data(spec.endpoint), name, limit, offset)
 
+    def without_name_filter(limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
+        return _render(_client.fetch_data(spec.endpoint), "", limit, offset)
+
+    # The signature is the tool's schema: a `name` parameter only where the spec filters on a field.
+    tool_fn: Callable[..., str] = with_name_filter if spec.filter_field else without_name_filter
     description = spec.description
     tool_fn.__name__ = spec.name
     tool_fn.__doc__ = description

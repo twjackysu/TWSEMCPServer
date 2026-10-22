@@ -1,13 +1,15 @@
 """Data formatting utilities."""
 
-from typing import Any, List, Union, Sequence
+from typing import Any, Callable, List, Sequence, TypeVar, Union
 from .constants import (
     MSG_TOTAL_RECORDS,
     MSG_NO_MATCHING_DATA,
     DEFAULT_DISPLAY_LIMIT,
 )
 from .pagination import Page
-from .types import TWSEDataItem, DataFormatter
+from .types import DataFormatter, TWSEDataItem
+
+T = TypeVar("T")
 
 def format_properties_with_values_multiline(data: TWSEDataItem) -> str:
     """
@@ -118,9 +120,9 @@ def format_meaningful_fields_only(item: TWSEDataItem, exclude_fields: Union[str,
 
 
 def format_list_response(
-    data: List[TWSEDataItem],
+    data: Sequence[T],
     data_type: str,
-    formatter: DataFormatter | None = None,
+    formatter: Callable[[T], str] | None = None,
     limit: int = DEFAULT_DISPLAY_LIMIT,
     offset: int = 0,
 ) -> str:
@@ -128,9 +130,10 @@ def format_list_response(
     Format a list of records with standard header and pagination.
 
     Args:
-        data: List of data records (already filtered if applicable)
+        data: List of data records (already filtered if applicable): OpenAPI dicts, gateway
+            dataclasses or rows, whatever ``formatter`` takes
         data_type: Description of data type for header
-        formatter: Optional custom formatter function for each item
+        formatter: Optional custom formatter function for each item (default: every field of a dict)
         limit: Maximum number of items to display (default 50)
         offset: Number of records to skip from the start (default 0)
 
@@ -157,7 +160,7 @@ def format_list_response(
     result = header + "\n\n"
 
     if formatter is None:
-        def default_formatter(item):
+        def default_formatter(item: Any) -> str:
             return f"- {format_properties_with_values_multiline(item)}\n"
         formatter = default_formatter
 

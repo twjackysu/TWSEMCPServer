@@ -5,12 +5,13 @@ Source: SITCA ETF zone etf_statement2 (utils/sitca.py), every issuer's domestic 
 older months have no 證券代號 (see utils/sitca.py).
 """
 
-from typing import Dict, List, Literal, Optional
+from typing import Annotated, Dict, List, Literal, Optional
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
-from toolkit import bounded, handle_api_errors
+from pydantic import Field
+from toolkit import handle_api_errors
 from utils.parse import float_or_none
 from utils.sitca import available_months, query_rows
 
@@ -118,8 +119,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_etf_monthly_stats(code: str = "", months: bounded(1, MAX_MONTHS) = 6, period: str = "",
-                              sort_by: SortBy = "scale", limit: bounded(1, MAX_LIST) = 30) -> str:
+    def get_etf_monthly_stats(code: str = "", months: Annotated[int, Field(ge=1, le=MAX_MONTHS)] = 6, period: str = "",
+                              sort_by: SortBy = "scale", limit: Annotated[int, Field(ge=1, le=MAX_LIST)] = 30) -> str:
         """查詢 ETF 每月統計（投信投顧公會月報，涵蓋所有投信、上市與上櫃）：基金規模與市占、
         單位淨值、受益權單位數、受益人數（自然人／法人）、當月申購與買回金額、定期定額扣款
         筆數／戶數／金額。資料自 2007 年起，通常於次月中旬公布上月資料。

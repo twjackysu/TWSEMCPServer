@@ -2,10 +2,11 @@
 analysis, etc.). The statements themselves (損益表/資產負債表/現金流量表) live in
 tools/mops/financial_statements.py."""
 
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, Page
-from toolkit import CompanyToolSpec, Offset, bounded, create_company_tool, handle_api_errors
+from pydantic import Field
+from toolkit import CompanyToolSpec, Offset, create_company_tool, handle_api_errors
 
 # One summary row is two lines; more than this per reply is past what a model can use.
 MAX_PROFITABILITY_ROWS = 100
@@ -64,7 +65,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_company_profitability_analysis_summary(
         order_by: ProfitabilitySort = "稅後純益率(%)",
         order_direction: Literal["asc", "desc"] = "desc",
-        limit: bounded(1, MAX_PROFITABILITY_ROWS) = 20,
+        limit: Annotated[int, Field(ge=1, le=MAX_PROFITABILITY_ROWS)] = 20,
         offset: Offset = 0,
     ) -> str:
         """查詢上市公司營益分析查詢彙總表(全體公司彙總報表)。
@@ -75,15 +76,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 20，最多 100）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        order_by = profitability_sort_field(order_by)
+        sort_field = profitability_sort_field(order_by)
         page = Page(limit, offset, max_limit=MAX_PROFITABILITY_ROWS)
         data = _client.fetch_data("/opendata/t187ap17_L")
         if not data:
             return "目前沒有營益分析查詢彙總表資料。"
 
         def get_sort_key(item):
-            value = item.get(order_by, "")
-            if order_by not in TEXT_SORT_FIELDS:
+            value = item.get(sort_field, "")
+            if sort_field not in TEXT_SORT_FIELDS:
                 try:
                     return float(value) if value and value != "N/A" else float('-inf')
                 except (ValueError, TypeError):
@@ -96,7 +97,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         sort_indicator = "↑" if order_direction == "asc" else "↓"
         span = f"{paged.span()}，" if paged.span() else ""
-        result = f"共有 {paged.total} 筆營益分析資料 ({span}依 {order_by} {sort_indicator} 排序)：\n\n"
+        result = f"共有 {paged.total} 筆營益分析資料 ({span}依 {sort_field} {sort_indicator} 排序)：\n\n"
 
         for item in paged.rows:
             year = item.get("年度", "N/A")

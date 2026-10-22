@@ -8,12 +8,13 @@ h=前一營業日淨值 ("未結出" before it is struck), i=資料日期, j=資
 numbers or strings depending on the issuer, so everything goes through _num.
 """
 
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
 from utils.parse import float_or_none
-from toolkit import bounded, handle_api_errors
+from pydantic import Field
+from toolkit import handle_api_errors
 
 MIS_ALL_ETF_URL = "https://mis.twse.com.tw/stock/data/all_etf.txt"
 # Issuers refresh the estimated NAV every ~15 s during trading hours.
@@ -73,7 +74,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_etf_daily_nav(code: str = "", sort_by: SortBy = "scale", limit: bounded(1, MAX_LIST) = 30) -> str:
+    def get_etf_daily_nav(code: str = "", sort_by: SortBy = "scale", limit: Annotated[int, Field(ge=1, le=MAX_LIST)] = 30) -> str:
         """查詢 ETF 當日已發行單位數（較前日增減＝淨申購／買回）、預估淨值、折溢價與規模，
         涵蓋所有投信、上市與上櫃（含債券 ETF、期貨 ETF）。盤中為投信即時預估淨值（約 15 秒更新），
         收盤後為當日最終數字。可用來檢查是否溢價過高、哪些 ETF 正大量申購或買回。

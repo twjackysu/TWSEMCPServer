@@ -1,12 +1,12 @@
 """Find columns by the names an endpoint publishes (its ``fields``), not by position."""
 
-from typing import Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 from utils.errors import UpstreamFormatError
 
 
-def column_index(fields: Sequence[str], required: Sequence[str], source: str) -> Dict[str, int]:
-    """Position of each ``required`` column in ``fields``; raises if any is missing.
+def column_index(fields: Optional[Sequence[str]], required: Sequence[str], source: str) -> Dict[str, int]:
+    """Position of each ``required`` column in ``fields``; raises if any is missing (or ``fields`` is).
 
     TWSE's rwd / exchangeReport replies list their column names in ``fields``. Looking columns up
     by name keeps a gateway working when columns are added or reordered, and makes a rename fail

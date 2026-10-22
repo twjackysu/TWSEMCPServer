@@ -11,7 +11,7 @@ The columns changed twice; every layout is read by name:
 - 19 fields (since 2017-12-18): 外資 split into 外陸資(不含外資自營商) and 外資自營商
 """
 
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
 from utils.errors import UpstreamFormatError
@@ -50,9 +50,11 @@ def t86_flows(client: TWSEAPIClient, select_type: str = "ALLBUT0999", date: str 
     if resp.get("stat") != "OK":
         return None
     rows = resp.get("data") or []
-    parse = _row_parser(resp.get("fields")) if rows else None
-    return FlowDay(date=str(resp.get("date") or ""), title=str(resp.get("title") or ""),
-                   flows=[parse(r) for r in rows])
+    flows = []
+    if rows:
+        parse = _row_parser(resp.get("fields"))
+        flows = [parse(r) for r in rows]
+    return FlowDay(date=str(resp.get("date") or ""), title=str(resp.get("title") or ""), flows=flows)
 
 
 def _row_parser(published_fields) -> Callable[[List[str]], InstitutionalFlow]:
@@ -69,13 +71,17 @@ def _row_parser(published_fields) -> Callable[[List[str]], InstitutionalFlow]:
         if len(r) != len(fields):
             raise UpstreamFormatError(f"T86 資料列有 {len(r)} 欄，欄位有 {len(fields)} 個：{r}")
 
+        def counts(group) -> Tuple[int, int, int]:
+            buy, sell, net = (shares(r[col[name]], SOURCE, name) for name in group)
+            return buy, sell, net
+
         def trades(group) -> Trades:
-            return Trades(*(shares(r[col[name]], SOURCE, name) for name in group))
+            return Trades(*counts(group))
 
         if split_foreign:
-            ex_dealer, foreign_dealer = trades(FOREIGN_EX_DEALER), trades(FOREIGN_DEALER)
-            foreign = Trades(ex_dealer.buy + foreign_dealer.buy, ex_dealer.sell + foreign_dealer.sell,
-                             ex_dealer.net + foreign_dealer.net)
+            (eb, es, en), (fb, fs, fn) = counts(FOREIGN_EX_DEALER), counts(FOREIGN_DEALER)
+            ex_dealer, foreign_dealer = Trades(eb, es, en), Trades(fb, fs, fn)
+            foreign = Trades(eb + fb, es + fs, en + fn)
         else:
             ex_dealer = foreign_dealer = None
             foreign = trades(FOREIGN)
