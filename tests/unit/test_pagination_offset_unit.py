@@ -18,6 +18,7 @@ import tools.history.short_sale_lending as short_sale_lending
 from tests.unit.test_bfiauu_gateway_unit import reply as bfiauu_reply
 from tests.unit.test_mi_qfiis_gateway_unit import reply as mi_qfiis_reply
 from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
+from tests.unit.test_twtasu_gateway_unit import reply as twtasu_reply
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
 import tools.otc.odd_lot as otc_odd_lot
@@ -39,11 +40,6 @@ class _StubClient:
 
     def fetch_data(self, endpoint, timeout=None):
         return self._payload
-
-
-def _legacy(rows):
-    """TWSE legacy JSON 端點的回傳形狀."""
-    return {"stat": "OK", "data": rows}
 
 
 # 每支工具的最小可用 payload：欄位數要足夠讓 in-range 的那一頁也能正常排版。
@@ -78,7 +74,7 @@ CASES = [
         short_sale_lending,
         "get_short_sale_lending_trades_history",
         {"date": TRADING_DATE},
-        _legacy([SHORT_SALE_TRADES_ROW]),
+        twtasu_reply([SHORT_SALE_TRADES_ROW]),
     ),
     (
         block_trades_detail,

@@ -7,6 +7,7 @@ import pytest
 
 from sources.twse.bfiauu import BFIAUU_URL, block_trades
 from sources.twse.twt93u import TWT93U_URL, short_sale_lending_balances
+from sources.twse.twtasu import TWTASU_URL, short_lending_sales
 from tests.helpers import fetch_or_skip, gateway_or_skip
 from utils.constants import SUMMARY_ROW_LABELS
 
@@ -88,30 +89,20 @@ class TestShortSaleLendingGateway:
         assert result["data"][-1][1].strip() in SUMMARY_ROW_LABELS, f"末列不再是彙總列: {result['data'][-1]}"
 
 
-class TestShortSaleLendingTradesHistoryAPI:
-    """當日融券賣出與借券賣出成交量值 - TWTASU
-    Tool get_short_sale_lending_trades_history 使用 row[0]~row[4]：
-    證券名稱(含代號，以空白分隔)、融券賣出數量、融券賣出金額、借券賣出數量、借券賣出金額。
+class TestShortLendingSalesGateway:
+    """當日融券賣出與借券賣出成交量值 - TWTASU（sources/twse/twtasu.py）
+    get_short_sale_lending_trades_history 只透過這個 gateway 讀；欄位依 groups 的組名＋欄名取，groups 或欄位
+    改了 gateway 丟 UpstreamFormatError。證券名稱欄是「代號 名稱」，gateway 以空白拆開。
     """
 
-    def test_row_has_5_columns_and_code_embedded_in_name(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 5, f"欄位數不為 5，row 結構可能已變更: {data[0]}"
-        tsmc = next((r for r in data if r[0].split(None, 1)[0] == FIXED_STOCK), None)
-        assert tsmc is not None, f"{FIXED_STOCK} 不在資料中，row[0] 的代號+名稱格式可能已變更"
+    def test_fixed_day_parses(self):
+        day = gateway_or_skip(short_lending_sales, FIXED_DATE)
+        assert day is not None and day.sales, "固定歷史交易日應有資料"
+        s = next((s for s in day.sales if s.code == FIXED_STOCK), None)
+        assert s is not None and s.name, f"找不到 {FIXED_STOCK}，證券名稱欄的「代號 名稱」格式可能已變更"
+        assert None not in (s.short_volume, s.short_value, s.lending_volume, s.lending_value), f"數字格式已變更：{s}"
 
-    def test_last_row_is_summary(self):
-        """tool 以 row[0] split 後的第一段濾掉末列「合計」."""
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result["data"][-1][0].split(None, 1)[0] in SUMMARY_ROW_LABELS, (
-            f"末列不再是彙總列: {result['data'][-1]}"
-        )
+    def test_last_row_is_the_total(self):
+        """gateway 以證券名稱欄拆出的第一段「合計」濾掉末列；標籤改了，合計就會被當成一支股票."""
+        result = fetch_or_skip(TWTASU_URL, params={"response": "json", "date": FIXED_DATE})
+        assert result["data"][-1][0].split(None, 1)[0] in SUMMARY_ROW_LABELS, f"末列不再是彙總列: {result['data'][-1]}"

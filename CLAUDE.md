@@ -58,7 +58,7 @@ services/                     # Data the tools need, assembled from gateways + p
 ├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
 └── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date, per market) and industry membership
 sources/                      # Gateways: one module per upstream endpoint, typed records out (uses utils/ only)
-├── columns.py                # column_index(): find columns by published field name, raise if one is gone
+├── columns.py                # column_index(): find columns by published field name, raise if one is gone; qualified_fields(): "group/name" from TWSE groups
 ├── caching.py                # month_cache_ttl() (past months 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
 ├── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
@@ -67,6 +67,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── institutional.py          # InstitutionalFlow / Trades / FlowDay: the 三大法人 record both markets' gateways return
 ├── twse/t86.py               # T86 → t86_flows() (all three historical column layouts, by name)
 ├── twse/twt93u.py            # TWT93U → short_sale_lending_balances() (columns by group/name; 借券賣出 layout until 2012-03-16 kept as published)
+├── twse/twtasu.py            # TWTASU → short_lending_sales() ShortLendingSaleDay (columns by group/name; 代號 and 名稱 split from one cell; 合計 left out)
 ├── twse/bfiauu.py            # BFIAUU → block_trades() BlockTradeDay (交割期別 until 2011-12-16; 總計 row left out)
 ├── twse/twtb4u.py            # TWTB4U → day_trading() DayTradingReport (tables found by fields; list only before the evening publication)
 ├── twse/mi_qfiis.py          # MI_QFIIS → foreign_holdings() ForeignHoldingDay (外資 names until 2009-04-30, 外資及陸資 after; ratios are JSON numbers)

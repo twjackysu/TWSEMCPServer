@@ -18,6 +18,7 @@ from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tests.unit.test_bfiauu_gateway_unit import reply as bfiauu_reply
 from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
+from tests.unit.test_twtasu_gateway_unit import reply as twtasu_reply
 import tools.history.block_trades_detail as block_trades_detail
 import tools.history.short_sale_lending as short_sale_lending
 import tools.realtime.stock_info as stock_info
@@ -25,10 +26,6 @@ import tools.realtime.stock_info as stock_info
 pytestmark = pytest.mark.offline
 
 TRADING_DATE = "20250102"
-
-
-def _ok(rows):
-    return {"stat": "OK", "data": rows}
 
 
 BFIAUU = bfiauu_reply([
@@ -43,7 +40,7 @@ TWT93U = twt93u_reply([
     ["", "合計"] + ["300"] * 12 + [""],
 ])
 
-TWTASU = _ok([
+TWTASU = twtasu_reply([
     ["2330   台積電", "1", "2", "3", "4"],
     ["2317   鴻海", "5", "6", "7", "8"],
     ["合計", "6", "8", "10", "12"],

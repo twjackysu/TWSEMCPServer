@@ -1,8 +1,25 @@
 """Find columns by the names an endpoint publishes (its ``fields``), not by position."""
 
-from typing import Dict, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from utils.errors import UpstreamFormatError
+
+
+def qualified_fields(fields: Sequence[Any], groups: Sequence[Dict[str, Any]], source: str) -> List[str]:
+    """Each column's name prefixed with its group title ("融券/前日餘額"); untitled groups keep the bare name.
+
+    TWSE replies whose groups repeat a field name (TWT93U's 前日餘額, TWTASU's 數量 / 金額) list the groups
+    in ``groups`` as ``{"title", "span"}`` covering ``fields`` left to right.
+    """
+    spans = [int(g.get("span") or 0) for g in groups]
+    if sum(spans) != len(fields):
+        raise UpstreamFormatError(f"{source} groups 與 fields 對不上：{list(groups)} / {list(fields)}")
+    names, i = [], 0
+    for g, span in zip(groups, spans, strict=True):
+        title = str(g.get("title") or "").strip()
+        names += [f"{title}/{str(f).strip()}" if title else str(f).strip() for f in fields[i:i + span]]
+        i += span
+    return names
 
 
 def column_index(fields: Optional[Sequence[str]], required: Sequence[str], source: str) -> Dict[str, int]:
