@@ -12,6 +12,7 @@ import pytest
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_mi_margn_gateway_unit import reply as mi_margn_reply
 import tools.trading.warrants as warrants
 import tools.history.margin_balance as margin_balance
 import tools.history.bwibbu_all as bwibbu_all
@@ -88,9 +89,8 @@ def test_warrant_pagination_advances(warrant_tools):
 
 @pytest.fixture
 def margin_tools():
-    fields = ["代號", "名稱"] + [f"欄位{k}" for k in range(14)]
-    rows = [[f"{1000 + i}", f"股票{i}"] + ["1,234,567"] * 14 for i in range(ROWS)]
-    resp = {"stat": "OK", "tables": [{"data": []}, {"fields": fields, "data": rows}]}
+    rows = [[f"{1000 + i}", f"股票{i}"] + ["1,234,567"] * 13 + [" "] for i in range(ROWS)]
+    resp = mi_margn_reply(rows, totals=[])
     return register_module_tools(margin_balance, OfflineClient({"/exchangeReport/MI_MARGN": resp}))
 
 

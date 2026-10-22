@@ -62,6 +62,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── caching.py                # month_cache_ttl() (past months 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
 ├── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
 ├── twse/stock_day_avg.py     # STOCK_DAY_AVG → monthly_closes() MonthlyCloses (月平均收盤價 row printed without separators)
+├── twse/mi_margn.py          # MI_MARGN → margin_balances() MarginDay (信用交易統計 + per-stock 融資/融券 by group/name; 註記 kept padded)
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
 ├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
 ├── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
@@ -248,7 +249,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
 ### External API Notes
 
-- **TWSE exchangeReport** (`tools/history/`): Legacy JSON endpoints returning `{"stat": "OK", "data": [...]}`. Dates in ROC format — use `utils/date_helper.py` for conversion. `MI_MARGN` uses `tables` array instead of `data`.
+- **TWSE exchangeReport** (`tools/history/`): Legacy JSON endpoints returning `{"stat": "OK", "data": [...]}`. Dates in ROC format — use `utils/date_helper.py` for conversion. `MI_MARGN` uses `tables` array instead of `data` (read through `sources/twse/mi_margn.py`, which finds the two tables by their fields).
 - **TWSE OpenAPI listing endpoints** (`tools/company/listing.py`): field names don't say what they hold — read the swagger descriptions. In `/company/newlisting` and `/company/applylistingLocal` the listing date (股票上市買賣日期) is `ApprovedListingDate`; `ListingDate` there is 證期局核准上市契約日期 and nearly always blank. In `/company/applylistingForeign` `ListingDate` is the listing date. `/company/applylistingLocal` serves its rows shifted against their keys (a leading 序號 column, no 核准契約 column): `normalize_local_application` repairs a row when a company name sits under `ApplicationDate`. Both are checked against live data in `tests/contract/test_listing_api.py` (the listing date against the stock's first STOCK_DAY trading day).
 - **MIS** (`tools/realtime/`): Single-letter field names (`z`=price, `c`=code, `ex`=market type). Use `tse_` prefix for listed stocks, `otc_` for OTC; tool auto-retries with `otc_` if `tse_` returns no data.
 - **TPEx** (`tools/otc/`): Standard REST JSON. Swagger spec at `tpex.org.tw/openapi/swagger.json`. Field names use English (e.g. `SecuritiesCompanyCode`).

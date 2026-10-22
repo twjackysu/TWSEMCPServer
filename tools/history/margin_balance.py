@@ -3,15 +3,16 @@
 Replaces the OpenAPI /exchangeReport/MI_MARGN tool (get_margin_trading_info): it only
 served the latest day and on 2026-09-29 carried the same stocks and values as this
 endpoint's per-stock table, without the market-wide 信用交易統計 table.
+Read through the MI_MARGN gateway (``sources.twse.mi_margn``).
 """
 
 from datetime import datetime, timedelta
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page
+from sources.twse.mi_margn import DETAIL_FIELDS, margin_balances
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, printed
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
 
-MI_MARGN_URL = "https://www.twse.com.tw/exchangeReport/MI_MARGN"
 MAX_RETRY_DAYS = 7
 
 
@@ -38,48 +39,31 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         if not date:
             # 不帶 date 時上游直接回最新交易日
-            resp = _client.fetch_json(MI_MARGN_URL, params={"response": "json", "selectType": "ALL"})
-            if not resp or resp.get("stat") != "OK":
+            day = margin_balances(_client)
+            if day is None:
                 return "查無最新交易日的融資融券資料"
-            actual_date = resp.get("date") or "最新交易日"
+            actual_date = day.date or "最新交易日"
         else:
             current_date = datetime.strptime(date, "%Y%m%d")
-
-            resp = None
-            actual_date = date
             for _ in range(MAX_RETRY_DAYS):
                 actual_date = current_date.strftime("%Y%m%d")
-                resp = _client.fetch_json(
-                    MI_MARGN_URL,
-                    params={"response": "json", "date": actual_date, "selectType": "ALL"},
-                )
-                if resp and resp.get("stat") == "OK":
+                day = margin_balances(_client, actual_date)
+                if day is not None:
                     break
                 current_date -= timedelta(days=1)
             else:
                 return f"查無 {date} 前後的融資融券資料"
 
-        # MI_MARGN uses "tables" structure:
-        #   tables[0] = market-wide 信用交易統計 (融資(交易單位), 融券(交易單位), 融資金額(仟元))
-        #   tables[1] = per-stock detail (個股明細)
-        tables = resp.get("tables", [])
-        if len(tables) < 2:
-            return f"查無 {actual_date} 的融資融券資料"
-
-        per_stock = tables[1]
-        data = per_stock.get("data", [])
-        fields = per_stock.get("fields", [])
-
+        data = day.balances
         if not data:
             return f"查無 {actual_date} 的融資融券資料"
 
-        # Filter by stock_no / name if specified (columns 0 and 1 are code and name)
         if stock_no:
-            data = [row for row in data if len(row) > 0 and row[0].strip() == stock_no.strip()]
+            data = [b for b in data if b.code == stock_no.strip()]
             if not data:
                 return f"查無股票代號 {stock_no} 在 {actual_date} 的融資融券資料"
         if name:
-            data = [row for row in data if len(row) > 1 and name in row[1]]
+            data = [b for b in data if name in b.name]
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {actual_date} 的融資融券資料"
 
@@ -91,19 +75,20 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         span = f"，{paged.span()}" if paged.span() else ""
         lines = [f"【融資融券餘額 - {actual_date}】{date_note}（共 {paged.total} 筆{span}）\n"]
 
-        summary_rows = tables[0].get("data") or []
-        if summary_rows and not stock_no and not name:
-            # row: 項目,買進,賣出,現金(券)償還,前日餘額,今日餘額
+        if day.totals and not stock_no and not name:
             lines.append("全市場信用交易統計（買進/賣出/償還/前日餘額/今日餘額）:")
-            for row in summary_rows:
-                lines.append("  " + " | ".join(str(cell) for cell in row))
+            for t in day.totals:
+                lines.append("  " + " | ".join([t.item] + [printed(v) for v in (t.buy, t.sell, t.repaid, t.previous, t.today)]))
             lines.append("")
 
-        if fields:
-            lines.append("欄位: " + " | ".join(fields) + "\n")
+        # 欄位名稱照證交所公布的寫法（融資、融券各有一組買進…次一營業日限額）
+        lines.append("欄位: " + " | ".join(name.split("/")[-1] for name in DETAIL_FIELDS) + "\n")
 
-        for row in paged.rows:
-            lines.append(" | ".join(str(cell) for cell in row))
+        for b in paged.rows:
+            figures = [b.margin.buy, b.margin.sell, b.margin.repaid, b.margin.previous, b.margin.today,
+                       b.margin.next_day_limit, b.short.buy, b.short.sell, b.short.repaid, b.short.previous,
+                       b.short.today, b.short.next_day_limit, b.offset]
+            lines.append(" | ".join([b.code, b.name] + [printed(v) for v in figures] + [b.note]))
 
         if paged.more():
             lines.append("\n" + paged.more())

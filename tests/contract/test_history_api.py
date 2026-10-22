@@ -4,9 +4,10 @@
 """
 
 from sources.twse.bwibbu_d import valuation_ratios
+from sources.twse.mi_margn import margin_balances
 from sources.twse.stock_day import stock_day_month
 from sources.twse.stock_day_avg import monthly_closes
-from tests.helpers import fetch_or_skip, gateway_or_skip
+from tests.helpers import gateway_or_skip
 
 # Use a fixed historical trading day to ensure data stability
 FIXED_DATE = "20250103"
@@ -54,21 +55,24 @@ class TestBwibbuDailyGateway:
         )
 
 
-class TestMarginBalanceAPI:
-    """融資融券 - MI_MARGN
-    Tool get_margin_balance 使用 tables[1] 作為個股明細，row[0] 作為股票代號篩選。
+class TestMarginBalanceGateway:
+    """融資融券 - MI_MARGN（sources/twse/mi_margn.py）
+    get_margin_balance 只透過這個 gateway 讀；兩張表依欄位找，個股欄位依 groups 的組名＋欄名取（融資、融券欄名
+    相同），欄位或 groups 改了 gateway 丟 UpstreamFormatError。
     """
 
-    def test_tables_structure(self):
-        """tables[1] 需存在且含資料列."""
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/exchangeReport/MI_MARGN",
-            params={"response": "json", "date": FIXED_DATE, "selectType": "ALL"},
-        )
-        assert result.get("stat") == "OK"
-        tables = result.get("tables", [])
-        assert len(tables) >= 2, "MI_MARGN 應至少含 2 個 table，tables[1] 為個股明細"
-        assert len(tables[1].get("data", [])) > 0
+    def test_fixed_day_parses(self):
+        day = gateway_or_skip(margin_balances, FIXED_DATE)
+        assert day is not None and day.balances and day.totals, "固定歷史交易日應有資料"
+        t = day.totals[0]
+        assert None not in (t.buy, t.sell, t.repaid, t.previous, t.today), f"信用交易統計的數字格式已變更：{t}"
+        b = next((b for b in day.balances if b.code == FIXED_STOCK), None)
+        assert b is not None, f"找不到 {FIXED_STOCK}"
+        assert None not in (b.margin.today, b.margin.next_day_limit, b.short.today, b.offset), f"數字格式已變更：{b}"
+
+    def test_non_trading_day_has_no_data(self):
+        """指定日期非交易日時，工具靠 gateway 回 None 往前一天找."""
+        assert gateway_or_skip(margin_balances, "20250105") is None
 
 
 class TestStockMonthlyAverageGateway:
