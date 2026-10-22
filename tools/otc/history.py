@@ -10,14 +10,14 @@ import re
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
+from utils import TWSEAPIClient, format_list_response, printed, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, RequiredTradingDate, TradingDate, handle_api_errors
-from utils.date_helper import slash_date
+from utils.date_helper import roc_date, slash_date
 from utils.institutional import SIDES, SORT_LABELS, Investor, Side, rank
 from sources.tpex.insti_daily import tpex_flows
+from sources.tpex.trading_stock import trading_stock_month
 
 TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
-TRADING_STOCK_URL = f"{TPEX_WWW}/afterTrading/tradingStock"
 # insti/dailyTrade sect: EW 不含權證、牛熊證；EE 上櫃 ETF；AL 所有證券；或兩碼產業代碼
 OTC_SECTS = {"": "EW", "stock": "EW", "etf": "EE", "all": "AL"}  # stock = EW minus 00-prefixed ETFs
 MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
@@ -65,22 +65,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             code: 上櫃股票代號，例如 "6488"
             date: 該月任一天，格式 西元 YYYYMMDD，例如 "20260801"（會回傳 2026 年 8 月整月）
         """
-        tpex_date = slash_date(date)
-        resp = _client.fetch_json(
-            TRADING_STOCK_URL, params={"code": code.strip(), "date": tpex_date, "response": "json"}
-        )
-        table = first_table(resp)
-        rows = table.get("data") or []
-        if not rows:
+        month = trading_stock_month(_client, code.strip(), int(date[:4]), int(date[4:6]))
+        if month is None:
             return f"查無上櫃股票 {code} 在 {date[:6]} 的成交資料（請確認為上櫃股票代號，上市股票請用 get_stock_history）"
 
-        name = resp.get("name", "")
-        lines = [f"【{code} {name} 上櫃個股日成交資訊 {date[:4]}-{date[4:6]}】（共 {len(rows)} 個交易日）"]
-        for r in rows:
-            # r: 日期(民國),成交張數,成交仟元,開盤,最高,最低,收盤,漲跌,筆數
+        lines = [f"【{code} {month.name} 上櫃個股日成交資訊 {date[:4]}-{date[4:6]}】（共 {len(month.rows)} 個交易日）"]
+        for r in month.rows:
             lines.append(
-                f"{r[0]} | 開:{r[3]} 高:{r[4]} 低:{r[5]} 收:{r[6]} 漲跌:{r[7]} | "
-                f"量:{r[1]}張 值:{r[2]}仟元 筆數:{r[8]}"
+                f"{roc_date(f'{r.day:%Y%m%d}')} | 開:{printed(r.open)} 高:{printed(r.high)} 低:{printed(r.low)} "
+                f"收:{printed(r.close)} 漲跌:{r.change} | "
+                f"量:{printed(r.lots)}張 值:{printed(r.value_thousands)}仟元 筆數:{printed(r.transactions)}"
             )
         return "\n".join(lines)
 

@@ -1,8 +1,9 @@
 """Daily price series for one stock (listed or OTC) with optional ex-rights adjustment.
 
 Sources, one request per calendar month:
-- listed (TWSE): exchangeReport/STOCK_DAY — volume in shares
-- OTC (TPEx):    www/zh-tw/afterTrading/tradingStock — volume in lots (張), converted to shares
+- listed (TWSE): exchangeReport/STOCK_DAY (sources/twse/stock_day.py) — volume in shares
+- OTC (TPEx):    www/zh-tw/afterTrading/tradingStock (sources/tpex/trading_stock.py) — volume in lots (張),
+  converted to shares
 Ex-rights/dividend results (one request for the whole span):
 - listed: rwd/zh/exRight/TWT49U   - OTC: www/zh-tw/bulletin/exDailyQ
 Both give 除權息前收盤價 and 除權息參考價; the ratio reference/close-before is the factor by
@@ -16,11 +17,11 @@ from typing import List, Optional, Tuple
 from utils.api_client import TWSEAPIClient
 from utils.date_helper import parse_roc_date, taipei_today
 from utils.parse import float_or_none
-from sources.caching import PAST_MONTH_CACHE_TTL, month_cache_ttl
+from sources.caching import PAST_MONTH_CACHE_TTL
+from sources.tpex.trading_stock import trading_stock_month
 from sources.twse.stock_day import stock_day_month
 from sources.twse.twt49u import exright_results
 
-TPEX_TRADING_STOCK_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
 TPEX_EXRIGHT_URL = "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ"
 
 LISTED, OTC = "上市", "上櫃"
@@ -69,19 +70,12 @@ def _listed_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Opt
 
 
 def _otc_month(client: TWSEAPIClient, code: str, y: int, m: int) -> Tuple[Optional[str], List[Bar]]:
-    resp = client.fetch_json(
-        TPEX_TRADING_STOCK_URL, params={"code": code, "date": f"{y}/{m:02d}/01", "response": "json"},
-        cache_ttl=month_cache_ttl(y, m),
-    )
-    tables = (resp or {}).get("tables") or []
-    rows = (tables[0].get("data") if tables else None) or []
-    bars = []
-    for r in rows:
-        # r: 日期,成交張數,成交仟元,開盤,最高,最低,收盤,漲跌,筆數
-        d = parse_roc_date(r[0])
-        if d:
-            bars.append(Bar(d, float_or_none(r[3]), float_or_none(r[4]), float_or_none(r[5]), float_or_none(r[6]), (float_or_none(r[1]) or 0.0) * 1000))
-    return (resp or {}).get("name") or None, bars
+    month = trading_stock_month(client, code, y, m)
+    if month is None:
+        return None, []
+    bars = [Bar(r.day, float_or_none(r.open), float_or_none(r.high), float_or_none(r.low), float_or_none(r.close), float(r.lots or 0) * 1000)
+            for r in month.rows]
+    return month.name or None, bars
 
 
 def fetch_daily_bars(client: TWSEAPIClient, code: str, months: List[Tuple[int, int]]) -> Tuple[Optional[str], str, List[Bar]]:
