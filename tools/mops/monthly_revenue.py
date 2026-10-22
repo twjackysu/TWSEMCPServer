@@ -92,7 +92,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors(use_code_param=True)
     def get_company_monthly_revenue(code: str, start_month: str = "", end_month: str = "") -> str:
         """查詢公司月營收（公開資訊觀測站）：預設最新公告月份，也可查任意過去月份區間。
-        上市、上櫃、興櫃、公開發行公司皆可。每月含當月營收、月增率、去年同期、年增率、
+        上市、上櫃、興櫃、公開發行公司皆可。每月含當月營收、月增率（MoM）、去年同期、年增率（YoY）、
         今年累計與累計年增率，以及公司對大幅變動的說明。
 
         回傳：每個月份的營收數據（單位：新台幣仟元）。尚未公告的月份會標示「尚未公告」

@@ -137,7 +137,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
                            pe_min: float = 0, pe_max: float = 0, pb_max: float = 0, yield_min: float = 0,
                            sort_by: SortBy = "yield", limit: bounded(1, MAX_ROWS) = 30,
                            offset: Offset = 0) -> ToolResult:
-        """依估值條件篩選上市／上櫃股票（最新交易日）：本益比區間、股價淨值比上限、殖利率下限，
+        """依估值條件篩選（選股）上市／上櫃股票（最新交易日）：本益比區間、股價淨值比上限、殖利率下限，
         可限定產業。條件填 0 代表不設限；設定本益比條件時，本益比為空（虧損）的公司會被排除。
 
         回傳：符合條件的股票代號、名稱、市場、收盤價、漲跌幅、本益比、股價淨值比、殖利率

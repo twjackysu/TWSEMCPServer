@@ -33,7 +33,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_put_call_ratio(start_date: TradingDate = "", end_date: TradingDate = "") -> str:
-        """查詢台指選擇權 Put/Call Ratio，衡量市場恐慌與樂觀程度的情緒指標：預設近 30 天，
+        """查詢台指選擇權 Put/Call Ratio（PCR、賣買權比），衡量市場多空情緒（恐慌與樂觀程度）的指標：預設近 30 天，
         也可指定任意過去區間。PCR > 1.5 通常視為過度悲觀，< 0.5 通常視為過度樂觀。
 
         回傳：每個交易日的成交量 PCR、未平倉量 PCR，以及 put/call 各自的成交量與未平倉量

@@ -134,7 +134,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool(output_schema=output_schema(AdjustedPriceHistory))
     @handle_api_errors(use_code_param=True)
     def get_adjusted_price_history(code: str, start_month: str = "", end_month: str = "") -> ToolResult:
-        """查詢上市或上櫃股票的「還原權息」日K：把除權息造成的價格缺口還原，才能正確比較長期漲跌與報酬。
+        """查詢上市或上櫃股票的「還原權息」日K（還原股價）：把除權息造成的價格缺口還原，才能正確比較長期漲跌與報酬。
         以證交所／櫃買中心公告的除權息參考價計算還原因子（參考價÷除權息前收盤價），往前回溯調整。
 
         回傳：每個交易日的還原開高低收、原始收盤價、成交量（股），以及期間內套用的除權息事件與還原因子

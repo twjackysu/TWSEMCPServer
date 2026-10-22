@@ -52,8 +52,9 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      自營商自行／避險），統一會改變輸出，另議。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
 - [ ] Phase 3 來源層 + 領域層
-- [ ] Phase 4 MCP 介面（進行中：#109 output_schema、#127 server instructions、#129 annotations／tags、
-  #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出；下一步搜尋式工具清單）
+- [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
+  #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
+  搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
 - [ ] Phase 5 打包
 
 ## 結論
@@ -289,11 +290,35 @@ def get_twse_institutional_investors_summary(
     測試把兩邊綁在一起。
   - server instructions 開頭只列開著的來源（`tools.SOURCES` 改存簡稱，預設輸出與之前逐字相同）。
   - 打錯來源名稱、或全部排除，server 直接啟動失敗，不默默藏掉工具。
-- 177 個 tool 吃 context：評估 `RegexSearchTransform`（`list_tools` 只剩 `search_tools` + `call_tool`，
-  需要時再搜）。**不要用 `BM25SearchTransform`**：它的 tokenizer（`[^\W_]{2,}`）不切中文，整段中文描述
-  變成一個詞，實測「外資 買超 排行 上市」排第一的是期貨月統計；regex `外資.*買超` 則正確找到三支三大法人
-  tool。要 BM25 就得自訂 `BaseSearchTransform`，用中文 bigram 斷詞。先確認主要 client 能好好用
-  `call_tool` 代理再上線。
+- ✅ 177 個 tool 吃 context：評估 `RegexSearchTransform`（`list_tools` 只剩 `search_tools` + `call_tool`，
+  需要時再搜）後**不採用**，改由 client 端搜尋（2026-10-22）。**不要用 `BM25SearchTransform`**：它的 tokenizer
+  （`[^\W_]{2,}`）不切中文，整段中文描述變成一個詞，實測「外資 買超 排行 上市」排第一的是期貨月統計。
+  - 主要 client 是 JackyAIApp（Anthropic Messages API + MCP connector + Haiku 5.5，連 Horizon 上的公開 server）。
+    Anthropic API 本身就有 tool search，以 8 題中文問題、和 JackyAIApp 相同的請求參數實測：
+    | 設定 | 正確 | 每題 context tokens | 每題費用 |
+    |---|---|---|---|
+    | 全部 177 支載入（現況） | 8/8 | ~133K（工具定義每次模型呼叫 ~53K） | $0.0088 |
+    | API `tool_search_tool_regex_20251119` + `mcp_toolset.default_config.defer_loading`，5 支常用不延遲、system prompt 一句提示 | 8/8 | ~21K | $0.0018 |
+    | 同上但不釘選、不提示 | 8/8，一次沒產出答案 | ~26K | $0.0028 |
+    | API `tool_search_tool_bm25_20251119` | 6/8（中文查詢多半搜不到） | ~28K | $0.0033 |
+
+    tool search 不另外計費。JackyAIApp 的修改由該 repo 處理。
+  - server 端的 transform 不採用的原因：公開 server 的 tools/list 會對所有使用者變成兩支工具；`search_tools`／
+    `call_tool` 沒有 annotations，177 支工具的唯讀標記對 client 消失，Claude Code 允許一次 `call_tool` 就放行全部；
+    多一層代理呼叫，搜尋結果是 JSON 文字而不是原生工具定義；regex 只取前 5 筆、不排序（離線「成分股|持股」就漏掉
+    `get_etf_holdings`）；Claude Code 本身也會延遲載入 MCP 工具，等於搜兩次。經 `call_tool` 的呼叫仍受 #132 的大小
+    上限與 #130 的來源過濾約束，若日後有不支援 tool search 的 client，可再做成預設關閉的選項。
+- ✅ 讓 client 端的搜尋找得到（#134）：Anthropic 的 regex tool search 在名稱、描述、參數名稱與說明裡 `re.search`，
+  **依 tools/list 順序**取前 5 筆（或模型給的 `limit`，多半是 10），不排序——實測的結果順序與 tools/list 完全一致。
+  所以一支工具找不找得到，取決於它的文字有沒有那個詞、以及前面有沒有一堆也匹配的工具。
+  - 用詞：補上使用者常講、而資料確實有的說法（PCR／賣買權比、台指期、分K、K線／歷史股價、選股、YoY、每股盈餘、
+    股東權益、自由現金流、質押、填息、量能、休市、公司資料…，22 個檔案 26 處）。常用工具的 242 個用詞中，描述裡
+    找不到的從 38 個降到 1（「日程」：資料寫的是日期，不補）。
+  - 順序：TWSE OpenAPI 轉發的 package（broker、company、market、other、trading，105 支，用詞籠統：持股、股利、
+    公司、指數）改排在手寫的工具之後（`tools.OPENAPI_PACKAGES`）。
+  - 離線模擬（`tests/unit/test_tool_search_unit.py`）：單一用詞搜尋時正確工具在前 10 名 200/242 → 234/242
+    （前 5 名 181 → 216）；實測中模型寫的寬鬆 pattern 前 5 名 12/20 → 15/20。測試守住：用詞都在工具文字裡、
+    50 個常見問法在前 10 名內、OpenAPI 轉發工具排最後。
 - ✅ 文字型 tool 設 `output_schema=None`（#109），`tools/call` 不再把同一份文字在 `structuredContent` 多回一次；
   ✅ screener、技術指標這類改回真的結構化資料（#133）：`tools/analytics` 4 支（選股、同業比較、還原日K、技術指標）
   `output_schema(Result)` ＋ `structured_reply(text, result)`（`toolkit/structured.py`）。
@@ -333,7 +358,7 @@ def get_twse_institutional_investors_summary(
 | `timeout=` 用在同步 tool | `anyio.fail_after` 取消不了 threadpool 裡的執行緒：等它做完才丟逾時錯誤（英文），結果作廢。實測 timeout=1 的 3 秒工具 3.2 秒才回 | 不用；時間上限用 `utils/deadline.time_budget`（#123） |
 | `-> str` 的 outputSchema | 每個 tool 自動 `{"result": string}`，回應同一份文字兩次；`output_schema=None` 可關 | Phase 4 |
 | 參數驗證 | 依 schema（`Literal`、`Field`）驗證，`additionalProperties: false`；docstring `Args:` → 參數說明。錯誤是 pydantic 英文；`on_call_tool` middleware 拿得到 `fastmcp.exceptions.ValidationError`（`__cause__.errors()` 是結構化資料），可統一改寫 | 已用（#125），中文改寫見 `toolkit/validation.py` |
-| Search transform | `RegexSearchTransform` 中文可用；`BM25SearchTransform` 不切中文 | Phase 4 |
+| Search transform | `RegexSearchTransform` 中文可用；`BM25SearchTransform` 不切中文 | 評估後不採用（client 端用 Anthropic tool search，#134） |
 | `Visibility` transform | 依 name / tags / version 開關 tool | Phase 4 |
 | `ResponseLimitingMiddleware` | 依位元組截斷 tool 回應 | Phase 4（保險） |
 | `RetryMiddleware` | 重跑整個 tool 呼叫，只認內建 `ConnectionError` / `TimeoutError`；`requests` 的例外不是它們的子類，而且已被 `handle_api_errors` 轉成 `ToolError` | 不用；上游重試放 HTTP 層（Phase 1） |

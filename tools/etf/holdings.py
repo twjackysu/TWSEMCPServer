@@ -72,7 +72,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_etf_holdings(code: str, period: str = "", quarterly: bool = False) -> str:
-        """查詢 ETF 成分股／持股明細（投信投顧公會「基金投資明細」，涵蓋所有投信、上市與上櫃）。
+        """查詢 ETF 成分股（constituents）／持股明細（投信投顧公會「基金投資明細」，涵蓋所有投信、上市與上櫃）。
         預設為每月前十大持股（2021-08 起，約次月第 10 個營業日公布上月資料）；
         quarterly=True 改為每季占基金淨資產 1% 以上的全部持股（2021-09 起）。
         每筆列出標的名稱、代號（台股代號或國外 ISIN）、上市／上櫃／國外等種類、占淨值比例與金額。

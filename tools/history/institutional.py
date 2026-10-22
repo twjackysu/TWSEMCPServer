@@ -104,7 +104,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_twse_institutional_investors_by_stock(stock_no: str, date: TradingDate = "") -> str:
-        """查詢單一上市股票（或 ETF、權證）某一天的三大法人買賣超完整明細（單位：股）：
+        """查詢上市個股（或 ETF、權證）某一天的三大法人買賣超完整明細（單位：股）：
         預設最新交易日，可查任意過去交易日。
         要找「哪些股票被法人買超／賣超最多」請用 get_twse_institutional_investors_summary；
         上櫃股票請用 get_otc_institutional(stock_no=...)。

@@ -56,7 +56,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_company_board_shareholdings(code: str, year: str = "", month: str = "") -> str:
-        """查詢公司董事、監察人、經理人及大股東的持股與設質明細（公開資訊觀測站）：預設最新月份，
+        """查詢公司董事、監察人、經理人及大股東的持股與設質（質押）明細（公開資訊觀測站）：預設最新月份，
         也可查過去月份。上市、上櫃、興櫃、公發公司皆可。附各類董監持股合計與設質比例。
 
         回傳：每位內部人的職稱、姓名、選任時持股、目前持股、設質股數與比例，

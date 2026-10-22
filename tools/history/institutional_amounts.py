@@ -30,7 +30,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_market_institutional_amounts_history(date: TradingDate = "", period: Period = "day") -> str:
-        """查詢上市市場「整體」三大法人（外資及陸資、投信、自營商）的買進、賣出與買賣超金額（市場層級總額，
+        """查詢上市市場「整體」三大法人（外資及陸資、投信、自營商）的買賣金額：買進、賣出與買賣超金額（市場層級總額，
         不是個股）：預設最新交易日，可查任意過去交易日，也可查整週或整月的累計金額。
         適合回答「外資今天／上週／這個月在上市市場總共買超或賣超多少錢」。
         個股的法人買賣超排行請用 get_twse_institutional_investors_summary；單一個股明細請用

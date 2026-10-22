@@ -49,8 +49,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_exright_results_history(start_date: RequiredTradingDate, end_date: RequiredTradingDate, stock_no: str = "",
                                     limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
         """查詢上市股票「已除權息」的計算結果歷史：除權息前收盤價、參考價、權值+息值。
-        與 get_dividend_rights_schedule（未來除權息預告）不同，這是實際除權息當日的結果，
-        可用來還原權息股價、計算填權息。資料自民國 92 年起。
+        與 get_dividend_rights_schedule（未來除權息預告）不同，這是實際除權、除息當日的結果，
+        可用來還原權息股價、計算填權息（填息）。資料自民國 92 年起。
 
         回傳：每筆除權息的日期、代號、名稱、除權息前收盤價、除權息參考價、權值+息值、權/息、
         漲跌停價、開盤競價基準、減除股利參考價、最近一季每股淨值與每股盈餘

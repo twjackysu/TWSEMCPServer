@@ -157,8 +157,21 @@ class ToolRegistrar:
         return self._mcp.tool(fn, **kwargs)
 
 
+# Registration order is the tools/list order, and a client's regex tool search returns its matches in that
+# order: Anthropic's takes the first 5 (or the model's `limit`) matching tools in catalog order, unranked.
+# These packages are the TWSE OpenAPI pass-through tools (company governance and ESG, brokers, warrants,
+# lists): more than half the catalog, worded broadly (持股、股利、公司、指數), and rarely what a question is
+# after. Registered last, they no longer push the hand-written tools out of the first results.
+OPENAPI_PACKAGES = ("tools.broker", "tools.company", "tools.market", "tools.other", "tools.trading")
+
+
+def _is_openapi_module(module_path: str) -> bool:
+    return any(module_path == p or module_path.startswith(p + ".") for p in OPENAPI_PACKAGES)
+
+
 def discover_tool_modules() -> List[str]:
-    """Dotted names of every tool module: ``tools/*.py`` and ``tools/<package>/*.py``, sorted."""
+    """Dotted names of every tool module (``tools/*.py`` and ``tools/<package>/*.py``) in registration order:
+    sorted, with the OpenAPI pass-through packages (``OPENAPI_PACKAGES``) after the rest."""
     tools_package = Path(__file__).parent.resolve()  # Use absolute path
     logger.info(f"Scanning tools in: {tools_package}")
 
@@ -171,7 +184,7 @@ def discover_tool_modules() -> List[str]:
         for sub_info in pkgutil.iter_modules([str(subpackage_path)]):
             if not sub_info.ispkg:
                 modules.append(f"tools.{module_info.name}.{sub_info.name}")
-    return sorted(modules)
+    return sorted(modules, key=lambda m: (_is_openapi_module(m), m))
 
 
 def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None) -> RegisteredTools:
@@ -204,5 +217,5 @@ def register_all_tools(mcp: "FastMCP", client: Optional["TWSEAPIClient"] = None)
     return registered
 
 
-__all__ = ['READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'RegisteredTools', 'ToolRegistrar', 'discover_tool_modules',
+__all__ = ['OPENAPI_PACKAGES', 'READ_ONLY', 'SOURCES', 'SOURCE_TAGS', 'RegisteredTools', 'ToolRegistrar', 'discover_tool_modules',
            'enabled_sources', 'register_all_tools', 'show_only_sources', 'source_tags']

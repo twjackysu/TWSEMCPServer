@@ -83,7 +83,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         附去年同季與年初至今累計的比較欄位。
 
         回傳：每個會計項目在「當季、去年同季、今年累計、去年累計」的金額與占營收百分比，
-        含營收、毛利、營業利益、稅後淨利、EPS 等
+        含營收（營業收入）、毛利、營業利益、稅後淨利、EPS（每股盈餘）等
 
         Args:
             code: 股票代號，例如 "2330"
@@ -99,7 +99,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         上市、上櫃、興櫃、公開發行公司皆可，自動採用該公司產業的報表格式。
         附前一年底與去年同期的比較欄位。
 
-        回傳：每個會計項目（流動資產、負債、權益等）在各比較日期的金額與占總資產百分比
+        回傳：每個會計項目（流動資產、負債、權益（股東權益）等）在各比較日期的金額與占總資產百分比
 
         Args:
             code: 股票代號，例如 "2330"
@@ -115,7 +115,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         金額為年初至該季末的累計數，並附去年同期累計比較。
 
         回傳：營業、投資、籌資活動現金流量各項目，含折舊攤銷、資本支出（取得不動產廠房及設備）、
-        發放現金股利、期末現金餘額等
+        發放現金股利、期末現金餘額等（營業活動現金流量減資本支出即自由現金流）
 
         Args:
             code: 股票代號，例如 "2330"
