@@ -400,6 +400,10 @@ from tools.otc import daily_close as otc_daily_close  # noqa: E402
 from tools.otc import valuation_holdings as otc_valuation_holdings  # noqa: E402
 
 
+OTC_QUOTE_FIELDS = ["代號", "名稱", "收盤 ", "漲跌", "開盤 ", "最高 ", "最低", "成交股數  ", " 成交金額(元)", " 成交筆數 ",
+                    "最後買價", "最後買量<br>(張數)", "最後賣價", "最後賣量<br>(張數)", "發行股數 ", "次日漲停價 ", "次日跌停價"]
+
+
 def _quote_row(code, name):
     return [code, name, "10", "+1", "9", "11", "9", "1,000", "10,000", "5", "10", "1", "10.1", "1", "100", "11", "9"]
 
@@ -412,7 +416,7 @@ def test_otc_daily_by_date_uses_stock_list_then_falls_back_to_all_securities():
         rows = [_quote_row("6488", "環球晶")]
         if params["type"] == "AL":
             rows.append(_quote_row("713046", "宜特凱基63購02"))
-        return {"date": "20260929", "tables": [{"data": rows}]}
+        return {"date": "20260929", "tables": [{"fields": OTC_QUOTE_FIELDS, "data": rows}]}
 
     fn = register_module_tools(otc_daily_close, OfflineClient({"/afterTrading/otc": route}))["get_otc_daily"]
     assert "6488 環球晶" in fn("20260929", stock_no="6488") and seen == ["EW"]

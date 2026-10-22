@@ -9,18 +9,14 @@ larger) and has 均價 and 次日參考價, while the website's afterTrading/otc
 
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, format_list_response
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, Page, format_list_response, printed
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from .history import TPEX_WWW, date_params, filter_rows, first_table, resp_date
+from sources.tpex.daily_quotes import ALL_SECURITIES, STOCKS_AND_ETFS, OtcQuoteDay, otc_daily_quotes
 
 TPEX_DAILY_CLOSE_URL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
-OTC_QUOTES_URL = f"{TPEX_WWW}/afterTrading/otc"
-# type=EW is stocks and ETFs (~1,000 rows); type=AL adds ~10,700 warrants (~1.5 MB), which
-# TPEx cut off mid-transfer on 1 of 5 test downloads. EW first, AL only when a requested
-# code isn't in it (i.e. a warrant).
-TYPE_STOCKS, TYPE_ALL = "EW", "AL"
-# A past trading day's quotes never change.
-PAST_QUOTES_CACHE_TTL = 600
+# A past date reads the website's afterTrading/otc (sources/tpex/daily_quotes.py): stocks and ETFs
+# (~1,000 rows) first; every security (~10,700 more warrants, ~1.5 MB, which TPEx cut off
+# mid-transfer on 1 of 5 test downloads) only when a requested code isn't there (a warrant).
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -86,31 +82,26 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         if not date.strip():
             return _latest(stock_no, name, limit, offset)
 
-        params = date_params(date)
-        def fetch(security_type):
-            resp = _client.fetch_json(
-                OTC_QUOTES_URL, params={**params, "type": security_type, "response": "json"},
-                cache_ttl=PAST_QUOTES_CACHE_TTL,
-            )
-            return resp, first_table(resp).get("data") or []
-
-        resp, rows = fetch(TYPE_STOCKS)
-        if not rows:
+        stock_no = stock_no.strip()
+        day = otc_daily_quotes(_client, date, STOCKS_AND_ETFS)
+        if day is None:
             return f"查無 {date} 的上櫃收盤行情，請確認該日期為交易日（非假日或週末）"
         scope = "股票及 ETF"
-        if stock_no and not filter_rows(rows, stock_no, ""):
-            resp, rows = fetch(TYPE_ALL)
+        if stock_no and not any(q.code == stock_no for q in day.quotes):
+            day = otc_daily_quotes(_client, date, ALL_SECURITIES) or OtcQuoteDay(date="", group="", quotes=[])
             scope = "含權證等全部證券"
-        rows = filter_rows(rows, stock_no, name)
+        quotes = [q for q in day.quotes if (not stock_no or q.code == stock_no) and (not name or name in q.name)]
 
-        def fmt(r):
-            # r: 代號,名稱,收盤,漲跌,開盤,最高,最低,成交股數,成交金額(元),成交筆數,最後買價,最後買量,
-            #    最後賣價,最後賣量,發行股數,次日漲停價,次日跌停價
+        def price(value):
+            return printed(value, blank="----")  # how TPEx marks a price without a trade
+
+        def fmt(q):
             return (
-                f"{r[0]} {r[1]} | 收: {r[2]} | 漲跌: {r[3]} | 開: {r[4]} | 高: {r[5]} | 低: {r[6]} | "
-                f"量: {r[7]} | 金額: {r[8]} | 筆數: {r[9]} | 最後買/賣: {r[10]}/{r[12]}\n"
+                f"{q.code} {q.name} | 收: {price(q.close)} | 漲跌: {q.change} | 開: {price(q.open)} | "
+                f"高: {price(q.high)} | 低: {price(q.low)} | 量: {printed(q.volume)} | 金額: {printed(q.value)} | "
+                f"筆數: {printed(q.transactions)} | 最後買/賣: {price(q.last_bid)}/{price(q.last_ask)}\n"
             )
 
         return format_list_response(
-            rows, f" {resp_date(resp, date)} 上櫃{scope}收盤行情（成交量值不含定價交易）", fmt, limit, offset
+            quotes, f" {day.date or date} 上櫃{scope}收盤行情（成交量值不含定價交易）", fmt, limit, offset
         )

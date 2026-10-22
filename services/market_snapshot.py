@@ -6,11 +6,11 @@ Sources (latest trading day, each one request, cached):
                      gateway: sources/twse/bwibbu_d.py)
 - listed prices:     TWSE rwd MI_INDEX ALLBUT0999 每日收盤行情 (gateway: sources/twse/mi_index.py)
 - OTC valuation:     TPEx afterTrading/peQryDate
-- OTC prices:        TPEx afterTrading/otc type=EW
+- OTC prices:        TPEx afterTrading/otc type=EW (gateway: sources/tpex/daily_quotes.py)
 - industry of a stock: TWSE OpenAPI t187ap03_L 產業別 / TPEx OpenAPI mopsfin_t187ap03_O
   SecuritiesIndustryCode — both use the same two-digit codes (e.g. 24 = 半導體)
 - industry members:  MI_INDEX type=<code> (its quote table's title names the industry) /
-  afterTrading/otc type=<code>
+  afterTrading/otc type=<code> (its table's category names it)
 
 The valuation endpoints publish a day later than the quote endpoints (on 2026-09-30 during
 the evening both valuations still showed 09-29 while quotes showed 09-30), so prices are
@@ -22,13 +22,12 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
-from utils.date_helper import slash_date
 from utils.parse import float_or_none
+from sources.tpex.daily_quotes import STOCKS_AND_ETFS, otc_daily_quotes
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 
 TPEX_PE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate"
-TPEX_QUOTES_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc"
 TPEX_PROFILE_URL = "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O"
 LISTED_PROFILE_ENDPOINT = "/opendata/t187ap03_L"
 
@@ -82,14 +81,11 @@ def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
         # r: 股票代號,公司名稱,本益比,每股股利,股利年度,殖利率(%),股價淨值比,財報年/季
         out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), OTC, pe=float_or_none(r[2]), dividend_year=str(r[4]),
                                           dividend_yield=float_or_none(r[5]), pb=float_or_none(r[6]), fiscal=str(r[7]))
-    params = {"response": "json", "type": "EW"}
-    if len(day) == 8:
-        params["date"] = slash_date(day)
-    quotes = client.fetch_json(TPEX_QUOTES_URL, params=params, cache_ttl=SNAPSHOT_CACHE_TTL)
-    for r in ((quotes or {}).get("tables") or [{}])[0].get("data") or []:
-        # r: 代號,名稱,收盤,漲跌(帶正負號),開盤,最高,最低,成交股數,...
-        s = out.setdefault(r[0].strip(), StockSnapshot(r[0].strip(), r[1].strip(), OTC))
-        s.close, s.change, s.volume = float_or_none(r[2]), float_or_none(r[3]), float_or_none(r[7])
+    quotes = otc_daily_quotes(client, day if len(day) == 8 else "", STOCKS_AND_ETFS)
+    for q in quotes.quotes if quotes else []:
+        s = out.setdefault(q.code, StockSnapshot(q.code, q.name, OTC))
+        # 漲跌 is signed ("+0.23"); "---" / "除息" on a day without a trade
+        s.close, s.change, s.volume = float_or_none(q.close), float_or_none(q.change), float_or_none(q.volume)
     return out, day
 
 
@@ -129,8 +125,8 @@ def industry_members(client: TWSEAPIClient, industry: str) -> Tuple[str, List[st
     listed = stock_quotes(client, industry)
     if listed:
         name, codes = listed.group, [q.code for q in listed.quotes]
-    otc = client.fetch_json(TPEX_QUOTES_URL, params={"response": "json", "type": industry}, cache_ttl=SNAPSHOT_CACHE_TTL)
-    table = ((otc or {}).get("tables") or [{}])[0]
-    codes += [r[0].strip() for r in table.get("data") or []]
-    name = name or str(table.get("category") or "")
+    otc = otc_daily_quotes(client, "", industry)
+    if otc:
+        codes += [q.code for q in otc.quotes]
+        name = name or otc.group
     return name, codes

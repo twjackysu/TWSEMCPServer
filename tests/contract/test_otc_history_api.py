@@ -1,13 +1,14 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
-tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade
-and tradingStock go through their gateways (sources/tpex/), which check their fields themselves.
+tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade,
+tradingStock and afterTrading/otc go through their gateways (sources/tpex/), which check their fields themselves.
 """
 
 from decimal import Decimal
 
 import pytest
 
+from sources.tpex.daily_quotes import otc_daily_quotes
 from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
 from sources.tpex.trading_stock import trading_stock_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
@@ -92,23 +93,22 @@ def test_omitting_date_returns_latest_day():
         _first_table(resp)
 
 
-class TestOTCQuotesByDateAPI:
-    """afterTrading/otc：get_otc_daily 帶 date 時使用 row[0]~row[12]；預設 type=EW（股票及 ETF），
-    查不到指定代號時改用 type=AL（含權證）。兩種 type 的欄位相同，這裡以較小的 EW 驗證欄位。"""
+class TestOTCDailyQuotesGateway:
+    """上櫃每日收盤行情 - afterTrading/otc（sources/tpex/daily_quotes.py）
+    get_otc_daily（帶 date）與 services/market_snapshot 都只透過這個 gateway 讀；真實回應要能建出 OtcQuoteDay。
+    2020-04-30 起多了「最後買量」「最後賣量」，最後賣價從第 12 欄移到第 13 欄，所以改版前後各驗一天。"""
 
-    def test_fields_and_stock_scope(self):
-        table = _first_table(fetch_or_skip(
-            "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc",
-            params={"date": FIXED_DATE, "type": "EW", "response": "json"},
-        ))
-        fields = [f.replace("<br>", "").strip() for f in table.get("fields") or []]
-        # row[11] 最後買量的單位標籤隨年份不同（千股／張數），tool 不讀它，故不比對
-        assert fields[:11] + fields[12:13] == [
-            "代號", "名稱", "收盤", "漲跌", "開盤", "最高", "最低", "成交股數", "成交金額(元)", "成交筆數",
-            "最後買價", "最後賣價",
-        ], f"欄位已變更: {fields}"
-        rows = table.get("data") or []
-        assert any(r[0] == FIXED_OTC_STOCK for r in rows), "type=EW 不再包含上櫃股票"
+    @pytest.mark.parametrize("day", ["20180102", FIXED_DATE.replace("/", "")])
+    def test_fixed_day_reads_last_ask_by_name(self, day):
+        quotes = gateway_or_skip(otc_daily_quotes, day)
+        assert quotes is not None and quotes.date == day, f"{day} 應有資料"
+        assert any(q.code == FIXED_OTC_STOCK for q in quotes.quotes), "type=EW 不再包含上櫃股票"
+        traded = [q for q in quotes.quotes if q.close and q.last_bid and q.last_ask]
+        assert traded, "沒有任何有成交且有最後買賣價的股票"
+        for q in traded:
+            # 最後買價 ≤ 最後賣價，且賣價在收盤 ±10% 內（這兩天全部成立）：讀到發行股數之類的別欄就會失敗
+            assert q.last_bid <= q.last_ask <= q.close * Decimal("1.1") + Decimal("0.01"), q
+            assert q.last_ask >= q.close * Decimal("0.9") - Decimal("0.01"), q
 
 
 class TestOTCValuationByDateAPI:
