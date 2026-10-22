@@ -68,7 +68,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      |---|---|---|
      | TPEx afterTrading/otc（`get_otc_daily` 帶日期） | 2020-04-30 起多最後買量／賣量 | 最後賣價印成發行股數（#139 修好） |
      | TWSE TWT93U（融券借券餘額） | 2012-03-19 起借券 5 欄改 6 欄 | 借券的還券、調整、餘額、限額整排錯位（#140 修好） |
-     | TPEx peQryDate（`get_otc_valuation` 帶日期） | 2025-01-02 起多「財報年/季」 | 2025 年以前一律查詢失敗 |
+     | TPEx peQryDate（`get_otc_valuation` 帶日期） | 2025-01-02 起多「財報年/季」 | 2025 年以前一律查詢失敗（#141 修好） |
      | TWSE BFIAUU（鉅額交易明細） | 2011-12-19 起拿掉「交割期別」 | 2011-12-16 以前查詢失敗 |
      | TPEx insti/summary（上櫃法人買賣金額） | 欄位沒變，有些日子多一列 `[]` | 那些日子查詢失敗 |
 
@@ -88,9 +88,13 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      意義不同，舊日期照證交所當時的欄名輸出，工具說明也註明。合計列由 gateway 去掉。contract test 逐列檢查餘額等式
      （融券 今日＝前日＋賣出−買進−現券；借券 當日＝前日＋當日賣出−當日還券＋當日調整，舊格式 今日＝前日＋賣出＋庫存異動），
      2010–2025 抽樣 6 天全部成立。15 組呼叫：2012-03-19 起的整天輸出與 main 逐字相同，2012-03-16 以前只差借券那一行。
+   - ✅ TPEx peQryDate（#141）：`sources/tpex/pe_qry_date.py`；`get_otc_valuation` 與 `market_snapshot`（上櫃估值）共用。
+     依欄名讀，「財報年/季」（2025-01-02 起才有）沒有時是空字串，工具就不印「（財報 …）」，2010–2024 的日期從查詢失敗
+     變成有資料。數字沒有千分位（本益比 `11125.00`）、缺值是 `N/A`、每股股利 8 位小數，工具以 `f"{d:f}"` 輸出、None 印 `N/A`。
+     18 組呼叫：2025-01-02 起的整天估值、選股 3 組、同業比較 2 組（含結構化資料）與 main 逐字相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#140；下一個：TPEx peQryDate（也被 market_snapshot
-  解析）、TWSE BFIAUU、TPEx insti/summary，之後是格式沒變過的端點）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#141；下一個：TWSE BFIAUU、TPEx insti/summary，
+  之後是格式沒變過的端點）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

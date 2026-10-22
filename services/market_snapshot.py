@@ -5,8 +5,8 @@ Sources (latest trading day, each one request, cached):
 - listed valuation:  TWSE rwd BWIBBU_d        (收盤價, 殖利率, 股利年度, 本益比, 股價淨值比, 財報年/季;
                      gateway: sources/twse/bwibbu_d.py)
 - listed prices:     TWSE rwd MI_INDEX ALLBUT0999 每日收盤行情 (gateway: sources/twse/mi_index.py)
-- OTC valuation:     TPEx afterTrading/peQryDate
-- OTC prices:        TPEx afterTrading/otc type=EW (gateway: sources/tpex/daily_quotes.py)
+- OTC valuation:     TPEx afterTrading/peQryDate (gateway: sources/tpex/pe_qry_date.py)
+- OTC prices:       TPEx afterTrading/otc type=EW (gateway: sources/tpex/daily_quotes.py)
 - industry of a stock: TWSE OpenAPI t187ap03_L 產業別 / TPEx OpenAPI mopsfin_t187ap03_O
   SecuritiesIndustryCode — both use the same two-digit codes (e.g. 24 = 半導體)
 - industry members:  MI_INDEX type=<code> (its quote table's title names the industry) /
@@ -24,10 +24,10 @@ from typing import Dict, List, Optional, Tuple
 from utils.api_client import TWSEAPIClient
 from utils.parse import float_or_none
 from sources.tpex.daily_quotes import STOCKS_AND_ETFS, otc_daily_quotes
+from sources.tpex.pe_qry_date import otc_valuation_ratios
 from sources.twse.bwibbu_d import valuation_ratios
 from sources.twse.mi_index import stock_quotes
 
-TPEX_PE_URL = "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate"
 TPEX_PROFILE_URL = "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O"
 LISTED_PROFILE_ENDPOINT = "/opendata/t187ap03_L"
 
@@ -75,12 +75,11 @@ def _listed(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
 
 def _otc(client: TWSEAPIClient) -> Tuple[Dict[str, StockSnapshot], str]:
     out: Dict[str, StockSnapshot] = {}
-    val = client.fetch_json(TPEX_PE_URL, params={"response": "json"}, cache_ttl=SNAPSHOT_CACHE_TTL)
-    day = str((val or {}).get("date") or "")
-    for r in ((val or {}).get("tables") or [{}])[0].get("data") or []:
-        # r: 股票代號,公司名稱,本益比,每股股利,股利年度,殖利率(%),股價淨值比,財報年/季
-        out[r[0].strip()] = StockSnapshot(r[0].strip(), r[1].strip(), OTC, pe=float_or_none(r[2]), dividend_year=str(r[4]),
-                                          dividend_yield=float_or_none(r[5]), pb=float_or_none(r[6]), fiscal=str(r[7]))
+    report = otc_valuation_ratios(client)
+    day = report.date
+    for v in report.valuations:
+        out[v.code] = StockSnapshot(v.code, v.name, OTC, pe=float_or_none(v.pe), dividend_year=v.dividend_year,
+                                    dividend_yield=float_or_none(v.dividend_yield), pb=float_or_none(v.pb), fiscal=v.fiscal)
     quotes = otc_daily_quotes(client, day if len(day) == 8 else "", STOCKS_AND_ETFS)
     for q in quotes.quotes if quotes else []:
         s = out.setdefault(q.code, StockSnapshot(q.code, q.name, OTC))
