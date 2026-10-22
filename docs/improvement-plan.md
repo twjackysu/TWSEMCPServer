@@ -198,11 +198,17 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      `sources/tdcc/levels.py` 的 `LevelHolding`（持股分級、人數、股數、占比 Decimal）。數字讀不出來改成報錯（舊版查詢頁
      會默默略過該列）。工具的級距與大戶／散戶加總改用 Decimal，輸出相同。14 組呼叫（最新一週 2330／0050／上櫃／興櫃／
      金控、代號前後空白、未知代號；逐週 2／3／4／5／13 週、週快取、未知代號）與 main 逐字相同，送出的請求也相同。
+   - ✅ 國發會 6099／6100、央行 BP01D01（#165）：`sources/ndc/indicators.py` 的 `business_cycle()`／`pmi()` 回 `MonthlyTable`
+     （Date 依名稱找、須是 YYYYMM，其餘欄照發布的欄名與值，"-" 與 "" 都是 None；燈號「黃藍 」的尾端空白去掉）；
+     `sources/cbc/exchange_rates.py` 的 `exchange_rates()` 回 `RateTable`（Table1 幣別、每日各幣別匯率 Decimal，"-" 為
+     None）。列寬與表頭或 Table1 不符、日期或匯率格式變了都報錯（舊版會截掉或略過）。下載內容不是 zip 也報明確的錯。
+     兩個工具只剩排版與篩選，匯率用 `plain()` 照發布的小數位印回。20 組呼叫（五張景氣表 60 個月、PMI、匯率預設／幣別／
+     區間／超過 120 天／1993 年／未知幣別／檔案以後的日期）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163；盤點出的格式問題都已修好，TWSE rwd／
-  exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway，MOPS 依位置讀的頁面也是（股利 t05st09_2 已依欄名讀、
-  背書保證 t05st11 原樣印出表格，沒有搬），TDCC 兩個來源也是；`tools/` 裡依位置讀的還有國發會與央行 CSV、
-  期交所 tick zip，以及 etf/info 在櫃買 ETF 清單比對代號）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163、#165；盤點出的格式問題都已修好，TWSE
+  rwd／exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway，MOPS 依位置讀的頁面也是（股利 t05st09_2 已依欄名讀、
+  背書保證 t05st11 原樣印出表格，沒有搬），TDCC、國發會、央行也是；`tools/` 裡依位置讀的只剩期交所 tick zip，
+  以及 etf/info 在櫃買 ETF 清單比對代號）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
