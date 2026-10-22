@@ -59,10 +59,12 @@ services/                     # Data the tools need, assembled from gateways + p
 └── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date, per market) and industry membership
 sources/                      # Gateways: one module per upstream endpoint, typed records out (uses utils/ only)
 ├── columns.py                # column_index(): find columns by published field name, raise if one is gone; qualified_fields(): "group/name" from TWSE groups
-├── caching.py                # month_cache_ttl() (past months 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
+├── caching.py                # month_cache_ttl() / year_cache_ttl() (past 1h / current 2 min), day_cache_ttl() (past days 1h / latest 10 min)
 ├── twse/stock_day.py         # STOCK_DAY → StockDayMonth / StockDayRow
 ├── twse/stock_day_avg.py     # STOCK_DAY_AVG → monthly_closes() MonthlyCloses (月平均收盤價 row printed without separators)
 ├── twse/mi_margn.py          # MI_MARGN → margin_balances() MarginDay (信用交易統計 + per-stock 融資/融券 by group/name; 註記 kept padded)
+├── twse/fmsrfk.py            # FMSRFK → monthly_trading() MonthlyTradingYear (one stock, one year by month)
+├── twse/fmnptk.py            # FMNPTK → yearly_trading() YearlyTrading list (each 日期 named after the price before it)
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
 ├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
 ├── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)

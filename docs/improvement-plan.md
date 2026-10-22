@@ -146,8 +146,13 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      dataclass 印回同樣的文字。2005–2026 格式相同。11 組呼叫（最新、非交易日往前找、2005／2014／2018／2021／2025、
      篩選、分頁）與 main 逐字相同，送出的請求也相同。證交所還有 FMTQIK、MI_5MINS_HIST、FMSRFK／FMNPTK、BFI82U 以拆包
      （`d, volume, … = row`）依位置讀。
+   - ✅ TWSE FMSRFK／FMNPTK（#154）：`sources/twse/fmsrfk.py` 的 `monthly_trading()`（個股某年逐月）與 `sources/twse/fmnptk.py`
+     的 `yearly_trading()`（個股歷年）。FMNPTK 的年度表有兩個「日期」又沒有 groups，各依前一欄命名為「最高價/日期」
+     「最低價/日期」，日期不再緊接在價格後面就報錯。年度、月份是 JSON 數字。新增 `year_cache_ttl()`（今年 2 分鐘、
+     過去年度 1 小時）。歷年工具的查詢日期改用 `taipei_today()`。12 組呼叫（逐月：今年、1999／2005／2010／2018／2025、
+     查無；歷年：2330、1101、0050、2317、查無）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#153；盤點出的格式問題都已修好，剩格式沒變過、
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#154；盤點出的格式問題都已修好，剩格式沒變過、
   只在一處依位置讀的端點：MOPS 其餘頁面、TWSE rwd、TPEx 網站）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；

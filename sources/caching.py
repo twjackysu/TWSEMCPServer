@@ -17,6 +17,11 @@ def month_cache_ttl(year: int, month: int) -> int:
     return CURRENT_MONTH_CACHE_TTL if (year, month) == (today.year, today.month) else PAST_MONTH_CACHE_TTL
 
 
+def year_cache_ttl(year: int) -> int:
+    """Cache lifetime for a reply covering one calendar year (Taiwan time); the current year grows every day."""
+    return CURRENT_MONTH_CACHE_TTL if year == taipei_today().year else PAST_MONTH_CACHE_TTL
+
+
 def day_cache_ttl(date: str) -> int:
     """Cache lifetime for a one-day report requested by YYYYMMDD; "" means the latest day."""
     if not date or date >= f"{taipei_today():%Y%m%d}":

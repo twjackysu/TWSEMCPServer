@@ -2,17 +2,17 @@
 
 Replaces the OpenAPI /exchangeReport/FMSRFK_ALL and FMNPTK_ALL tools: per stock they only
 gave the latest month / year, whose values on 2026-09-29 equalled this endpoint's rows for
-that month / year; these endpoints return the whole year / all years.
+that month / year; these endpoints return the whole year / all years. Read through the
+FMSRFK / FMNPTK gateways (``sources.twse.fmsrfk`` / ``sources.twse.fmnptk``).
 """
 
-from datetime import datetime
 from typing import Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient
+from sources.twse.fmnptk import yearly_trading
+from sources.twse.fmsrfk import monthly_trading
+from utils import TWSEAPIClient, printed
+from utils.date_helper import taipei_today
 from toolkit import TradingDate, handle_api_errors
-
-FMSRFK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMSRFK"
-FMNPTK_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/FMNPTK"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -31,26 +31,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             stock_no: 股票代號，例如 "2330"（台積電）
             date: 任意日期 西元 YYYYMMDD，僅年份有效，例如 "20250101" 查民國114年整年（留空＝今年）
         """
-        params = {"response": "json", "stockNo": stock_no}
-        if date:
-            params["date"] = date
-        resp = _client.fetch_json(FMSRFK_URL, params=params)
-
-        if not resp or resp.get("stat") != "OK":
+        year = monthly_trading(_client, stock_no, date)
+        if year is None:
             return f"查無股票代號 {stock_no} 的月成交資訊，請確認代號是否正確"
-
-        data = resp.get("data", [])
-        if not data:
+        if not year.months:
             return f"查無股票代號 {stock_no} 的月成交資訊"
 
-        title = resp.get("title", f"{stock_no} 月成交資訊")
-        lines = [f"【{title}】\n"]
-        for row in data:
-            # row: 年度,月份,最高價,最低價,加權(A/B)平均價,成交筆數,成交金額(A),成交股數(B),週轉率(%)
-            year, month, high, low, avg, tx, value, volume, turnover = row
+        lines = [f"【{year.title or f'{stock_no} 月成交資訊'}】\n"]
+        for m in year.months:
             lines.append(
-                f"{year}/{int(month):02d} | 最高:{high} 最低:{low} 加權均價:{avg} | "
-                f"量:{volume} 金額:{value} 筆數:{tx} | 週轉率:{turnover}%"
+                f"{m.year}/{m.month:02d} | 最高:{printed(m.high)} 最低:{printed(m.low)} 加權均價:{printed(m.average)} | "
+                f"量:{printed(m.volume)} 金額:{printed(m.value)} 筆數:{printed(m.transactions)} | "
+                f"週轉率:{printed(m.turnover)}%"
             )
 
         return "\n".join(lines)
@@ -71,27 +63,18 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         # 凍結在當初寫程式的年份：跨年之後最新年度會從結果中默默消失（輸出格式完全正常，
         # 只是少一列）。此工具不收日期參數——查的就是「到今天為止的歷年」——所以每次呼叫
         # 都以當天日期查詢。
-        resp = _client.fetch_json(
-            FMNPTK_URL,
-            params={"response": "json", "date": datetime.now().strftime("%Y%m%d"), "stockNo": stock_no},
-        )
-
-        if not resp or resp.get("stat") != "OK":
+        years = yearly_trading(_client, stock_no, f"{taipei_today():%Y%m%d}")
+        if years is None:
             return f"查無股票代號 {stock_no} 的歷年成交資訊，請確認代號是否正確"
-
-        tables = resp.get("tables", [])
-        yearly_table = tables[0] if tables else None
-        data = yearly_table.get("data") if yearly_table else None
-        if not data:
+        if not years:
             return f"查無股票代號 {stock_no} 的歷年成交資訊"
 
-        lines = [f"【{stock_no} 歷年成交資訊】（共 {len(data)} 年）\n"]
-        for row in data:
-            # row: 年度,成交股數,成交金額,成交筆數,最高價,日期(最高),最低價,日期(最低),收盤平均價
-            year, volume, value, tx, high, high_date, low, low_date, avg_close = row
+        lines = [f"【{stock_no} 歷年成交資訊】（共 {len(years)} 年）\n"]
+        for y in years:
             lines.append(
-                f"{year}年 | 最高:{high}（{high_date}） 最低:{low}（{low_date}） 收盤均價:{avg_close} | "
-                f"量:{volume} 金額:{value} 筆數:{tx}"
+                f"{y.year}年 | 最高:{printed(y.high)}（{y.high_date}） 最低:{printed(y.low)}（{y.low_date}） "
+                f"收盤均價:{printed(y.average_close)} | "
+                f"量:{printed(y.volume)} 金額:{printed(y.value)} 筆數:{printed(y.transactions)}"
             )
 
         return "\n".join(lines)
