@@ -3,7 +3,7 @@
 The tpex.org.tw/openapi equivalents only return the latest trading day and fewer columns.
 The website's own endpoints (``/www/zh-tw/...?response=json``) return the latest day when
 ``date`` is omitted and accept any past date otherwise, giving OTC stocks the same history
-coverage TWSE stocks get from tools/history/.
+coverage TWSE stocks get from tools/history/. Each is read through its gateway in sources/tpex/.
 """
 
 import re
@@ -12,40 +12,14 @@ from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient, format_list_response, printed, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, RequiredTradingDate, TradingDate, handle_api_errors
-from utils.date_helper import roc_date, slash_date
+from utils.date_helper import roc_date
 from utils.institutional import SIDES, SORT_LABELS, Investor, Side, rank
 from sources.tpex.insti_daily import tpex_flows
+from sources.tpex.margin_balance import otc_margin_balances
 from sources.tpex.trading_stock import trading_stock_month
 
-TPEX_WWW = "https://www.tpex.org.tw/www/zh-tw"
 # insti/dailyTrade sect: EW 不含權證、牛熊證；EE 上櫃 ETF；AL 所有證券；或兩碼產業代碼
 OTC_SECTS = {"": "EW", "stock": "EW", "etf": "EE", "all": "AL"}  # stock = EW minus 00-prefixed ETFs
-MARGIN_BALANCE_URL = f"{TPEX_WWW}/margin/balance"
-
-
-def date_params(date: str) -> dict:
-    """``{"date": "YYYY/MM/DD"}`` for a YYYYMMDD date, ``{}`` for "" (latest day)."""
-    return {"date": slash_date(date)} if date else {}
-
-
-def resp_date(resp, fallback: str) -> str:
-    """The trading date TPEx actually answered for (YYYYMMDD), for the output header."""
-    return str(resp.get("date") or fallback or "最新交易日") if isinstance(resp, dict) else fallback
-
-
-def first_table(resp) -> dict:
-    """TPEx wraps each result in ``tables``; the per-stock table is always the first."""
-    tables = resp.get("tables") if isinstance(resp, dict) else None
-    return tables[0] if tables and isinstance(tables[0], dict) else {}
-
-
-def filter_rows(rows: list, stock_no: str, name: str) -> list:
-    """Keep rows whose 代號 (col 0) equals stock_no and whose 名稱 (col 1) contains name."""
-    if stock_no:
-        rows = [r for r in rows if r[0].strip() == stock_no.strip()]
-    if name:
-        rows = [r for r in rows if name in r[1]]
-    return rows
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -150,31 +124,30 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = date_params(date)
-        resp = _client.fetch_json(MARGIN_BALANCE_URL, params={**params, "response": "json"})
-        table = first_table(resp)
-        rows = table.get("data") or []
-        if not rows:
+        report = otc_margin_balances(_client, date)
+        if not report.balances:
             return f"查無 {date or '最新交易日'} 的上櫃融資融券資料，請確認該日期為交易日（非假日或週末）"
-        day = resp_date(resp, date)
-        rows = filter_rows(rows, stock_no, name)
+        day = report.date or date or "最新交易日"
+        rows = [b for b in report.balances
+                if (not stock_no or b.code == stock_no.strip()) and (not name or name in b.name)]
 
-        def fmt(r):
-            # r: 代號,名稱,前資餘額,資買,資賣,現償,資餘額,資屬證金,資使用率,資限額,
-            #    前券餘額,券賣,券買,券償,券餘額,券屬證金,券使用率,券限額,資券相抵,備註
+        def fmt(b):
+            m, s = b.margin, b.short
             return (
-                f"{r[0]} {r[1]} | 融資: 前日{r[2]} 買{r[3]} 賣{r[4]} 現償{r[5]} 餘額{r[6]} 使用率{r[8]}% 限額{r[9]} | "
-                f"融券: 前日{r[10]} 賣{r[11]} 買{r[12]} 券償{r[13]} 餘額{r[14]} 使用率{r[16]}% | 資券相抵{r[18]}"
-                + (f" | 備註:{r[19]}" if len(r) > 19 and r[19].strip() else "")
+                f"{b.code} {b.name} | 融資: 前日{printed(m.previous)} 買{printed(m.buy)} 賣{printed(m.sell)} "
+                f"現償{printed(m.repaid)} 餘額{printed(m.balance)} 使用率{printed(m.usage)}% 限額{printed(m.limit)} | "
+                f"融券: 前日{printed(s.previous)} 賣{printed(s.sell)} 買{printed(s.buy)} 券償{printed(s.repaid)} "
+                f"餘額{printed(s.balance)} 使用率{printed(s.usage)}% | 資券相抵{printed(b.offset)}"
+                + (f" | 備註:{b.note}" if b.note else "")
                 + "\n"
             )
 
         body = format_list_response(rows, f" {day} 上櫃融資融券餘額（單位：張）", fmt, limit, offset)
-        # summary 列（合計張數、融資金額）不在 data 裡，只在未篩選個股時附上
-        summary = table.get("summary") or []
-        if summary and not stock_no and not name:
+        # 合計張數、融資金額（summary）只在未篩選個股時附上；融資金那列沒有券餘額
+        if report.totals and not stock_no and not name:
             body += "\n\n全市場合計: " + " / ".join(
-                f"{s[1]} 資餘額{s[6]} 券餘額{s[14]}" if s[14] else f"{s[1]} 資餘額{s[6]}"
-                for s in summary if len(s) > 14
+                f"{t.label} 資餘額{printed(t.margin_balance)}"
+                + (f" 券餘額{printed(t.short_balance)}" if t.short_balance is not None else "")
+                for t in report.totals
             )
         return body

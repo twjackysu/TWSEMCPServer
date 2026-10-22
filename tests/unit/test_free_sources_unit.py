@@ -78,21 +78,7 @@ def test_otc_empty_day_is_reported_as_non_trading_day():
     assert "請確認該日期為交易日" in fn("20260801")
 
 
-def _margin_row(code, name):
-    return [code, name, "10", "1", "2", "0", "9", "0", "0.5", "100", "3", "1", "0", "0", "4", "0", "0.1", "100", "0", ""]
-
-
-def test_otc_margin_summary_only_without_filters():
-    payload = {"tables": [{
-        "data": [_margin_row("6488", "環球晶"), _margin_row("3105", "穩懋")],
-        "summary": [["", "合計(張)", "", "", "", "", "999", "", "", "", "", "", "", "", "88", "", "", "", "", ""]],
-    }]}
-    fn = register_module_tools(otc_history, OfflineClient({"/margin/balance": payload}))["get_otc_margin_balance"]
-    assert "全市場合計: 合計(張) 資餘額999 券餘額88" in fn("20260803")
-    filtered = fn("20260803", stock_no="6488")
-    assert "全市場合計" not in filtered and "融資: 前日10 買1 賣2 現償0 餘額9" in filtered
-
-
+# ---------- TPEx margin / foreign holdings: test_tpex_margin_qfii_gateway_unit.py ----------
 # ---------- TWSE ex-rights / indices (day trading: test_twtb4u_gateway_unit.py) ----------
 
 IND_FIELDS = ["指數", "收盤指數", "漲跌(+/-)", "漲跌點數", "漲跌百分比(%)", "特殊處理註記"]
@@ -407,15 +393,6 @@ def test_otc_daily_latest_uses_openapi_with_average_price():
                 "TradingShares": "1", "TransactionAmount": "2", "TransactionNumber": "3"}]
     fn = register_module_tools(otc_daily_close, OfflineClient({"tpex_mainboard_daily_close_quotes": payload}))["get_otc_daily"]
     assert "均價: 946.19" in fn(stock_no="6488") and "漲跌: -3 |" in fn(stock_no="6488")
-
-
-def test_otc_foreign_holdings_filters_on_the_code_column_not_the_rank():
-    rows = [["1", "8455", "大拓-KY", "25", "3", "22", "12%", "87%", "100%", ""],
-            ["2", "6488", "環球晶", "50", "10", "40", "20%", "80%", "100%", ""]]
-    tools = register_module_tools(otc_valuation_holdings, OfflineClient({"/insti/qfii": {"date": "20260929", "tables": [{"data": rows}]}}))
-    text = tools["get_otc_foreign_holdings"](stock_no="6488")
-    assert "#2 6488 環球晶 | 外資持股比率:80%" in text and "8455" not in text
-    assert "查無符合條件" in tools["get_otc_foreign_holdings"](stock_no="1")
 
 
 def test_otc_valuation_shows_dividend_year_and_fiscal_quarter():
