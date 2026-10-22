@@ -16,6 +16,7 @@ import pytest
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
 import tools.history.block_trades_detail as block_trades_detail
 import tools.history.short_sale_lending as short_sale_lending
 import tools.realtime.stock_info as stock_info
@@ -35,7 +36,7 @@ BFIAUU = _ok([
     ["總計", "", "", "", "1,500,000", "1,100,000,000"],
 ])
 
-TWT93U = _ok([
+TWT93U = twt93u_reply([
     ["2330", "台積電"] + ["100"] * 12 + [""],
     ["2317", "鴻海"] + ["200"] * 12 + [""],
     ["", "合計"] + ["300"] * 12 + [""],

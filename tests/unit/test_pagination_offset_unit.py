@@ -15,6 +15,7 @@ import tools.history.block_trades_detail as block_trades_detail
 import tools.history.foreign_holdings_history as foreign_holdings_history
 import tools.history.institutional as institutional
 import tools.history.short_sale_lending as short_sale_lending
+from tests.unit.test_twt93u_gateway_unit import reply as twt93u_reply
 import tools.otc.daily_close as otc_daily_close
 import tools.otc.index as otc_index
 import tools.otc.odd_lot as otc_odd_lot
@@ -69,7 +70,7 @@ CASES = [
         short_sale_lending,
         "get_short_sale_lending_balance_history",
         {"date": TRADING_DATE},
-        _legacy([SHORT_SALE_BALANCE_ROW]),
+        twt93u_reply([SHORT_SALE_BALANCE_ROW]),
     ),
     (
         short_sale_lending,
