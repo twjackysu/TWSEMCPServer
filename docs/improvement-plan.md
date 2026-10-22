@@ -346,7 +346,9 @@ def get_twse_institutional_investors_summary(
   （`ghcr.io/astral-sh/uv:0.7.12`）把 `uv.lock` 的執行期依賴裝進 `/app/.venv`（`--frozen --no-dev`）；執行映像檔只有
   venv 與各 package，沒有 uv、Node.js、`staticFiles`，以 `app`（uid 10001）執行，程式碼屬於 root、唯讀。
   `server.py` 新增 `GET /health`（不碰上游，來源掛掉不會讓容器變 unhealthy）；HEALTHCHECK 在 HTTP 模式打它，
-  stdio 模式（`MCP_STDIO=1`）沒有 port 可測，直接回健康。
+  stdio 模式（`MCP_STDIO=1`）沒有 port 可測，直接回健康。實測（Docker 29.9.2）：映像檔 494 MB → 211 MB；
+  uid 0 → 10001；node／npm／uv／curl 都不在了；stdio 列出的工具／prompts／instructions 與本機逐字相同、實際
+  呼叫成功；HTTP 的 `/health` 回 `ok`，HEALTHCHECK 在 HTTP 與 stdio 模式都是 healthy。
 - ✅ 移除 `requirements*.txt` 與未用依賴（#135）：`httpx`（沒有任何 import）、`mcp[cli]` 的 cli extra（typer 等；
   `mcp` 本身保留，#129 起直接用 `mcp.types`）、dev 的 `pytest-mock`、`pytest-asyncio`（沒用到）；`server.py`
   直接 import 的 `starlette` 補宣告。`uv.lock` 只少了 7 個套件，其他版本不變。`requirements.txt` 原本可能是
