@@ -7,7 +7,7 @@ call to a handful of seconds under the client's rate limit.
 """
 
 from datetime import date
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
 from utils import TWSEAPIClient
@@ -22,19 +22,20 @@ MAX_MONTHS = 12
 CURRENT_MONTH_LABEL = "本月"
 
 
-def parse_month_range(start_month: str, end_month: str) -> Tuple[Optional[List[Tuple[int, int]]], Optional[str]]:
+def parse_month_range(start_month: str, end_month: str) -> Union[List[Tuple[int, int]], str]:
     """Expand "YYYYMM"～"YYYYMM" (western calendar) into [(year, month), ...].
 
-    Returns (months, None) or (None, error message).
+    Returns the months, or an error message.
     """
     try:
         sy, sm = int(start_month[:4]), int(start_month[4:6])
         ey, em = int(end_month[:4]), int(end_month[4:6])
         if len(start_month) != 6 or len(end_month) != 6:
             raise ValueError
-        date(sy, sm, 1), date(ey, em, 1)
+        date(sy, sm, 1)
+        date(ey, em, 1)
     except (ValueError, TypeError):
-        return None, "月份格式錯誤，請使用 YYYYMM（西元），例如 \"202601\""
+        return "月份格式錯誤，請使用 YYYYMM（西元），例如 \"202601\""
 
     months = []
     y, m = sy, sm
@@ -42,10 +43,10 @@ def parse_month_range(start_month: str, end_month: str) -> Tuple[Optional[List[T
         months.append((y, m))
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     if not months:
-        return None, "起始月份不可晚於結束月份"
+        return "起始月份不可晚於結束月份"
     if len(months) > MAX_MONTHS:
-        return None, f"查詢區間最多 {MAX_MONTHS} 個月（目前 {len(months)} 個月），請縮小範圍"
-    return months, None
+        return f"查詢區間最多 {MAX_MONTHS} 個月（目前 {len(months)} 個月），請縮小範圍"
+    return months
 
 
 def previous_month(y: int, m: int) -> Tuple[int, int]:
@@ -104,9 +105,9 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         """
         code = code.strip()
         if start_month.strip():
-            months, error = parse_month_range(start_month.strip(), (end_month or start_month).strip())
-            if error:
-                raise ToolError(error)
+            months = parse_month_range(start_month.strip(), (end_month or start_month).strip())
+            if isinstance(months, str):
+                raise ToolError(months)
             # 多抓區間前一個月，讓第一個月也有月增率
             results = {ym: _fetch(code, *ym) for ym in [previous_month(*months[0])] + months}
         else:

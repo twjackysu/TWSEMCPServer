@@ -117,8 +117,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         body, error = period_body(code.strip(), year.strip(), month.strip())
         if error:
             raise ToolError(error)
-        result = mops_post(_client, "query6_1", body)
-        rows = (result or {}).get("data") or []
+        result = mops_post(_client, "query6_1", body) or {}
+        rows = result.get("data") or []
         if not rows:
             return f"查無 {code} 的內部人持股異動資料（代號可能有誤，或該月份尚未申報）"
 

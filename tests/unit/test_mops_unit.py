@@ -129,9 +129,7 @@ def test_statement_tool_reports_unpublished_quarter():
 # ---------- monthly revenue ----------
 
 def test_month_range_crosses_year_boundary():
-    months, error = parse_month_range("202511", "202602")
-    assert error is None
-    assert months == [(2025, 11), (2025, 12), (2026, 1), (2026, 2)]
+    assert parse_month_range("202511", "202602") == [(2025, 11), (2025, 12), (2026, 1), (2026, 2)]
 
 
 @pytest.mark.parametrize("start,end,message", [
@@ -141,8 +139,8 @@ def test_month_range_crosses_year_boundary():
     ("202501", "202601", "最多 12 個月"),
 ])
 def test_month_range_rejections(start, end, message):
-    months, error = parse_month_range(start, end)
-    assert months is None and message in error
+    error = parse_month_range(start, end)
+    assert isinstance(error, str) and message in error
 
 
 REVENUE_BY_MONTH = {"7": "80", "8": "100"}

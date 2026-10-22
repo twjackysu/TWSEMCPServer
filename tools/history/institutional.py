@@ -131,14 +131,16 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
         title = day.title or f"{label} 三大法人買賣超日報"
         lines = [f"【{title}】", f"股票代號：{f.code}  股票名稱：{f.name}\n"]
-        if f.foreign_ex_dealer is not None:  # 外資自營商 reported separately (T86 since 2017-12-18)
+        # The split groups come in pairs: 外資自營商 reported separately since 2017-12-18, 自營商 split into
+        # 自行買賣 / 避險 since 2014-12-01 (sources/twse/t86.py).
+        if f.foreign_ex_dealer is not None and f.foreign_dealer is not None:
             lines += (_section("─── 外資及陸資（不含外資自營商）───", f.foreign_ex_dealer)
                       + _section("─── 外資自營商 ───", f.foreign_dealer))
         else:
             lines += _section("─── 外資 ───", f.foreign)
         lines += _section("─── 投信 ───", f.trust)
         lines.append("─── 自營商 ───")
-        if f.dealer_self is not None:
+        if f.dealer_self is not None and f.dealer_hedge is not None:
             for kind, t in (("自行買賣", f.dealer_self), ("避險", f.dealer_hedge)):
                 lines += [f"  {kind} 買進：{t.buy:,} 股", f"  {kind} 賣出：{t.sell:,} 股", f"  {kind} 買賣超：{t.net:,} 股"]
             lines.append(f"  合計買賣超：{f.dealer.net:,} 股")

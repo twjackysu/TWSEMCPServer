@@ -9,10 +9,11 @@ tests/contract/test_tdcc_macro_api.py fails if NDC ever re-points them.
 import csv
 import io
 import zipfile
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient
-from toolkit import bounded, handle_api_errors
+from pydantic import Field
+from toolkit import handle_api_errors
 
 # data.gov.tw/dataset/6099 景氣指標及燈號 (zip of CSVs, monthly since 1982)
 NDC_BUSINESS_CYCLE_ZIP_URL = (
@@ -68,7 +69,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_business_cycle_indicators(months: bounded(1, MAX_MONTHS) = 12, table: Table = "signal") -> str:
+    def get_business_cycle_indicators(months: Annotated[int, Field(ge=1, le=MAX_MONTHS)] = 12, table: Table = "signal") -> str:
         """查詢國發會景氣對策信號（景氣燈號）與景氣指標（領先指標、同時指標、落後指標），每月更新，資料自 1982 年起。
         燈號：紅燈(38-45分，熱絡)、黃紅燈(32-37)、綠燈(23-31，穩定)、黃藍燈(17-22)、藍燈(9-16，低迷)。
 
@@ -90,7 +91,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 
     @mcp.tool
     @handle_api_errors()
-    def get_taiwan_pmi(months: bounded(1, MAX_MONTHS) = 12) -> str:
+    def get_taiwan_pmi(months: Annotated[int, Field(ge=1, le=MAX_MONTHS)] = 12) -> str:
         """查詢國發會臺灣採購經理人指數：製造業 PMI 與非製造業 NMI，每月更新（2012 年起）。
         指數 50 以上代表擴張、50 以下代表緊縮，是景氣的領先參考指標。
 

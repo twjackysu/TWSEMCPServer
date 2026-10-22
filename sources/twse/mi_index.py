@@ -118,7 +118,9 @@ def stock_quotes(client: TWSEAPIClient, select: str = "ALLBUT0999", date: str = 
     """The 每日收盤行情 table for ``select`` (ALLBUT0999 or an industry code) on ``date``
     (YYYYMMDD, "" = latest). None when TWSE has none (not a trading day, no such group)."""
     resp = _fetch(client, select, date)
-    table = next((t for t in (resp or {}).get("tables") or [] if QUOTE_TABLE_MARK in (t.get("title") or "")), None)
+    if resp is None:
+        return None
+    table = next((t for t in resp.get("tables") or [] if QUOTE_TABLE_MARK in (t.get("title") or "")), None)
     if not table or not table.get("data"):
         return None
     col = column_index(table.get("fields"), QUOTE_FIELDS, "MI_INDEX 每日收盤行情")

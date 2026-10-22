@@ -20,6 +20,9 @@ dev = [
     "pytest-rerunfailures>=14.0",
     # Pinned: a new ruff release adds rules, which must not turn CI red on unrelated PRs.
     "ruff==0.17.1",
+    # Pinned for the same reason; the PyPI wrapper runs the npm pyright with the system Node.js
+    # (or downloads one).
+    "pyright==1.1.414",
 ]
 
 [tool.ruff]
@@ -31,3 +34,12 @@ target-version = "py313"
 # loop variables captured late, raise without from). Ruff's own default selection is wider and
 # mostly typing-syntax and import-order rewrites; those are not part of this gate.
 select = ["E4", "E7", "E9", "F", "B"]
+
+[tool.pyright]
+# Basic mode: wrong types, Optional misuse, bad attribute access — not the strict mode's demand for
+# annotations everywhere. The app code only; tests use stubs and canned payloads freely.
+typeCheckingMode = "basic"
+pythonVersion = "3.13"
+include = ["server.py", "tools", "toolkit", "services", "sources", "utils", "prompts"]
+venvPath = "."
+venv = ".venv"

@@ -230,7 +230,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             volume: Dict[str, int] = {}
             for t in ticks:
                 volume[t[1]] = volume.get(t[1], 0) + t[4]
-            month = max(volume, key=volume.get)
+            month = max(volume, key=lambda m: volume[m])
         ticks = [t for t in ticks if t[1] == month]
         if not ticks:
             return f"{day} 查無 {contract} {month} 的成交資料"

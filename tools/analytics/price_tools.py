@@ -7,7 +7,7 @@ the 60-day list."""
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Annotated, List, Optional
+from typing import Annotated, List, Optional, Tuple, Union, cast
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -107,15 +107,17 @@ def _fmt(v: Optional[float], digits: int = 2) -> str:
     return "-" if v is None else f"{v:,.{digits}f}"
 
 
-def parse_months(start_month: str, end_month: str) -> tuple:
-    """(start (y, m), month count) for YYYYMM inputs, defaulting to the last 3 months."""
+def parse_months(start_month: str, end_month: str) -> Tuple[Union[Tuple[int, int], str, None], int]:
+    """(end (y, m), month count) for YYYYMM inputs, defaulting to the last 3 months (end None);
+    (the Chinese error, 0) for a bad span."""
     if not start_month:
         return None, 3
     try:
         sy, sm = int(start_month[:4]), int(start_month[4:6])
         end = end_month or start_month
         ey, em = int(end[:4]), int(end[4:6])
-        date(sy, sm, 1), date(ey, em, 1)
+        date(sy, sm, 1)  # raises ValueError for a month that does not exist
+        date(ey, em, 1)
         if len(start_month) != 6 or len(end) != 6:
             raise ValueError
     except ValueError:
@@ -149,7 +151,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             raise ToolError(end)
         months = months_back(count, date(*end, 1) if end else None)
         market, name, bars = fetch_daily_bars(_client, code.strip(), months)
-        if not bars:
+        if not bars or market is None:  # market is None exactly when there are no bars
             raise ToolError(f"查無 {code} 在 {months[0][0]}-{months[0][1]:02d}～{months[-1][0]}-{months[-1][1]:02d} "
                             f"的上市／上櫃交易資料")
 
@@ -195,14 +197,15 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         months = months_back(INDICATOR_MONTHS)
         market, name, bars = fetch_daily_bars(_client, code.strip(), months)
         bars = [b for b in bars if None not in (b.high, b.low, b.close)]
-        if len(bars) < 30:
+        if len(bars) < 30 or market is None:  # market is None only when there are no bars
             raise ToolError(f"查無 {code} 足夠的上市／上櫃交易資料計算技術指標（僅 {len(bars)} 個交易日）")
         if adjusted:
             bars = adjust_bars(bars, fetch_exright_events(_client, market, code.strip(), bars[0].day, taipei_today().date()))
 
-        closes = [b.close for b in bars]
-        highs = [b.high for b in bars]
-        lows = [b.low for b in bars]
+        # Days without a high, low or close were dropped above.
+        closes = cast(List[float], [b.close for b in bars])
+        highs = cast(List[float], [b.high for b in bars])
+        lows = cast(List[float], [b.low for b in bars])
         volumes = [b.volume for b in bars]
         mas = {n: sma(closes, n) for n in MA_PERIODS}
         vol_ma5, vol_ma20 = sma(volumes, 5), sma(volumes, 20)
@@ -234,7 +237,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             f"布林(20,2): 上軌 {_fmt(last.bollinger_upper)} / 中軌 {_fmt(last.bollinger_middle)} / "
             f"下軌 {_fmt(last.bollinger_lower)}"
             + (f"（收盤{'在上軌之上' if c > last.bollinger_upper else '在下軌之下' if c < last.bollinger_lower else '在通道內'}）"
-               if last.bollinger_upper else ""),
+               if last.bollinger_upper and last.bollinger_lower is not None else ""),
             f"成交量: {last.volume:,.0f} 股 | 5日均量 {_fmt(last.volume_ma5, 0)} | 20日均量 {_fmt(last.volume_ma20, 0)}",
             "",
             f"最近 {days} 個交易日：",

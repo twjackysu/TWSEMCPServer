@@ -55,7 +55,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
-- [ ] Phase 5 打包（進行中：#135 Dockerfile 多階段／non-root／HEALTHCHECK、移除 requirements 與未用依賴；剩 pyright）
+- [x] Phase 5 打包（#135 Dockerfile 多階段／non-root／HEALTHCHECK、移除 requirements 與未用依賴，#136 pyright）
 
 ## 結論
 
@@ -119,7 +119,7 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
     放在 `content` 和 `structuredContent` 各回一次。
 13. **無 tool annotations**：全唯讀卻沒標 `readOnlyHint` / `openWorldHint` / `idempotentHint`。
 14. **打包**：Dockerfile 裝用不到的 Node.js、root 執行、單階段；`requirements*.txt` 與 `uv.lock` 重複；
-    `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。（已修：#124 ruff、#135 Dockerfile 與依賴；pyright 未做）
+    `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。（已修：#124 ruff、#135 Dockerfile 與依賴、#136 pyright）
 15. **prompts 手寫註冊**：`server.py` 9 個 wrapper，tools 卻自動發現。（已修，#131：`prompts.register_all_prompts`）
 
 ## 目標架構
@@ -261,7 +261,8 @@ def get_twse_institutional_investors_summary(
   欄位），不改輸出；改用 server `instructions` 說明慣例與換算、60 個日期／月份參數說明標明「西元」、把民國樣式的
   輸入在錯誤訊息裡直接換算成西元。
 - ✅ 列舉參數改 `Literal`、範圍改 `Field`（#125）：23 個列舉、所有 `limit`／`offset`（`toolkit.Limit`／`Offset`）
-  與 `months`／`weeks`／`limit` 上限（`toolkit.bounded`）；刪掉 19 個模組裡的手寫檢查與 `check_choice`。
+  與 `months`／`weeks`／`limit` 上限（`toolkit.bounded`；#136 起改成直接寫 `Annotated[int, Field(ge=, le=)]`，
+  型別標註裡的函式呼叫 pyright 不接受）；刪掉 19 個模組裡的手寫檢查與 `check_choice`。
   FastMCP 依 schema 擋下錯誤值，回的是 pydantic 英文訊息；`toolkit.validation.ArgumentErrorsInChinese`
   middleware 把它改寫成中文（「sort_by 只能是 total、foreign、trust、dealer（收到 'x'）」）。日期格式、
   產業代碼這類開放集合、跨參數規則仍在函式內 `raise ToolError`。
@@ -353,7 +354,18 @@ def get_twse_institutional_investors_summary(
   `mcp` 本身保留，#129 起直接用 `mcp.types`）、dev 的 `pytest-mock`、`pytest-asyncio`（沒用到）；`server.py`
   直接 import 的 `starlette` 補宣告。`uv.lock` 只少了 7 個套件，其他版本不變。`requirements.txt` 原本可能是
   Horizon 的依賴來源，刪除後 Horizon 改讀 `pyproject.toml`（直接依賴的版本照舊，下游套件不再鎖定；使用者決定）。
-- pyright basic 模式：未做。
+- ✅ pyright basic 模式（#136）：`uv run pyright`（dev extra 固定 `pyright==1.1.414`，設定在 `[tool.pyright]`），
+  檢查 server 的 7 個 package，不含 `tests/`；Unit Tests workflow 在 ruff 之後跑。起始 118 個錯誤、2 個警告 → 0。
+  沒有找到執行期 bug：都是型別寫法跟不上程式本身的保證，全部改成行為不變的寫法，tools/list、prompts、instructions
+  與 main 逐字相同。
+  - 79 個是 `TWSEDataItem`：原本是列了 60 個固定欄位的 `TypedDict`，但 OpenAPI 每個端點欄位都不同，改成
+    `Dict[str, Any]`；`DataFormatter` 的參數改 positional-only，`format_list_response` 依資料型別泛型化。
+  - 9 個是 `bounded(1, MAX_ROWS)`：型別標註裡的函式呼叫不是合法型別，改成直接寫 `Annotated[int, Field(ge=, le=)]`
+    （schema 不變），刪掉 `toolkit.bounded`。
+  - 「(結果, None) 或 (None, 錯誤)」的平行 Optional tuple（`utils.taifex.parse_date_range`、MOPS
+    `parse_month_range`）改成回傳 `Union[結果, str]`，呼叫端 `isinstance(x, str)` 判斷。
+  - 其餘是 Optional 收窄：在原本就保證有值的地方明寫 `is not None`（與原本的真假判斷同義），或以 `cast` 註明
+    保證來自哪裡（技術指標前已濾掉缺高低收的日子、MACD 的 DIF 從第一個有值的日子起都有值）。
 
 ## FastMCP 4 對照
 

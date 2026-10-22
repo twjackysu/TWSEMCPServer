@@ -32,5 +32,9 @@ jobs:
       - name: 🧹 Ruff
         run: uv run ruff check .
 
+      # basic mode over the server's packages (not tests/); settings and pin in pyproject.toml ([tool.pyright], dev extra)
+      - name: 🔎 Pyright
+        run: uv run pyright
+
       - name: 🧪 Run offline unit tests
         run: uv run pytest tests/unit --tb=short
