@@ -3,8 +3,8 @@
 The MOPS JSON API (mops.twse.com.tw/mops/api/*) is the SPA's private backend with no
 public docs, so it can change without notice. These tests pin down exactly what
 tools/mops/ relies on: request field names, the ``code``/``result`` envelope, the
-``titles`` + rows table shape, the column names the dividend tool looks up, and the legacy
-法說會 HTML table layout.
+``titles`` + rows table shape, the column names the dividend tool looks up, and what the
+sources/mops gateways parse.
 """
 
 from datetime import date
@@ -12,19 +12,18 @@ from datetime import date
 import pytest
 
 from sources.mops.insiders import board_holdings, insider_changes
+from sources.mops.investor_conference import investor_conferences
 from sources.mops.major_news import company_news, market_news, news_detail
 from sources.mops.t35sc09 import treasury_buybacks
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip, gateway_or_skip
 from tools.mops.dividend import KEY_COLUMNS
 from sources.mops.monthly_revenue import CURRENT_MONTH_LABEL, monthly_revenue
-from tools.mops.investor_conference import NO_DATA_TEXT, ROW_WIDTH, parse_conference_rows
 from utils.mops import (
     MOPS_API_BASE,
     MOPS_LEGACY_BASE,
     MOPS_LEGACY_HIDDEN_FIELDS,
     flatten_titles,
     leaf_titles,
-    parse_html_table,
 )
 
 FIXED_STOCK = "2330"
@@ -129,41 +128,29 @@ class TestDividendHistoryAPI:
         )
 
 
-class TestInvestorConferenceLegacyPage:
-    """mopsov ajax_t100sb02_1：tool 解析 table#myTable，資料列固定 12 格。"""
+class TestInvestorConferenceGateway:
+    """ajax_t100sb02_1 只透過 sources/mops/investor_conference.py 讀：table#myTable 兩列表頭（法人說明會簡報內容 下分
+    中文檔案／英文檔案），欄位依名稱取，表頭改了 gateway 丟 UpstreamFormatError。"""
 
-    EXPECTED_HEADER = [
-        "公司代號", "公司名稱", "召開法人說明會日期", "召開法人說明會時間", "召開法人說明會地點",
-        "法人說明會擇要訊息", "法人說明會簡報內容", "公司網站是否提供法人說明會相關資訊",
-        "影音連結資訊", "其他應敘明事項", "歷年法人說明會",
-    ]
+    def test_fixed_month_parses(self):
+        """月份由 gateway 補零（"07"）送出；不補零 MOPS 回查無資料."""
+        rows = gateway_or_skip(investor_conferences, "sii", int(FIXED_ROC_YEAR), 7)
+        assert rows, f"民國{FIXED_ROC_YEAR}年07月 應有法說會資料"
 
-    def _fetch(self, month: str = "", co_id: str = "") -> str:
-        body = fetch_bytes_or_skip(
-            f"{MOPS_LEGACY_BASE}/ajax_t100sb02_1",
-            method="POST",
-            data={**MOPS_LEGACY_HIDDEN_FIELDS, "TYPEK": "sii", "year": FIXED_ROC_YEAR, "month": month, "co_id": co_id},
-        )
-        return body.decode("utf-8", errors="replace")
-
-    def test_table_header_and_row_width(self):
-        html = self._fetch(month="07")
-        table = parse_html_table(html, "myTable")
-        assert table, "找不到 table#myTable，頁面結構已變更"
-        assert table[0] == self.EXPECTED_HEADER, f"表頭欄位已變更: {table[0]}"
-        rows = parse_conference_rows(html)
-        assert rows, f"民國{FIXED_ROC_YEAR}年07月 應有法說會資料（月份需補零）"
-        assert all(len(r) == ROW_WIDTH for r in rows)
+    @pytest.mark.parametrize("market", ["otc", "rotc", "pub"])
+    def test_other_markets_parse(self, market):
+        """興櫃與公開發行的頁面網站欄名不同（公司網站是否提供法人說明會內容）、沒有影音連結資訊."""
+        rows = gateway_or_skip(investor_conferences, market, int(FIXED_ROC_YEAR), 7)
+        assert rows, f"{market} 民國{FIXED_ROC_YEAR}年07月 應有法說會資料"
 
     def test_company_filter_is_server_side(self):
-        rows = parse_conference_rows(self._fetch(co_id=FIXED_STOCK))
+        rows = gateway_or_skip(investor_conferences, "sii", int(FIXED_ROC_YEAR), None, FIXED_STOCK)
         assert rows, f"{FIXED_STOCK} 在民國{FIXED_ROC_YEAR}年應有法說會資料"
-        assert {r[0] for r in rows} == {FIXED_STOCK}, "co_id 不再於伺服器端篩選"
+        assert {c.code for c in rows} == {FIXED_STOCK}, "co_id 不再於伺服器端篩選"
 
     def test_no_data_page_says_so(self):
-        """tool 以「查無資料」字樣區分真的沒資料與封鎖／改版頁，這段文字必須還在."""
-        html = self._fetch(month="01", co_id="9999")
-        assert NO_DATA_TEXT in html, f"查無資料時的頁面文字已變更: {html[:300]!r}"
+        """沒有資料回「查無資料」頁，gateway 回 []（工具回查無）；改了措辭會變成非預期頁面的錯誤."""
+        assert gateway_or_skip(investor_conferences, "sii", int(FIXED_ROC_YEAR), 1, "9999") == []
 
 
 class TestMajorNewsGateway:
