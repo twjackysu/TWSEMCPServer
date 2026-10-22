@@ -20,7 +20,7 @@ def test_newlisting_approved_listing_date_is_the_first_trading_day():
     rows = records_or_skip(TWSEAPIClient.get_data("/company/newlisting"), "/company/newlisting")
     dated = [r for r in rows if ROC_DATE.match(str(r.get("ApprovedListingDate", "")))]
     assert dated, "沒有任何一筆帶 7 碼民國日期的 ApprovedListingDate"
-    newest = max(dated, key=lambda r: r["ApprovedListingDate"])
+    newest = max(dated, key=lambda r: r["ApprovedListingDate"])  # contract-ok: 選一筆來核對 ApprovedListingDate 欄位的意義
     roc = newest["ApprovedListingDate"]
     resp = fetch_or_skip("https://www.twse.com.tw/exchangeReport/STOCK_DAY", params={
         "response": "json", "stockNo": newest["Code"], "date": f"{int(roc[:3]) + 1911}{roc[3:5]}01"})

@@ -342,12 +342,12 @@ class TestFuturesTickDownloadAPI:
             text = zf.read(zf.namelist()[0]).decode("cp950", errors="replace")
         ticks = parse_ticks(text, "TX")  # 表頭不符會直接 raise
         raw = [line for line in text.splitlines()[1:]
-               if line.count(",") >= 5 and line.split(",")[1].strip() == "TX" and "/" not in line.split(",")[2]]
+               if len(line.split(",")) >= 6 and line.split(",")[1].strip() == "TX" and "/" not in line.split(",")[2]]
         if not raw:
             pytest.skip(f"{day} 的檔案沒有 TX 成交（上游無資料，非 interface 變更）")
         # 有資料時每一列都要能依欄位位置解析出 時間(HHMMSS)／價格／數量
         assert len(ticks) == len(raw), f"{len(raw) - len(ticks)} 列 TX 成交無法解析，欄位順序或格式可能已變更"
-        assert all(0 <= t[2] <= 235959 for t in ticks), "成交時間不再是 HHMMSS"
+        assert all(0 <= t[2] <= 235959 for t in ticks), "成交時間不再是 HHMMSS"  # contract-ok: intraday 依 HHMMSS 解析成交時間
 
 
 class TestStockFuturesListAPI:
