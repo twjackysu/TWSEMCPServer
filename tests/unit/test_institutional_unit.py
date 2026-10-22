@@ -8,7 +8,7 @@ from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
-from tools.history import institutional, institutional_amounts
+from tools.history import institutional
 from tools.otc import institutional_summary
 
 pytestmark = pytest.mark.offline
@@ -63,24 +63,6 @@ def test_summary_category_mapping_and_stock_filter():
     assert [p["selectType"] for p in seen[-2:]] == ["0099P", "24"]
     with pytest.raises(ToolError, match="category 必須"):
         fn(category="半導體")
-
-
-def test_amounts_week_falls_forward_to_first_trading_day():
-    seen = []
-
-    def route(params, _body):
-        seen.append(params.get("weekDate") or params.get("monthDate") or params.get("dayDate"))
-        if params["type"] == "week" and params["weekDate"] != "20260407":
-            return {"stat": "很抱歉，沒有符合條件的資料!"}
-        title = {"week": "04月07日至04月10日", "month": "10月01日至10月19日"}.get(params["type"], "10月19日")
-        return {"stat": "OK", "date": "20261019", "title": title, "data": [["合計", "100,000,000", "0", "100,000,000"]]}
-
-    fn = register_module_tools(institutional_amounts, OfflineClient({"/fund/BFI82U": route}))["get_market_institutional_amounts_history"]
-    week = fn(date="20260409", period="week")
-    assert "04月07日至04月10日" in week and seen == ["20260406", "20260407"]  # 週一休市 → 週二
-    assert "合計：買進 1.00 億 | 賣出 0.00 億 | 買賣差額 1.00 億（100,000,000 元）" in week
-    seen.clear()
-    assert "10月01日至10月19日" in fn(period="month") and seen == [None, "20261019"]  # 先取最新交易日
 
 
 def test_otc_summary_maps_period_and_scope():

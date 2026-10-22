@@ -19,7 +19,7 @@ A period without data is an empty table.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 from utils.api_client import TWSEAPIClient
 from utils.date_helper import slash_date
@@ -28,19 +28,12 @@ from utils.parse import int_or_none
 
 from ..caching import day_cache_ttl
 from ..columns import column_index
+from ..institutional import InstitutionalAmount
 
 INSTI_SUMMARY_URL = "https://www.tpex.org.tw/www/zh-tw/insti/summary"
 SOURCE = "insti/summary"
 FIELDS = ("單位名稱", "買進金額(元)", "賣出金額(元)", "買賣超(元)")
 STOCKS, ALL_SECURITIES = "1", "0"  # prod
-
-
-@dataclass(frozen=True)
-class InstitutionalAmount:
-    name: str             # 單位名稱 as published, stripped: "外資及陸資合計", "外資自營商", "三大法人合計*"
-    buy: Optional[int]    # 買進金額 (NT$)
-    sell: Optional[int]   # 賣出金額 (NT$)
-    net: Optional[int]    # 買賣超 (NT$) = buy - sell
 
 
 @dataclass(frozen=True)

@@ -6,26 +6,22 @@ Source: www.twse.com.tw/rwd/zh/fund/BFI82U (三大法人買賣金額統計表), 
   when Monday is a holiday (2026-04-06 → no data, 2026-04-07 → that week). No date → no data.
 - ``type=month``: ``monthDate`` any day of the month (the current month runs to date). No date
   → an HTML page, so a date is always sent.
+Read through the BFI82U gateway (``sources.twse.bfi82u``).
 """
 
 from datetime import datetime, timedelta
 from typing import Optional
 
 from fastmcp import FastMCP
-from utils import TWSEAPIClient
+from sources.twse.bfi82u import institutional_amounts
+from utils import TWSEAPIClient, printed
 from toolkit import TradingDate, handle_api_errors
 from utils.institutional import PERIODS, Period, week_start, yi
-
-BFI82U_URL = "https://www.twse.com.tw/rwd/zh/fund/BFI82U"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register TWSE market-level institutional amount tools."""
     _client = client or TWSEAPIClient.get_instance()
-
-    def _fetch(**params) -> dict:
-        resp = _client.fetch_json(BFI82U_URL, params={"response": "json", **params})
-        return resp if isinstance(resp, dict) and resp.get("stat") == "OK" and resp.get("data") else {}
 
     @mcp.tool
     @handle_api_errors()
@@ -47,28 +43,28 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
         anchor = datetime.strptime(date, "%Y%m%d") if date else None
 
         if period == "day":
-            resp = _fetch(type="day", dayDate=date) if date else _fetch(type="day")
+            report = institutional_amounts(_client, "day", date)
         else:
             if anchor is None:
-                latest = _fetch(type="day")
-                if not latest:
+                latest = institutional_amounts(_client, "day")
+                if latest is None:
                     return "查無最新交易日的三大法人買賣金額統計"
-                anchor = datetime.strptime(str(latest["date"]), "%Y%m%d")
+                anchor = datetime.strptime(latest.date, "%Y%m%d")
             if period == "month":
-                resp = _fetch(type="month", monthDate=f"{anchor:%Y%m%d}")
+                report = institutional_amounts(_client, "month", f"{anchor:%Y%m%d}")
             else:
-                resp = {}
+                report = None
                 # 週資料要用該週第一個交易日查詢：週一休市時改用週二，以此類推
                 for offset in range(5):
-                    resp = _fetch(type="week", weekDate=f"{week_start(anchor) + timedelta(days=offset):%Y%m%d}")
-                    if resp:
+                    report = institutional_amounts(_client, "week", f"{week_start(anchor) + timedelta(days=offset):%Y%m%d}")
+                    if report is not None:
                         break
 
-        if not resp:
+        if report is None:
             label = date or "最新交易日"
             return f"查無 {label} 的三大法人買賣金額統計（{PERIODS[period]}），請確認該日期為交易日（非假日或週末）"
 
-        lines = [f"【{resp.get('title', '三大法人買賣金額統計表')}】（單位：億元）\n"]
-        for name, buy, sell, net in (row[:4] for row in resp["data"]):
-            lines.append(f"{name}：買進 {yi(buy)} | 賣出 {yi(sell)} | 買賣差額 {yi(net)}（{net} 元）")
+        lines = [f"【{report.title or '三大法人買賣金額統計表'}】（單位：億元）\n"]
+        for a in report.amounts:
+            lines.append(f"{a.name}：買進 {yi(a.buy)} | 賣出 {yi(a.sell)} | 買賣差額 {yi(a.net)}（{printed(a.net)} 元）")
         return "\n".join(lines)

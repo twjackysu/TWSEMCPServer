@@ -1,4 +1,4 @@
-"""三大法人 per-stock flows: the record both markets' daily reports are read into.
+"""三大法人 records both markets' gateways return: per-stock flows, and market-level amounts.
 
 TWSE T86 (``sources/twse/t86.py``) and TPEx insti/dailyTrade (``sources/tpex/insti_daily.py``) publish
 the same investor groups in different layouts — T86 under named columns that changed twice since
@@ -51,6 +51,15 @@ class FlowDay:
     date: str    # YYYYMMDD the report is for
     title: str
     flows: List[InstitutionalFlow]
+
+
+@dataclass(frozen=True)
+class InstitutionalAmount:
+    """One row of a market-level 三大法人 amounts table (TWSE BFI82U, TPEx insti/summary)."""
+    name: str             # 單位名稱 as published, stripped: "外資及陸資(不含外資自營商)", "外資自營商", "合計"
+    buy: Optional[int]    # 買進金額 (NT$)
+    sell: Optional[int]   # 賣出金額 (NT$)
+    net: Optional[int]    # 買賣差額 / 買賣超 (NT$) = buy - sell
 
 
 def shares(text, source: str, column: str) -> int:
