@@ -55,7 +55,7 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
-- [ ] Phase 5 打包
+- [ ] Phase 5 打包（進行中：#135 Dockerfile 多階段／non-root／HEALTHCHECK、移除 requirements 與未用依賴；剩 pyright）
 
 ## 結論
 
@@ -119,7 +119,7 @@ GoF 兩句核心：「對介面寫程式，不對實作寫程式」、「優先�
     放在 `content` 和 `structuredContent` 各回一次。
 13. **無 tool annotations**：全唯讀卻沒標 `readOnlyHint` / `openWorldHint` / `idempotentHint`。
 14. **打包**：Dockerfile 裝用不到的 Node.js、root 執行、單階段；`requirements*.txt` 與 `uv.lock` 重複；
-    `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。
+    `httpx`、`mcp[cli]` 宣告但未直接用；無 ruff / pyright。（已修：#124 ruff、#135 Dockerfile 與依賴；pyright 未做）
 15. **prompts 手寫註冊**：`server.py` 9 個 wrapper，tools 卻自動發現。（已修，#131：`prompts.register_all_prompts`）
 
 ## 目標架構
@@ -342,8 +342,18 @@ def get_twse_institutional_investors_summary(
   改成 server.py 原本用的版本；prompts/list 與 20 組渲染結果和 main 逐字相同，只有清單順序變成模組名稱順序。
 
 ### Phase 5：打包
-- Dockerfile 多階段、non-root、去 Node.js、`--no-dev`、HEALTHCHECK。
-- 移除 `requirements*.txt` 與未用依賴（`httpx`、`mcp[cli]` 在 #107 後仍沒有直接使用）；pyright basic 模式。
+- ✅ Dockerfile 多階段、non-root、去 Node.js、`--no-dev`、HEALTHCHECK（#135）：builder 用固定版本的 uv
+  （`ghcr.io/astral-sh/uv:0.7.12`）把 `uv.lock` 的執行期依賴裝進 `/app/.venv`（`--frozen --no-dev`）；執行映像檔只有
+  venv 與各 package，沒有 uv、Node.js、`staticFiles`，以 `app`（uid 10001）執行，程式碼屬於 root、唯讀。
+  `server.py` 新增 `GET /health`（不碰上游，來源掛掉不會讓容器變 unhealthy）；HEALTHCHECK 在 HTTP 模式打它，
+  stdio 模式（`MCP_STDIO=1`）沒有 port 可測，直接回健康。實測（Docker 29.9.2）：映像檔 494 MB → 211 MB；
+  uid 0 → 10001；node／npm／uv／curl 都不在了；stdio 列出的工具／prompts／instructions 與本機逐字相同、實際
+  呼叫成功；HTTP 的 `/health` 回 `ok`，HEALTHCHECK 在 HTTP 與 stdio 模式都是 healthy。
+- ✅ 移除 `requirements*.txt` 與未用依賴（#135）：`httpx`（沒有任何 import）、`mcp[cli]` 的 cli extra（typer 等；
+  `mcp` 本身保留，#129 起直接用 `mcp.types`）、dev 的 `pytest-mock`、`pytest-asyncio`（沒用到）；`server.py`
+  直接 import 的 `starlette` 補宣告。`uv.lock` 只少了 7 個套件，其他版本不變。`requirements.txt` 原本可能是
+  Horizon 的依賴來源，刪除後 Horizon 改讀 `pyproject.toml`（直接依賴的版本照舊，下游套件不再鎖定；使用者決定）。
+- pyright basic 模式：未做。
 
 ## FastMCP 4 對照
 
