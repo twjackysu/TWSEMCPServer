@@ -6,8 +6,6 @@ tools/taifex/ 的期貨、選擇權行情、三大法人、大額交易人、PCR
 契約篩選方式，以及無資料日回 HTML（工具靠它往前找最新交易日）。
 """
 
-import io
-import zipfile
 from dataclasses import astuple
 from datetime import date
 
@@ -23,13 +21,9 @@ from sources.taifex.institutional import (
 )
 from sources.taifex.large_traders import futures_large_traders, option_large_traders
 from sources.taifex.put_call_ratio import put_call_ratios
-from tests.helpers import fetch_bytes_or_skip, fetch_or_skip, gateway_or_skip, records_or_skip
-from tools.taifex.intraday import TICK_PAGE_URL, TICK_ZIP_BASE, available_days, parse_ticks
+from sources.taifex.ticks import trades, trading_days
+from tests.helpers import fetch_or_skip, gateway_or_skip, records_or_skip
 from utils.taifex import SSF_LISTS_URL, TAIFEX_HEADERS
-
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-}
 
 
 class TestFuturesDailyGateway:
@@ -137,26 +131,15 @@ class TestDownloadPageBehaviourToolsRelyOn:
 
 
 class TestFuturesTickDownloadAPI:
-    """get_futures_intraday：下載頁列出最近 30 個交易日的 DailydownloadCSV zip，zip 內是一個 cp950 CSV，
-    欄位順序 0=成交日期 1=商品代號 2=到期月份(週別) 3=成交時間(HHMMSS) 4=成交價格 5=成交數量(B+S)."""
+    """get_futures_intraday 只透過 sources/taifex/ticks.py 讀：下載頁列出最近 30 個交易日的 DailydownloadCSV zip，
+    zip 內一個 cp950 CSV，欄位依表頭名稱取；連結不見、表頭改名或時間／價格／數量讀不出來，gateway 丟 UpstreamFormatError."""
 
-    def test_page_lists_zips_and_csv_columns(self):
-        page = fetch_bytes_or_skip(TICK_PAGE_URL, headers=HEADERS, timeout=60).decode("utf-8", errors="replace")
-        days = available_days(page)
-        assert days, "下載頁找不到 DailydownloadCSV/Daily_YYYY_MM_DD.zip 連結"
-        day = days[0]
-        body = fetch_bytes_or_skip(f"{TICK_ZIP_BASE}/Daily_{day[:4]}_{day[4:6]}_{day[6:]}.zip", headers=HEADERS, timeout=120)
-        with zipfile.ZipFile(io.BytesIO(body)) as zf:
-            # 工具讀 zip 內第一個檔案
-            text = zf.read(zf.namelist()[0]).decode("cp950", errors="replace")
-        ticks = parse_ticks(text, "TX")  # 表頭不符會直接 raise
-        raw = [line for line in text.splitlines()[1:]
-               if len(line.split(",")) >= 6 and line.split(",")[1].strip() == "TX" and "/" not in line.split(",")[2]]
-        if not raw:
-            pytest.skip(f"{day} 的檔案沒有 TX 成交（上游無資料，非 interface 變更）")
-        # 有資料時每一列都要能依欄位位置解析出 時間(HHMMSS)／價格／數量
-        assert len(ticks) == len(raw), f"{len(raw) - len(ticks)} 列 TX 成交無法解析，欄位順序或格式可能已變更"
-        assert all(0 <= t[2] <= 235959 for t in ticks), "成交時間不再是 HHMMSS"  # contract-ok: intraday 依 HHMMSS 解析成交時間
+    def test_page_lists_zips_and_trades_parse(self):
+        days = gateway_or_skip(trading_days)
+        ticks = gateway_or_skip(trades, days[0], "TX")
+        if not ticks:
+            pytest.skip(f"{days[0]} 的檔案沒有 TX 成交（上游無資料，非 interface 變更）")
+        assert all(0 <= t.time <= 235959 for t in ticks), "成交時間不再是 HHMMSS"  # contract-ok: intraday 依 HHMMSS 解析成交時間
 
 
 class TestStockFuturesListAPI:
