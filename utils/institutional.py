@@ -5,7 +5,7 @@ so that both markets take the same sort_by / side / category / period values.
 """
 
 from datetime import datetime, timedelta
-from typing import Callable, List, Literal, Sequence, TypeVar
+from typing import Callable, List, Literal, Sequence, TypeVar, Union
 
 from .parse import int_or_none
 
@@ -33,9 +33,9 @@ def rank(rows: Sequence[Row], value: Callable[[Row], int], side: str) -> List[Ro
     return sorted((r for r in rows if value(r) != 0), key=lambda r: abs(value(r)), reverse=True)
 
 
-def yi(amount_text: str) -> str:
-    """"-68,513,664,272" (元) → "-685.14 億"."""
-    return f"{(int_or_none(amount_text) or 0) / 1e8:,.2f} 億"
+def yi(amount: Union[str, int, None]) -> str:
+    """"-68,513,664,272" or -68513664272 (元) → "-685.14 億"."""
+    return f"{(int_or_none(amount) or 0) / 1e8:,.2f} 億"
 
 
 def week_start(day: datetime) -> datetime:

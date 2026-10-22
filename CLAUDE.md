@@ -69,6 +69,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── twse/twt93u.py            # TWT93U → short_sale_lending_balances() (columns by group/name; 借券賣出 layout until 2012-03-16 kept as published)
 ├── twse/bfiauu.py            # BFIAUU → block_trades() BlockTradeDay (交割期別 until 2011-12-16; 總計 row left out)
 ├── tpex/insti_daily.py       # insti/dailyTrade → tpex_flows() (Adapter: groups by order, checked by their sums)
+├── tpex/insti_summary.py     # insti/summary → otc_institutional_amounts() InstitutionalSummary (Daily/Weekly/Monthly; empty rows skipped)
 ├── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
 ├── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)
 ├── tpex/daily_quotes.py      # afterTrading/otc → otc_daily_quotes() OtcQuoteDay (EW / AL / industry code; 最後買量・賣量 only from 2020-04-30)

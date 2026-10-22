@@ -1,8 +1,8 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
 tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade,
-tradingStock, afterTrading/otc and peQryDate go through their gateways (sources/tpex/), which check their
-fields themselves.
+insti/summary, tradingStock, afterTrading/otc and peQryDate go through their gateways (sources/tpex/),
+which check their fields themselves.
 """
 
 import re
@@ -12,11 +12,11 @@ import pytest
 
 from sources.tpex.daily_quotes import otc_daily_quotes
 from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
+from sources.tpex.insti_summary import otc_institutional_amounts
 from sources.tpex.pe_qry_date import otc_valuation_ratios
 from sources.tpex.trading_stock import trading_stock_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
 from tools.otc.history import MARGIN_BALANCE_URL
-from tools.otc.institutional_summary import INSTI_SUMMARY_URL
 
 FIXED_DATE = "2025/01/03"  # 固定歷史交易日
 FIXED_OTC_STOCK = "6488"   # 環球晶
@@ -176,22 +176,26 @@ class TestOTCInstitutionalSectAPI:
         )
 
 
-class TestOTCInstitutionalSummaryAPI:
-    """get_otc_institutional_summary：insti/summary 依位置讀 row[0..3]（單位名稱、買進、賣出、買賣超），
-    type 為 Daily／Weekly／Monthly，prod 1＝上櫃股票、0＝上櫃有價證券."""
+class TestOTCInstitutionalSummaryGateway:
+    """上櫃三大法人買賣金額彙總 - insti/summary（sources/tpex/insti_summary.py）
+    get_otc_institutional_summary 只透過這個 gateway 讀；type 為 Daily／Weekly／Monthly，prod 1＝上櫃股票、0＝上櫃有價證券。
+    每列 買進 − 賣出 ＝ 買賣超，且 外資及陸資合計、自營商合計、三大法人合計 等於各分項之和（2018–2026 抽樣全部成立），
+    欄位或單位名稱對錯就會失敗."""
 
     @staticmethod
-    def _table(period: str, prod: str) -> dict:
-        return _first_table(fetch_or_skip(
-            INSTI_SUMMARY_URL, params={"type": period, "prod": prod, "date": FIXED_DATE, "response": "json"}))
+    def _summary(period: str, prod: str = "1"):
+        return gateway_or_skip(otc_institutional_amounts, period, prod, FIXED_DATE.replace("/", ""))
 
     @pytest.mark.parametrize("period", ["Daily", "Weekly", "Monthly"])
-    def test_columns_per_period(self, period):
-        table = self._table(period, "1")
-        assert (table.get("fields") or [])[:4] == ["單位名稱", "買進金額(元)", "賣出金額(元)", "買賣超(元)"], (
-            f"{period} 欄位已變更: {table.get('fields')}"
-        )
-        assert table.get("data"), f"{period} 固定歷史日期應有資料"
+    def test_amounts_add_up(self, period):
+        summary = self._summary(period)
+        assert summary.amounts, f"{period} 固定歷史日期應有資料"
+        for a in summary.amounts:
+            assert a.buy - a.sell == a.net, a
+        net = {a.name: a.net for a in summary.amounts}
+        assert net["外資及陸資合計"] == net["外資及陸資(不含自營商)"] + net["外資自營商"], net
+        assert net["自營商合計"] == net["自營商(自行買賣)"] + net["自營商(避險)"], net
+        assert net["三大法人合計*"] == net["外資及陸資合計"] + net["投信"] + net["自營商合計"], net
 
     def test_prod_switches_scope(self):
-        assert self._table("Daily", "0").get("data") != self._table("Daily", "1").get("data"), "prod 參數不再生效"
+        assert self._summary("Daily", "0").amounts != self._summary("Daily", "1").amounts, "prod 參數不再生效"

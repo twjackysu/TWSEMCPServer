@@ -88,7 +88,8 @@ def test_otc_summary_maps_period_and_scope():
 
     def route(params, _body):
         seen.append(params)
-        return {"date": "20261019", "tables": [{"subtitle": "週彙總", "data": [["投信", "1", "0", "1"]]}]}
+        return {"date": "20261019", "tables": [{"subtitle": "週彙總", "fields": ["單位名稱", "買進金額(元)", "賣出金額(元)", "買賣超(元)"],
+                                                "data": [["投信", "1", "0", "1"]]}]}
 
     fn = register_module_tools(institutional_summary, OfflineClient({"/insti/summary": route}))["get_otc_institutional_summary"]
     assert fn(date="20261014", period="week", scope="all").startswith("【週彙總】")
