@@ -6,11 +6,13 @@
 """
 
 from datetime import datetime
+from types import SimpleNamespace
 
 import pytest
 from fastmcp.exceptions import ToolError
 
 import utils.taifex as taifex
+from sources.taifex.daily_report import has_regular_session
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tools.taifex import daily_market_report, institutional_details, large_traders_oi
@@ -68,12 +70,9 @@ def test_latest_walks_back_until_a_day_has_data():
 
 def test_latest_skips_a_partial_day():
     def fetch(start_dt, end_dt):
-        session = "盤後" if start_dt == TODAY else "一般"
-        return ["h"], [[f"{start_dt:%Y/%m/%d}"] + [""] * 16 + [session]]
+        return [SimpleNamespace(session="盤後" if start_dt == TODAY else "一般")]
 
-    parsed, label, _ = taifex.fetch_period(
-        fetch, "", "", 31, is_complete=daily_market_report.has_regular_session
-    )
+    parsed, label, _ = taifex.fetch_period(fetch, "", "", 31, is_complete=has_regular_session)
     assert label.startswith("20260929")
 
 

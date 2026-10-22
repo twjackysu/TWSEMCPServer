@@ -102,9 +102,17 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      種類、舊日期一定是舊格式）。全部拿掉，每個 gateway 只留：固定歷史日的真實回應能建出 dataclass（欄位改名就失敗）、
      舊格式那天也能讀、一列固定探測列的數字能解析（格式變了工具會印成 `--`）、工具依賴的參數行為與標籤（type=EW、
      prod、區間長度、末列的「合計／總計」）。欄位讀錯靠 gateway 依欄名取值與單元測試的錄製回應把關。
+     #145 再把這條規則交給 CI：`tests/unit/test_contract_scope_unit.py` 擋 contract test 裡的算術、大小比較與
+     abs／sum 等（例外要寫 `# contract-ok: <理由>`）。
+   - ✅ TAIFEX futDataDown／optDataDown（#146）：建立期交所下載頁的 gateway 寫法——`sources/taifex/download.py`
+     的 `download_table()` 送表單、解 cp950 CSV、依標題名稱找欄，`number()`／`count()` 轉數字（CSV 沒有千分位、
+     沒值是 `-`）；`sources/taifex/daily_report.py` 的 `futures_quotes()`／`option_quotes()` 回 `FuturesQuote`／
+     `OptionQuote`，`has_regular_session()` 用於最新交易日往回找。`utils.taifex.fetch_period` 改成泛型，可直接收
+     gateway 的結果。兩支每日行情工具 19 組呼叫（最新一日、2005／2010／2018 整月、股票期貨、各種篩選）與 main
+     逐字相同。其餘 TAIFEX 下載頁（三大法人 4 個、大額交易人 2 個、PCR）照同一寫法。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143；盤點出的格式問題都已修好，剩格式沒變過、只在一處
-  依位置讀的端點）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146；盤點出的格式問題都已修好，剩格式沒變過、
+  只在一處依位置讀的端點：其餘 TAIFEX 下載頁、MOPS、TWSE rwd、TPEx 網站）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
