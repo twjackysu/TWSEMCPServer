@@ -204,11 +204,17 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      None）。列寬與表頭或 Table1 不符、日期或匯率格式變了都報錯（舊版會截掉或略過）。下載內容不是 zip 也報明確的錯。
      兩個工具只剩排版與篩選，匯率用 `plain()` 照發布的小數位印回。20 組呼叫（五張景氣表 60 個月、PMI、匯率預設／幣別／
      區間／超過 120 天／1993 年／未知幣別／檔案以後的日期）與 main 逐字相同，送出的請求也相同。
+   - ✅ TAIFEX 每筆成交 zip（#166）：`sources/taifex/ticks.py` 的 `trading_days()`（下載頁的 DailydownloadCSV 連結）、
+     `trades(day, contract)`（單一商品、不含價差單的成交）與 `products(day)`。CSV 欄位依表頭名稱取，不再依位置讀
+     `cells[0]`～`cells[5]`、也不再只比對表頭前綴；時間、價格、數量讀不出來、欄數不足或下載內容不是 zip 都報錯（舊版
+     略過該列）。一天約 60～90 萬列、單一商品約 8 萬列，所以 `Trade` 用 NamedTuple 而不是 dataclass，工具的分K照舊
+     拆包。實測 4 個交易日的檔案每列都是 9 欄，負價只出現在價差單。13 組呼叫（預設、全時段、1 分K、夜盤、列出商品、
+     股票代號轉股票期貨、指定月份、查無、超出 30 天、2026-09-08 的 TX／TE）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163、#165；盤點出的格式問題都已修好，TWSE
-  rwd／exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway，MOPS 依位置讀的頁面也是（股利 t05st09_2 已依欄名讀、
-  背書保證 t05st11 原樣印出表格，沒有搬），TDCC、國發會、央行也是；`tools/` 裡依位置讀的只剩期交所 tick zip，
-  以及 etf/info 在櫃買 ETF 清單比對代號）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163、#165、#166；盤點出的格式問題都已修好，
+  TWSE rwd／exchangeReport、TPEx 網站、TAIFEX 下載頁與每筆成交 zip 都收成 gateway，MOPS 依位置讀的頁面也是（股利
+  t05st09_2 已依欄名讀、背書保證 t05st11 原樣印出表格，沒有搬），TDCC、國發會、央行也是；`tools/` 裡依位置讀的
+  只剩 etf/info 在櫃買 ETF 清單比對代號）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

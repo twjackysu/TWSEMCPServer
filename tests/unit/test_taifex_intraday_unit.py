@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastmcp.exceptions import ToolError
 
+from sources.taifex.ticks import trades
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
 from tools.taifex import daily_market_report, intraday, trading_statistics
@@ -95,24 +96,16 @@ def test_parsed_ticks_cache_survives_concurrent_eviction(monkeypatch):
 
 # ---------- parsing and bars ----------
 
-def test_parse_ticks_filters_product_and_spreads_and_guards_header():
-    text = "\r\n".join([TICK_HEADER] + [",".join(r) for r in DAY_1016])
-    ticks = intraday.parse_ticks(text, "TX")
-    assert len(ticks) == 9 and all("/" not in t[1] for t in ticks)
-    assert intraday.available_days(PAGE.decode()) == ["20261019", "20261016"]
-    with pytest.raises(ValueError, match="欄位已變更"):
-        intraday.parse_ticks("日期,代號\n1,TX", "TX")
-
-
 def test_bars_align_to_session_start_and_fold_closing_auction():
-    ticks = intraday.parse_ticks("\r\n".join([TICK_HEADER] + [",".join(r) for r in DAY_1016]), "TX")
-    day = [t for t in ticks if t[1] == "202610" and intraday.session_of(t[2]) == "day"]
+    ticks = trades(OfflineClient({"Daily_2026_10_16.zip": _zip(DAY_1016)}), "20261016", "TX")
+    assert len(ticks) == 9  # 價差單不計入
+    day = [t for t in ticks if t.month == "202610" and intraday.session_of(t.time) == "day"]
     bars = intraday.build_bars(day, 5, intraday.DAY_START, intraday.DAY_END)
     assert [(b["minute"] // 60, b["minute"] % 60) for b in bars] == [(8, 45), (8, 50), (13, 40)]
     assert bars[0]["high"] == 104 and bars[-1]["close"] == 102 and bars[-1]["volume"] == 32
     thirty = intraday.build_bars(day, 30, intraday.DAY_START, intraday.DAY_END)
     assert [(b["minute"] // 60, b["minute"] % 60) for b in thirty] == [(8, 45), (13, 15)]
-    night = [t for t in ticks if intraday.session_of(t[2]) == "night"]
+    night = [t for t in ticks if intraday.session_of(t.time) == "night"]
     night_bars = intraday.build_bars(night, 60, intraday.NIGHT_START, intraday.NIGHT_END)
     assert [(b["date"], b["minute"] // 60) for b in night_bars] == [("20261015", 15), ("20261015", 23), ("20261016", 0)]
 
