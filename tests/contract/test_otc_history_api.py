@@ -1,14 +1,17 @@
 """TPEx website endpoints (www.tpex.org.tw/www/zh-tw/...) contract tests.
 
 tools/otc/ reads most of these rows by position, so each test pins the field list. insti/dailyTrade
-goes through its gateway (sources/tpex/insti_daily.py), which checks its fields and column sums itself.
+and tradingStock go through their gateways (sources/tpex/), which check their fields themselves.
 """
+
+from decimal import Decimal
 
 import pytest
 
 from sources.tpex.insti_daily import INSTI_DAILY_URL, tpex_flows
+from sources.tpex.trading_stock import trading_stock_month
 from tests.helpers import fetch_or_skip, gateway_or_skip
-from tools.otc.history import TRADING_STOCK_URL, MARGIN_BALANCE_URL
+from tools.otc.history import MARGIN_BALANCE_URL
 from tools.otc.institutional_summary import INSTI_SUMMARY_URL
 
 FIXED_DATE = "2025/01/03"  # 固定歷史交易日
@@ -22,19 +25,31 @@ def _first_table(resp) -> dict:
     return resp["tables"][0]
 
 
-class TestOTCStockHistoryAPI:
-    """tradingStock：get_otc_stock_history 使用 row[0]~row[8]。"""
+class TestOTCTradingStockGateway:
+    """上櫃個股日K - afterTrading/tradingStock（sources/tpex/trading_stock.py）
+    get_otc_stock_history 與 services/price_series 都只透過這個 gateway 讀 tradingStock；真實回應要能建出
+    TradingStockMonth。欄位改名、搬走時 gateway 會丟 UpstreamFormatError，這裡就會失敗。
+    """
 
-    def test_fields_and_row_width(self):
-        table = _first_table(fetch_or_skip(
-            TRADING_STOCK_URL, params={"code": FIXED_OTC_STOCK, "date": FIXED_DATE, "response": "json"}
-        ))
-        assert table.get("fields") == [
-            "日 期", "成交張數", "成交仟元", "開盤", "最高", "最低", "收盤", "漲跌", "筆數"
-        ], f"欄位已變更: {table.get('fields')}"
-        rows = table.get("data") or []
-        assert rows, "固定歷史月份應有資料"
-        assert all(len(r) == 9 for r in rows)
+    def test_fixed_month_parses(self):
+        month = gateway_or_skip(trading_stock_month, FIXED_OTC_STOCK, 2025, 1)
+        assert month is not None, f"{FIXED_OTC_STOCK} 2025-01 應有交易資料"
+        assert month.name == "環球晶", f"name 欄位異動？{month.name!r}"
+        assert month.rows and all(r.day.year == 2025 and r.day.month == 1 for r in month.rows)
+        for r in month.rows:  # 6488 每個交易日都有成交
+            assert None not in (r.open, r.high, r.low, r.close, r.lots, r.value_thousands, r.transactions), r
+            assert r.low <= r.open <= r.high and r.low <= r.close <= r.high, r
+            # 成交仟元 ÷ 成交張數 ＝ 每股均價（元），應落在當日高低之間：單位（張、仟元）沒變
+            assert r.low <= Decimal(r.value_thousands) / r.lots <= r.high, f"成交張數／仟元單位異動？{r}"
+
+    def test_month_before_2025_parses(self):
+        """2024-12 以前成交量欄名是「成交仟股」，2025-01 起是「成交張數」（數字相同）。"""
+        month = gateway_or_skip(trading_stock_month, FIXED_OTC_STOCK, 2024, 12)
+        assert month is not None and month.rows and all(r.lots for r in month.rows), "2024-12 應有交易資料"
+
+    def test_listed_or_unknown_code_is_no_data_not_an_error(self):
+        assert gateway_or_skip(trading_stock_month, "2330", 2025, 1) is None
+        assert gateway_or_skip(trading_stock_month, "9999", 2025, 1) is None
 
 
 class TestOTCInstitutionalGateway:

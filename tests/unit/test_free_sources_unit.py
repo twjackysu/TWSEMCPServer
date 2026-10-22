@@ -23,6 +23,7 @@ pytestmark = pytest.mark.offline
 # ---------- TPEx history ----------
 
 INSTI_FIELDS = ["代號", "名稱"] + ["買進股數", "賣出股數", "買賣超股數"] * 7 + ["三大法人買賣超股數合計"]
+TRADING_STOCK_FIELDS = ["日 期", "成交張數", "成交仟元", "開盤", "最高", "最低", "收盤", "漲跌", "筆數"]
 
 
 def _insti_row(code, name):
@@ -48,7 +49,7 @@ def test_otc_history_sends_slash_date_and_rejects_bad_dates():
 
     def route(params, _body):
         seen.update(params)
-        return {"name": "環球晶", "tables": [{"data": [
+        return {"name": "環球晶", "tables": [{"fields": TRADING_STOCK_FIELDS, "data": [
             ["115/08/03", "15,388", "13,694,380", "870.00", "930.00", "843.00", "866.00", "11.00", "23,455"],
         ]}]}
 

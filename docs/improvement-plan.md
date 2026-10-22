@@ -50,8 +50,13 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      `rank(flows, f.net(sort_by))`。T86 依欄名讀三種歷史格式（12 欄、2014-12-01 起 16 欄、2017-12-18 起 19 欄），
      修好 2017-12-18 前的日期一律「查無」；TPEx 7 組同名欄位依順序對應（Adapter），逐列檢查加總。呈現仍各自保留（上市排行沒有拆外資自營商、
      自營商自行／避險），統一會改變輸出，另議。
+   - ✅ TPEx tradingStock（#137）：`sources/tpex/trading_stock.py`；`get_otc_stock_history` 與 `price_series`
+     的上櫃日K共用。成交量欄名 2025-01 起是「成交張數」、之前（查到 2005）是「成交仟股」，數字相同，gateway
+     兩個都接受（只看第一個的話 2024-12 以前會變成查詢失敗）。tool 改查當月 1 日（整月資料相同），並與
+     `price_series` 共用月份快取。12 組呼叫（含 2010、2024-12／2025-01 跨欄名、還原日K、技術指標）文字與
+     結構化資料都與 main 逐字相同。下一個被重複解析的是 TPEx exDailyQ（`tools/otc/exright.py` 與還原權息）。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137；剩 TPEx exDailyQ 與只在一處解析的端點）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

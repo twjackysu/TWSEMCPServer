@@ -69,7 +69,8 @@ def _stock_day(params, _body):
 def _trading_stock(params, _body):
     if params["date"] != "2026/09/01":
         return {"tables": [{"data": []}]}
-    return {"name": "環球晶", "tables": [{"data": [["115/09/30", "18,766", "1", "966", "1,035", "953", "1,035", "90", "1"]]}]}
+    return {"name": "環球晶", "tables": [{"fields": ["日 期", "成交張數", "成交仟元", "開盤", "最高", "最低", "收盤", "漲跌", "筆數"],
+                                       "data": [["115/09/30", "18,766", "1", "966", "1,035", "953", "1,035", "90", "1"]]}]}
 
 
 def test_market_detection_falls_back_to_otc_and_converts_lots_to_shares():
