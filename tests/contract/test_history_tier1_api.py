@@ -4,43 +4,36 @@
 """
 
 import pytest
+from sources.twse.bfi82u import institutional_amounts
 from sources.twse.fmtqik import market_turnover
 from sources.twse.mi_5mins_hist import taiex_history
 from sources.twse.mi_index import stock_quotes
 from sources.twse.mi_qfiis import foreign_holdings
-from tests.helpers import fetch_or_skip, gateway_or_skip
+from tests.helpers import gateway_or_skip
 
 FIXED_DATE = "20250103"  # 固定歷史交易日，確保資料穩定
 
 
-class TestMarketInstitutionalAmountsAPI:
-    """三大法人買賣金額統計 - BFI82U
-    Tool get_market_institutional_amounts_history 使用 row[0]~row[3]：
-    單位名稱、買進金額、賣出金額、買賣差額。
+class TestMarketInstitutionalAmountsGateway:
+    """三大法人買賣金額統計 - BFI82U（sources/twse/bfi82u.py）
+    get_market_institutional_amounts_history 只透過這個 gateway 讀；欄位依名稱取，改名時 gateway 丟 UpstreamFormatError。
     """
 
-    def test_row_has_name_and_three_amount_fields(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/fund/BFI82U",
-            params={"response": "json", "dayDate": FIXED_DATE, "type": "day"},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        row = data[0]
-        assert len(row) >= 4, f"欄位數不足 4，row 結構可能已變更: {row}"
-        assert "合計" in [r[0] for r in data], "找不到「合計」列，row[0] 單位名稱欄位可能已變更"
-
-    @pytest.mark.parametrize("params", [
+    @pytest.mark.parametrize("period,day", [
+        ("day", FIXED_DATE),
         # 週資料用該週第一個交易日查詢；2026-04-06（週一）休市，該週從 04-07 開始
-        {"type": "week", "weekDate": "20260407"},
-        {"type": "month", "monthDate": "20260915"},
+        ("week", "20260407"),
+        ("month", "20260915"),
     ])
-    def test_week_and_month_periods(self, params):
-        result = fetch_or_skip("https://www.twse.com.tw/rwd/zh/fund/BFI82U", params={"response": "json", **params})
-        assert result.get("stat") == "OK", f"{params} 不再回傳資料: {result.get('stat')}"
-        data = result.get("data", [])
-        assert data and all(len(r) >= 4 for r in data), f"{params} row 結構已變更（tool 讀 row[0]~row[3]）: {data[:1]}"
+    def test_fixed_period_parses(self, period, day):
+        report = gateway_or_skip(institutional_amounts, period, day)
+        assert report is not None and report.amounts, f"{period} {day} 應有資料"
+        a = report.amounts[0]
+        assert None not in (a.buy, a.sell, a.net), f"數字格式已變更：{a}"
+
+    def test_week_needs_its_first_trading_day(self):
+        """工具靠「不是該週第一個交易日就沒有資料」往後一天再查."""
+        assert gateway_or_skip(institutional_amounts, "week", "20260406") is None
 
 
 class TestMiIndexQuotesGateway:

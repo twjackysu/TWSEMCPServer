@@ -67,10 +67,11 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── twse/fmnptk.py            # FMNPTK → yearly_trading() YearlyTrading list (each 日期 named after the price before it)
 ├── twse/fmtqik.py            # FMTQIK → market_turnover() MarketMonth (daily turnover + TAIEX close, one month)
 ├── twse/mi_5mins_hist.py     # MI_5MINS_HIST → taiex_history() IndexMonth (TAIEX daily OHLC, one month)
+├── twse/bfi82u.py            # BFI82U → institutional_amounts() AmountReport (day / week / month; week needs its first trading day)
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
 ├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
 ├── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
-├── institutional.py          # InstitutionalFlow / Trades / FlowDay: the 三大法人 record both markets' gateways return
+├── institutional.py          # InstitutionalFlow / Trades / FlowDay (per stock) and InstitutionalAmount (market totals): the 三大法人 records both markets' gateways return
 ├── twse/t86.py               # T86 → t86_flows() (all three historical column layouts, by name)
 ├── twse/twt93u.py            # TWT93U → short_sale_lending_balances() (columns by group/name; 借券賣出 layout until 2012-03-16 kept as published)
 ├── twse/twtasu.py            # TWTASU → short_lending_sales() ShortLendingSaleDay (columns by group/name; 代號 and 名稱 split from one cell; 合計 left out)
