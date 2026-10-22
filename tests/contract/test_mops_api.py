@@ -11,7 +11,8 @@ from datetime import date
 
 import pytest
 
-from tests.helpers import fetch_or_skip, fetch_bytes_or_skip
+from sources.mops.t35sc09 import treasury_buybacks
+from tests.helpers import fetch_or_skip, fetch_bytes_or_skip, gateway_or_skip
 from tools.mops.dividend import KEY_COLUMNS
 from tools.mops.monthly_revenue import CURRENT_MONTH_LABEL
 from tools.mops.investor_conference import NO_DATA_TEXT, ROW_WIDTH, parse_conference_rows
@@ -226,21 +227,26 @@ class TestInsiderHoldingsAPI:
 
 
 class TestTreasuryAndGuaranteesLegacyPages:
-    """ajax_t35sc09（庫藏股）資料列固定 20 格；ajax_t05st11（背書保證/資金貸放）以無 id 的表格呈現。"""
+    """ajax_t35sc09（庫藏股）只透過 sources/mops/t35sc09.py 讀，欄位依表頭名稱取，表頭改了 gateway 丟
+    UpstreamFormatError；ajax_t05st11（背書保證/資金貸放）以無 id 的表格呈現。"""
 
     def _legacy(self, name: str, form: dict) -> str:
         body = fetch_bytes_or_skip(f"{MOPS_LEGACY_BASE}/{name}", method="POST",
                                    data={**MOPS_LEGACY_HIDDEN_FIELDS, **form})
         return body.decode("utf-8", errors="replace")
 
-    def test_buyback_rows(self):
-        from utils.mops import parse_html_tables
-        from tools.mops.treasury_guarantees import BUYBACK_ROW_WIDTH
+    def test_buyback_gateway(self):
+        rows = gateway_or_skip(treasury_buybacks, "sii", "20250101", "20250331")
+        assert rows, "固定歷史區間應有庫藏股資料"
+        assert {b.purpose for b in rows} <= {"1", "2", "3"}, "買回目的代碼已變更（工具以此標示）"
+        b = next((b for b in rows if b.bought_shares is not None), None)
+        assert b is not None, "固定歷史區間應有執行完畢的案件"
+        assert None not in (b.amount_cap, b.planned_shares, b.price_low, b.price_high, b.pct_of_planned,
+                            b.bought_amount, b.average_price, b.pct_of_issued), f"數字格式已變更：{b}"
 
-        html = self._legacy("ajax_t35sc09", {"TYPEK": "sii", "d1": "1140101", "d2": "1140331", "RD": "1"})
-        rows = [r for t in parse_html_tables(html) for r in t if len(r) == BUYBACK_ROW_WIDTH and r[0].strip().isdigit()]
-        assert rows, "固定歷史區間應有庫藏股資料，資料列寬度可能已變更"
-        assert all(r[4].strip() in ("1", "2", "3") for r in rows), f"買回目的代碼已變更: {[r[4] for r in rows][:5]}"
+    def test_buyback_range_without_data_says_so(self):
+        """沒有案件的區間回「查無所需資料」頁，gateway 回 None（工具回查無）；改了措辭會變成非預期頁面的錯誤."""
+        assert gateway_or_skip(treasury_buybacks, "rotc", "20250101", "20251231") is None
 
     def test_lending_and_guarantee_tables(self):
         from utils.mops import parse_html_tables

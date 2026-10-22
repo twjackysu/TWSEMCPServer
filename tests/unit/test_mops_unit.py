@@ -345,22 +345,7 @@ def test_insider_changes_list_only_movers_by_default():
     assert "乙" in fn("2330", only_changed=False)
 
 
-# ---------- treasury stock / lending ----------
-
-def _buyback_row(seq, code, purpose, done="N"):
-    return [str(seq), code, "名稱", "115/09/03", purpose, "1", "2", "3", "4", "115/09/04", "115/11/02", done] + [""] * 8
-
-
-def test_buybacks_decode_purpose_and_filter_code():
-    header = "<tr><th>序號</th></tr>"
-    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>"
-                   for r in [_buyback_row(1, "6655", "3"), _buyback_row(2, "1437", "1", "Y")])
-    html = f"<table><tr><td>上市公司買回自己公司股份彙總統計表</td></tr></table><table>{header}{body}</table>"
-    fn = register_module_tools(treasury_guarantees, OfflineClient({"/ajax_t35sc09": html.encode("utf-8")}))[
-        "get_treasury_stock_buybacks"]
-    text = fn("20260901", "20260930", code="1437")
-    assert "共有 1 筆" in text and "目的:轉讓股份予員工" in text and "是否執行完畢:Y" in text
-
+# ---------- lending (buybacks: test_mops_t35sc09_gateway_unit.py) ----------
 
 def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():
     blocked = b"<html>FOR SECURITY REASONS</html>"
