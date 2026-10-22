@@ -17,7 +17,7 @@ saying 查無所需資料. Same 20 columns checked 2005–2026 for 上市, 上�
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import List, Optional, Sequence
+from typing import List, Optional
 
 from utils.api_client import TWSEAPIClient
 from utils.date_helper import roc_date
@@ -26,6 +26,7 @@ from utils.mops import mops_legacy_post, parse_html_tables
 from utils.parse import decimal_or_none, int_or_none
 
 from ..columns import column_index
+from .legacy import UNEXPECTED_PAGE, two_row_header
 
 SOURCE = "t35sc09"
 NO_DATA_TEXT = "查無所需資料"
@@ -68,18 +69,6 @@ def _name(cell: str) -> str:
     return name
 
 
-def _column_names(top: Sequence[str], sub: Sequence[str]) -> List[str]:
-    """One name per data cell from the two header rows: 買回價格區間 → 買回價格區間/最低, 買回價格區間/最高."""
-    top_names = [_name(c) for c in top]
-    expected = [s for t in top_names if t in GROUPS for s in GROUPS[t]]
-    if [_name(c) for c in sub] != expected:
-        raise UpstreamFormatError(f"{SOURCE} 第二列表頭已變更：{list(sub)}，預期 {expected}")
-    names: List[str] = []
-    for t in top_names:
-        names += [f"{t}/{s}" for s in GROUPS[t]] if t in GROUPS else [t]
-    return names
-
-
 def treasury_buybacks(client: TWSEAPIClient, market: str, start: str, end: str) -> Optional[List[Buyback]]:
     """Buybacks resolved on from ``start`` to ``end`` (西元 YYYYMMDD) in ``market`` (sii / otc / rotc / pub), in
     MOPS's order, or None when MOPS has none. Raises ``UpstreamFormatError`` on a page without the table (MOPS
@@ -91,8 +80,8 @@ def treasury_buybacks(client: TWSEAPIClient, market: str, start: str, end: str) 
     rows = [r for table in parse_html_tables(html) for r in table]
     head = next((i for i, r in enumerate(rows) if "公司代號" in map(_name, r)), None)
     if head is None or head + 1 == len(rows):
-        raise UpstreamFormatError("公開資訊觀測站回應非預期頁面（可能暫時限制存取或頁面改版），請稍後再試")
-    names = _column_names(rows[head], rows[head + 1])
+        raise UpstreamFormatError(UNEXPECTED_PAGE)
+    names = two_row_header([_name(c) for c in rows[head]], [_name(c) for c in rows[head + 1]], GROUPS, SOURCE)
     col = column_index(names, FIELDS, SOURCE)
     seq = col["序號"]
     buybacks = []

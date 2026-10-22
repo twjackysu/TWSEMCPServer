@@ -11,6 +11,7 @@ from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_mops_investor_conference_gateway_unit import header as conference_header
 from tools.mops import dividend, financial_statements, investor_conference, monthly_revenue
 from tools.mops.monthly_revenue import parse_month_range
 from utils.mops import MopsQueryError, flatten_titles, leaf_titles, mops_post, parse_html_table, to_roc_year
@@ -223,9 +224,7 @@ def test_dividend_tool_validates_arguments_and_maps_year_type():
 
 # ---------- investor conferences ----------
 
-CONF_HTML = """<table id='myTable'>
-<tr><th>公司代號</th><th>公司名稱</th></tr><tr><th>中文檔案</th><th>英文檔案</th></tr>
-<tr>{late}</tr><tr>{early}</tr></table>"""
+CONF_HTML = "<table id='myTable'>" + conference_header() + "<tr>{late}</tr><tr>{early}</tr></table>"
 
 
 def _conf_row(code, day):

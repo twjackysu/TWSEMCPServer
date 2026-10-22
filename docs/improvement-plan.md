@@ -180,8 +180,14 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      淨額依 titles 取，`period` 由 yymm 解析，`current` 是「本月」那一項）。請求的民國年改用 `roc_year_of()`、yymm 改用
      `parse_roc_date()`，工具不再自己 ±1911。IFRS 前（2009-12、2010-01）只回 yymm，沒有資料。8 組呼叫（最新、2025 上半年、
      2014-12～2015-01、2009-12～2010-01、上櫃、未知代號、未公告月份）與 main 逐字相同，送出的 22 個請求也相同。
+   - ✅ MOPS ajax_t100sb02_1（#161）：`sources/mops/investor_conference.py` 的 `investor_conferences()` 回 `Conference`。兩列表頭
+     （法人說明會簡報內容下分中文檔案／英文檔案）接法從 t35sc09 抽出成 `sources/mops/legacy.py` 的 `two_row_header()` 共用，
+     欄位依名稱取，不再假設每列 12 格。興櫃與公開發行的頁面網站欄叫「公司網站是否提供法人說明會內容」、沒有影音連結資訊，
+     每列 11 格——舊版一律回「非預期頁面」，這兩個市場有資料時從來查不到；現在依欄名讀得到。18 組呼叫中 14 組（上市、
+     上櫃 2010／2025／2026 月份與整年、代號篩選、分頁、查無、月份錯誤，加上興櫃查無）與 main 逐字相同，送出的請求也相同；
+     興櫃、公開發行有資料的 4 組由錯誤變成有資料。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#160；盤點出的格式問題都已修好，TWSE rwd／
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#161；盤點出的格式問題都已修好，TWSE rwd／
   exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway；剩 MOPS 其餘頁面）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
