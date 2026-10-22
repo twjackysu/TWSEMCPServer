@@ -5,9 +5,10 @@ Sources, one request per calendar month:
 - OTC (TPEx):    www/zh-tw/afterTrading/tradingStock (sources/tpex/trading_stock.py) — volume in lots (張),
   converted to shares
 Ex-rights/dividend results (one request for the whole span):
-- listed: rwd/zh/exRight/TWT49U   - OTC: www/zh-tw/bulletin/exDailyQ
-Both give 除權息前收盤價 and 除權息參考價; the ratio reference/close-before is the factor by
-which every earlier price is multiplied for a backward-adjusted (還原權息) series.
+- listed: rwd/zh/exRight/TWT49U (sources/twse/twt49u.py)
+- OTC:    www/zh-tw/bulletin/exDailyQ (sources/tpex/ex_daily_q.py)
+Both give 除權息前收盤價 and 除權息參考價 (``close_before``, ``reference``); the ratio reference/close-before
+is the factor by which every earlier price is multiplied for a backward-adjusted (還原權息) series.
 """
 
 from dataclasses import dataclass, replace
@@ -15,14 +16,12 @@ from datetime import date
 from typing import List, Optional, Tuple
 
 from utils.api_client import TWSEAPIClient
-from utils.date_helper import parse_roc_date, taipei_today
+from utils.date_helper import taipei_today
 from utils.parse import float_or_none
-from sources.caching import PAST_MONTH_CACHE_TTL
+from sources.tpex.ex_daily_q import otc_exright_results
 from sources.tpex.trading_stock import trading_stock_month
 from sources.twse.stock_day import stock_day_month
 from sources.twse.twt49u import exright_results
-
-TPEX_EXRIGHT_URL = "https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ"
 
 LISTED, OTC = "上市", "上櫃"
 
@@ -106,25 +105,10 @@ def fetch_daily_bars(client: TWSEAPIClient, code: str, months: List[Tuple[int, i
 
 def fetch_exright_events(client: TWSEAPIClient, market: str, code: str, start: date, end: date) -> List[ExRightEvent]:
     """Ex-rights / ex-dividend results for ``code`` between ``start`` and ``end``."""
-    if market == LISTED:
-        events = [ExRightEvent(r.day, float(r.close_before), float(r.reference), r.kind)
-                  for r in exright_results(client, start, end).results
-                  if r.code == code and r.close_before and r.reference]
-        return sorted(events, key=lambda e: e.day)
-    resp = client.fetch_json(
-        TPEX_EXRIGHT_URL,
-        params={"startDate": f"{start:%Y/%m/%d}", "endDate": f"{end:%Y/%m/%d}", "response": "json"},
-        cache_ttl=PAST_MONTH_CACHE_TTL,
-    )
-    tables = (resp or {}).get("tables") or []
-    events = []
-    for r in (tables[0].get("data") if tables else None) or []:
-        # 除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息, ...
-        if r[1].strip() != code:
-            continue
-        d, before, ref = parse_roc_date(r[0]), float_or_none(r[3]), float_or_none(r[4])
-        if d and before and ref:
-            events.append(ExRightEvent(d, before, ref, str(r[8]).strip()))
+    results = (exright_results(client, start, end).results if market == LISTED
+               else otc_exright_results(client, start, end).results)
+    events = [ExRightEvent(r.day, float(r.close_before), float(r.reference), r.kind)
+              for r in results if r.code == code and r.close_before and r.reference]
     return sorted(events, key=lambda e: e.day)
 
 
