@@ -210,11 +210,16 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      略過該列）。一天約 60～90 萬列、單一商品約 8 萬列，所以 `Trade` 用 NamedTuple 而不是 dataclass，工具的分K照舊
      拆包。實測 4 個交易日的檔案每列都是 9 欄，負價只出現在價差單。13 組呼叫（預設、全時段、1 分K、夜盤、列出商品、
      股票代號轉股票期貨、指定月份、查無、超出 30 天、2026-09-08 的 TX／TE）與 main 逐字相同，送出的請求也相同。
+   - ✅ TPEx ETF/list／ETF/detail（#167）：`sources/tpex/etf.py` 的 `tpex_etfs(type)`（證券代號依欄名取，不再用 `row[0]`）
+     與 `tpex_etf_detail(type, code)`（每張規格表一列、欄位與值逐一配對，HTML 連結取文字，只有一個無名欄位的 PCF 連結表
+     不收；列數或欄數不符報錯）。請求照舊是 POST 表單，headers 與 6 小時快取改為 gateway 自己的常數（原本借用 SITCA
+     的）。背書保證 t05st11 單格列的文字改成不靠索引取出（輸出不變）。8 組 get_etf_info（上櫃國內／國外／債券 ETF、
+     上市 ETF、未知代號、上櫃清單）與 3 組背書保證與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#163、#165、#166；盤點出的格式問題都已修好，
-  TWSE rwd／exchangeReport、TPEx 網站、TAIFEX 下載頁與每筆成交 zip 都收成 gateway，MOPS 依位置讀的頁面也是（股利
-  t05st09_2 已依欄名讀、背書保證 t05st11 原樣印出表格，沒有搬），TDCC、國發會、央行也是；`tools/` 裡依位置讀的
-  只剩 etf/info 在櫃買 ETF 清單比對代號）
+- [x] Phase 3 來源層 + 領域層（#116–#119、#121、#137–#143、#146–#163、#165–#167）：盤點出的格式問題都已修好；
+  TWSE rwd／exchangeReport、TPEx 網站、TAIFEX 下載頁與每筆成交 zip、MOPS、TDCC、國發會、央行，工具讀的上游列都經過
+  `sources/` 的 gateway（股利 t05st09_2 依欄名讀、背書保證 t05st11 原樣印出表格，沒有另建 gateway）。驗收：`tools/`
+  內不再依位置讀上游的列（2026-10-22 grep 確認；剩下的索引都是取清單第一筆或依表頭 zip）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）
@@ -439,7 +444,7 @@ def get_twse_institutional_investors_summary(
 - contract test 改測 gateway：真實回應要能建出 dataclass（比「欄位存在」強，數字格式變了也抓得到）。只驗介面：
   不檢查上游資料本身對不對（加總、等式、範圍、單位），那是資料來源自己的事。
 - 105 個 OpenAPI 透傳 tool 不動，`create_company_tool` 已是對的抽象。
-- 驗收：`r[n]` 只出現在 `sources/`，tools/ 內 0 處。
+- 驗收：`r[n]` 只出現在 `sources/`，tools/ 內 0 處。（✅ #167 後達成）
 
 ### Phase 4：MCP 介面（全部用 FastMCP 4 原生機制）
 - ✅ 全部 tool 加 annotations 與依來源的 `tags`（#129）：`ToolRegistrar` 統一加上 `READ_ONLY`（唯讀、非破壞、

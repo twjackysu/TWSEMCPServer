@@ -10,21 +10,19 @@
 t187ap47_L fields are covered by tests/contract/test_api_schemas.py via tool_field_dependencies.py.
 """
 
-import json
 import re
 
 import pytest
 
-from tests.helpers import fetch_bytes_or_skip, fetch_or_skip
+from sources.tpex.etf import ETF_TYPES, tpex_etf_detail, tpex_etfs
+from tests.helpers import fetch_or_skip, gateway_or_skip
 from tools.etf.daily_nav import MIS_ALL_ETF_URL
 from tools.etf.holdings import REQUIRED_COLUMNS as HOLDINGS_COLUMNS
-from tools.etf.info import TPEX_ETF_DETAIL_URL, TPEX_ETF_LIST_URL, TPEX_ETF_TYPES
 from tools.etf.monthly_stats import records
 from utils.api_client import TWSEAPIClient
 from utils.sitca import (
     HOLDINGS_MONTHLY_PAGE,
     HOLDINGS_QUARTERLY_PAGE,
-    SITCA_HEADERS,
     available_months,
     fund_name_key,
     holdings_by_class,
@@ -91,23 +89,19 @@ class TestMisAllEtf:
 
 
 class TestTpexEtfPages:
-    @staticmethod
-    def _post(url, form):
-        body = fetch_bytes_or_skip(url, data={**form, "response": "json"}, method="POST", headers=SITCA_HEADERS, timeout=60)
-        return json.loads(body.decode("utf-8"))
+    """ETF/list 與 ETF/detail 只透過 sources/tpex/etf.py 讀：清單的證券代號依欄名取，規格表每張一列、欄位與值逐一配對；
+    欄名或結構改了 gateway 丟 UpstreamFormatError。工具依代號在三種類型的清單中找出 type 再查規格."""
 
-    def test_list_types(self):
-        for etf_type in TPEX_ETF_TYPES:
-            table = self._post(TPEX_ETF_LIST_URL, {"type": etf_type})["tables"][0]
-            assert table["fields"][0] == "證券代號", f"ETF/list({etf_type}) 第一欄已變更: {table['fields']}"
-        bonds = self._post(TPEX_ETF_LIST_URL, {"type": "bond"})["tables"][0]["data"]
-        assert any(r[0] == "00679B" for r in bonds), "00679B 不在 ETF/list(bond)"
+    @pytest.mark.parametrize("etf_type", ETF_TYPES)
+    def test_list_types(self, etf_type):
+        etfs = gateway_or_skip(tpex_etfs, etf_type)
+        assert etfs, f"ETF/list({etf_type}) 沒有任何 ETF"
 
-    def test_detail_tables(self):
-        tables = self._post(TPEX_ETF_DETAIL_URL, {"type": "bond", "code": "00679B"})["tables"]
-        spec = next((t for t in tables if t.get("title") == "商品規格"), None)
-        # 工具把每張表的 fields 與 data[0] 逐欄配對輸出，不寫死欄名
-        assert spec and len(spec["fields"]) == len(spec["data"][0]), f"ETF/detail 商品規格表結構已變更: {tables!r:.300}"
+    def test_bond_list_and_detail(self):
+        assert any(e.code == "00679B" for e in gateway_or_skip(tpex_etfs, "bond")), "00679B 不在 ETF/list(bond)"
+        sections = gateway_or_skip(tpex_etf_detail, "bond", "00679B")
+        spec = next((s for s in sections if s.title == "商品規格"), None)
+        assert spec is not None and ("證券代號", "00679B") in spec.items, f"ETF/detail 商品規格表已變更: {sections!r:.300}"
 
 
 class TestSitcaHoldings:
