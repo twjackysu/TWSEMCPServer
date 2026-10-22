@@ -13,8 +13,7 @@ from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT, pr
 from toolkit import Limit, Offset, RequiredTradingDate, TradingDate, handle_api_errors
 from sources.twse.mi_index import index_quotes
 from sources.twse.twt49u import exright_results
-
-TWTB4U_URL = "https://www.twse.com.tw/rwd/zh/dayTrading/TWTB4U"
+from sources.twse.twtb4u import DayTradingTarget, day_trading
 
 
 def _any(*patterns):
@@ -99,45 +98,37 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = {"selectType": "All", "response": "json"}
-        if date.strip():
-            params["date"] = date.strip()
-        resp = _client.fetch_json(TWTB4U_URL, params=params)
-        tables = (resp or {}).get("tables") or []
         label = date or "最新交易日"
-        if not resp or resp.get("stat") != "OK" or len(tables) < 2:
+        report = day_trading(_client, date.strip())
+        if report is None or (report.summary is None and not report.targets):
             return f"查無 {label} 的當日沖銷交易資料，請確認該日期為交易日（非假日或週末）"
-
-        summary_rows = tables[0].get("data") or []
-        rows = tables[1].get("data") or []
-        if not summary_rows and not rows:
-            return f"查無 {label} 的當日沖銷交易資料，請確認該日期為交易日（非假日或週末）"
-        day = resp.get("date") or label
+        day = report.date or label
 
         header = ""
-        if summary_rows:
-            # s: 總成交股數,占市場比重%,總買進金額,占比%,總賣出金額,占比%
-            s = summary_rows[0]
+        s = report.summary
+        if s is not None:
             header = (
-                f"全市場當沖: 成交股數 {s[0]}（占 {s[1]}%）| 買進金額 {s[2]}（占 {s[3]}%）| "
-                f"賣出金額 {s[4]}（占 {s[5]}%）\n\n"
+                f"全市場當沖: 成交股數 {printed(s.volume)}（占 {printed(s.volume_pct)}%）| "
+                f"買進金額 {printed(s.buy_value)}（占 {printed(s.buy_pct)}%）| "
+                f"賣出金額 {printed(s.sell_value)}（占 {printed(s.sell_pct)}%）\n\n"
             )
 
+        rows = report.targets
         if stock_no:
-            rows = [r for r in rows if r[0].strip() == stock_no.strip()]
+            rows = [t for t in rows if t.code == stock_no.strip()]
         if name:
-            rows = [r for r in rows if name in r[1]]
+            rows = [t for t in rows if name in t.name]
 
         # 證交所於交易日晚間才公布量值；在那之前當天的個股表只有「代號、名稱、註記」三格
-        if not any(len(r) >= 6 for r in rows):
+        if not report.published:
             header += "（當日當沖量值尚未公布，以下僅列可當沖標的）\n\n"
 
-        def fmt(r):
-            # r: 證券代號,證券名稱,暫停現股賣出後現款買進當沖註記,當沖成交股數,當沖買進金額,當沖賣出金額
-            flag = "（暫停先賣後買）" if len(r) > 2 and r[2].strip() == "Y" else ""
-            if len(r) < 6:
-                return f"{r[0]} {r[1]}{flag}\n"
-            return f"{r[0]} {r[1]}{flag} | 當沖股數:{r[3]} | 買進:{r[4]} | 賣出:{r[5]}\n"
+        def fmt(t: DayTradingTarget) -> str:
+            flag = "（暫停先賣後買）" if t.sell_first_suspended else ""
+            if not report.published:
+                return f"{t.code} {t.name}{flag}\n"
+            return (f"{t.code} {t.name}{flag} | 當沖股數:{printed(t.volume)} | 買進:{printed(t.buy_value)} | "
+                    f"賣出:{printed(t.sell_value)}\n")
 
         return header + format_list_response(rows, f" {day} 上市個股當日沖銷交易", fmt, limit, offset)
 

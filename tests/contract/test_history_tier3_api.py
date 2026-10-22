@@ -6,8 +6,8 @@ from datetime import date
 
 from sources.twse.mi_index import MI_INDEX_URL, index_quotes
 from sources.twse.twt49u import exright_results
+from sources.twse.twtb4u import TWTB4U_URL, day_trading
 from tests.helpers import fetch_or_skip, gateway_or_skip
-from tools.history.exright_day_trading_indices import TWTB4U_URL
 
 FIXED_DATE = "20250103"  # 固定歷史交易日
 
@@ -25,25 +25,22 @@ class TestExrightResultsHistoryAPI:
                             r.opening_reference, r.ex_dividend_reference), f"數字格式已變更：{r}"
 
 
-class TestDayTradingHistoryAPI:
-    """get_daily_day_trading_targets 使用 tables[0]（全市場彙總）row[0]~row[5] 與
-    tables[1]（個股）row[0]~row[5]。"""
+class TestDayTradingGateway:
+    """get_daily_day_trading_targets 只透過 sources/twse/twtb4u.py 讀；兩張表依欄位名稱找、欄位依名稱取，
+    欄位改名會丟 UpstreamFormatError。"""
 
-    def test_two_tables_with_expected_fields(self):
-        resp = fetch_or_skip(TWTB4U_URL, params={"date": FIXED_DATE, "selectType": "All", "response": "json"})
-        assert resp.get("stat") == "OK"
-        tables = resp.get("tables") or []
-        assert len(tables) >= 2, f"tables 數量已變更: {len(tables)}"
-        assert tables[0].get("fields") == [
-            "當日沖銷交易總成交股數", "當日沖銷交易總成交股數占市場比重%",
-            "當日沖銷交易總買進成交金額", "當日沖銷交易總買進成交金額占市場比重%",
-            "當日沖銷交易總賣出成交金額", "當日沖銷交易總賣出成交金額占市場比重%",
-        ], f"彙總表欄位已變更: {tables[0].get('fields')}"
-        assert tables[1].get("fields") == [
-            "證券代號", "證券名稱", "暫停現股賣出後現款買進當沖註記",
-            "當日沖銷交易成交股數", "當日沖銷交易買進成交金額", "當日沖銷交易賣出成交金額",
-        ], f"個股表欄位已變更: {tables[1].get('fields')}"
-        assert tables[0].get("data") and tables[1].get("data"), "固定歷史交易日應有資料"
+    def test_fixed_day_parses(self):
+        report = gateway_or_skip(day_trading, FIXED_DATE)
+        assert report is not None and report.published and report.targets, "固定歷史交易日應有資料"
+        s = report.summary
+        assert s is not None and None not in (s.volume, s.volume_pct, s.buy_value, s.buy_pct, s.sell_value,
+                                              s.sell_pct), f"全市場彙總的數字格式已變更：{s}"
+        t = report.targets[0]
+        assert None not in (t.volume, t.buy_value, t.sell_value), f"個股數字格式已變更：{t}"
+
+    def test_latest_day_parses(self):
+        """不帶 date 回最新交易日；晚間公布前只有標的清單（3 欄），公布後才有量值，兩種都要能建出報表."""
+        gateway_or_skip(day_trading)
 
 
 class TestIndexBoardGateway:

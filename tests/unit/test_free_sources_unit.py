@@ -12,6 +12,7 @@ from fastmcp.exceptions import ToolError
 
 from tests.helpers import register_module_tools
 from tests.offline import OfflineClient
+from tests.unit.test_twtb4u_gateway_unit import reply as twtb4u_reply
 from tools.history import exright_day_trading_indices as twse_extra
 from tools.macro import exchange_rates, ndc_indicators
 from tools.otc import history as otc_history
@@ -92,36 +93,7 @@ def test_otc_margin_summary_only_without_filters():
     assert "全市場合計" not in filtered and "融資: 前日10 買1 賣2 現償0 餘額9" in filtered
 
 
-# ---------- TWSE ex-rights / day trading / indices ----------
-
-def test_day_trading_prepends_market_summary_and_flags_suspension():
-    payload = {"stat": "OK", "tables": [
-        {"data": [["2,686,586,000", "23.51", "311", "35.14", "312", "35.29"]]},
-        {"data": [["2330", "台積電", "", "6,942,000", "16", "15"], ["00400A", "主動國泰", "Y", "1", "2", "3"]]},
-    ]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
-    text = fn("20260803")
-    assert text.startswith("全市場當沖: 成交股數 2,686,586,000（占 23.51%）")
-    assert "00400A 主動國泰（暫停先賣後買）" in text
-    assert "2330 台積電 | 當沖股數:6,942,000" in text
-
-
-def test_day_trading_before_evening_publication_lists_targets_only():
-    """晚間公布前當天只有「代號、名稱、註記」三格，不能因索引越界而查詢失敗."""
-    payload = {"stat": "OK", "date": "20260930", "tables": [
-        {}, {"data": [["2330", "台積電", ""], ["00400A", "主動國泰", "Y"]]},
-    ]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
-    text = fn()
-    assert "當日當沖量值尚未公布" in text
-    assert "2330 台積電\n" in text and "00400A 主動國泰（暫停先賣後買）" in text
-
-
-def test_day_trading_non_trading_day():
-    payload = {"stat": "OK", "tables": [{"data": []}, {"data": []}]}
-    fn = register_module_tools(twse_extra, OfflineClient({"/dayTrading/TWTB4U": payload}))["get_daily_day_trading_targets"]
-    assert "請確認該日期為交易日" in fn("20260801")
-
+# ---------- TWSE ex-rights / indices (day trading: test_twtb4u_gateway_unit.py) ----------
 
 IND_FIELDS = ["指數", "收盤指數", "漲跌(+/-)", "漲跌點數", "漲跌百分比(%)", "特殊處理註記"]
 
@@ -163,12 +135,16 @@ def test_index_categories(category, expected):
 def test_index_and_day_trading_default_to_latest_day():
     seen = []
 
-    def route(params, _body):
-        seen.append(dict(params))
-        return {"stat": "OK", "date": "20260929", "tables": [
-            {"title": "t", "fields": IND_FIELDS, "data": [["發行量加權股價指數", "1", "+", "1", "0.1", ""]]}, {"data": [["2330", "台積電", "", "1", "2", "3"]]}]}
+    def route(payload):
+        def answer(params, _body):
+            seen.append(dict(params))
+            return payload
+        return answer
 
-    client = OfflineClient({"/afterTrading/MI_INDEX": route, "/dayTrading/TWTB4U": route})
+    indices = {"stat": "OK", "date": "20260929", "tables": [
+        {"title": "t", "fields": IND_FIELDS, "data": [["發行量加權股價指數", "1", "+", "1", "0.1", ""]]}]}
+    client = OfflineClient({"/afterTrading/MI_INDEX": route(indices),
+                            "/dayTrading/TWTB4U": route(twtb4u_reply(date="20260929"))})
     tools = register_module_tools(twse_extra, client)
     assert "【20260929 證交所指數收盤行情" in tools["get_market_index_info"]()
     assert "20260929 上市個股當日沖銷交易" in tools["get_daily_day_trading_targets"]()
