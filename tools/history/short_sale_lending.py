@@ -2,7 +2,7 @@
 
 Complements tools/history/margin_balance.py's MI_MARGN (融資融券餘額), which does not
 cover the securities-lending (借券) side of short selling. Balances come from TWT93U through
-sources/twse/twt93u.py.
+sources/twse/twt93u.py, the day's sales from TWTASU through sources/twse/twtasu.py.
 """
 
 from typing import Optional
@@ -10,14 +10,12 @@ from fastmcp import FastMCP
 from utils import (
     TWSEAPIClient,
     DEFAULT_DISPLAY_LIMIT,
-    SUMMARY_ROW_LABELS,
     Page,
     printed,
 )
 from toolkit import Limit, Offset, RequiredTradingDate, handle_api_errors
 from sources.twse.twt93u import short_sale_lending_balances
-
-TWTASU_URL = "https://www.twse.com.tw/rwd/zh/afterTrading/TWTASU"
+from sources.twse.twtasu import short_lending_sales
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -106,54 +104,38 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        resp = _client.fetch_json(
-            TWTASU_URL,
-            params={"response": "json", "date": date},
-        )
-
-        if not resp or resp.get("stat") != "OK":
+        day = short_lending_sales(_client, date)
+        if day is None:
             return f"查無 {date} 的融券借券賣出成交量值資料，請確認該日期為交易日（非假日或週末）"
 
-        data = resp.get("data", [])
-        if not data:
+        sales = day.sales
+        if not sales:
             return f"查無 {date} 的融券借券賣出成交量值資料"
 
-        # row[0] combines code and name in one padded string, e.g. "2330   台積電"
-        parsed = []
-        for row in data:
-            code_name = row[0].split(None, 1)
-            code = code_name[0] if code_name else ""
-            # TWTASU 的末列 row[0] 就是「合計」，split 會把它當成股票代號
-            if code in SUMMARY_ROW_LABELS:
-                continue
-            sname = code_name[1].strip() if len(code_name) > 1 else ""
-            parsed.append((code, sname, row))
-
         if stock_no:
-            parsed = [p for p in parsed if p[0] == stock_no]
-            if not parsed:
+            sales = [s for s in sales if s.code == stock_no]
+            if not sales:
                 return f"查無股票代號 {stock_no} 在 {date} 的融券借券賣出成交量值資料"
         if name:
-            parsed = [p for p in parsed if name in p[1]]
-            if not parsed:
+            sales = [s for s in sales if name in s.name]
+            if not sales:
                 return f"查無名稱包含「{name}」的股票在 {date} 的融券借券賣出成交量值資料"
 
-        paged = Page(limit, offset).take(parsed)
+        paged = Page(limit, offset).take(sales)
         if paged.past_end:
             return paged.out_of_range(f"{date} 的融券借券賣出成交量值資料")
 
-        title = resp.get("title", f"{date} 當日融券賣出與借券賣出成交量值")
+        title = day.title or f"{date} 當日融券賣出與借券賣出成交量值"
         header = f"【{title}】（共 {paged.total} 筆"
         if paged.span():
             header += f"，{paged.span()}"
         header += "）\n"
 
         lines = [header]
-        for code, sname, row in paged.rows:
-            # row: 證券名稱(含代號),融券賣出數量,融券賣出金額,借券賣出數量,借券賣出金額
-            ss_vol, ss_val, sl_vol, sl_val = row[1], row[2], row[3], row[4]
+        for s in paged.rows:
             lines.append(
-                f"{code} {sname} | 融券賣出: 量{ss_vol} 金額{ss_val} | 借券賣出: 量{sl_vol} 金額{sl_val}"
+                f"{s.code} {s.name} | 融券賣出: 量{printed(s.short_volume)} 金額{printed(s.short_value)} | "
+                f"借券賣出: 量{printed(s.lending_volume)} 金額{printed(s.lending_value)}"
             )
 
         if paged.more():

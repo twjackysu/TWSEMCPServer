@@ -20,7 +20,7 @@ so each keeps its own fields. From 2014 a 合計 row closes the data; it is left
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from utils.api_client import TWSEAPIClient
 from utils.constants import SUMMARY_ROW_LABELS
@@ -28,7 +28,7 @@ from utils.errors import UpstreamFormatError
 from utils.parse import int_or_none
 
 from ..caching import day_cache_ttl
-from ..columns import column_index
+from ..columns import column_index, qualified_fields
 
 TWT93U_URL = "https://www.twse.com.tw/rwd/zh/marginTrading/TWT93U"
 SOURCE = "TWT93U"
@@ -85,19 +85,6 @@ class ShortSaleLendingDay:
     rows: List[ShortSaleLendingRow]
 
 
-def qualified_fields(fields: List[str], groups: List[Dict]) -> List[str]:
-    """Each column's name prefixed with its group title ("融券/前日餘額"); untitled groups keep the bare name."""
-    spans = [int(g.get("span") or 0) for g in groups]
-    if sum(spans) != len(fields):
-        raise UpstreamFormatError(f"{SOURCE} groups 與 fields 對不上：{groups} / {fields}")
-    names, i = [], 0
-    for g, span in zip(groups, spans, strict=True):
-        title = str(g.get("title") or "").strip()
-        names += [f"{title}/{str(f).strip()}" if title else str(f).strip() for f in fields[i:i + span]]
-        i += span
-    return names
-
-
 def short_sale_lending_balances(client: TWSEAPIClient, date: str) -> Optional[ShortSaleLendingDay]:
     """Every listed security's 融券 and 借券賣出 balances on ``date`` (YYYYMMDD), or None when TWSE has none
     (not a trading day, before 2005-07-01). Raises ``UpstreamFormatError`` if the reply's columns changed."""
@@ -111,7 +98,7 @@ def short_sale_lending_balances(client: TWSEAPIClient, date: str) -> Optional[Sh
     data = resp.get("data") or []
     if not data:
         return ShortSaleLendingDay(date=str(resp.get("date") or date), title=title, rows=[])
-    names = qualified_fields(list(resp.get("fields") or []), list(resp.get("groups") or []))
+    names = qualified_fields(list(resp.get("fields") or []), list(resp.get("groups") or []), SOURCE)
     old = "借券賣出/庫存異動" in names
     col = column_index(names, FIELDS + (OLD_LENDING_FIELDS if old else LENDING_FIELDS), SOURCE)
 
