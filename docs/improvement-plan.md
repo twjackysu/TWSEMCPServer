@@ -186,9 +186,17 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      每列 11 格——舊版一律回「非預期頁面」，這兩個市場有資料時從來查不到；現在依欄名讀得到。18 組呼叫中 14 組（上市、
      上櫃 2010／2025／2026 月份與整年、代號篩選、分頁、查無、月份錯誤，加上興櫃查無）與 main 逐字相同，送出的請求也相同；
      興櫃、公開發行有資料的 4 組由錯誤變成有資料。
+   - ✅ MOPS t164sb03／04／05（#162）：`sources/mops/financial_statements.py` 的 `financial_statement(kind, …)` 回
+     `FinancialStatement`（欄名是 titles 攤平後「會計項目」以外的各欄，每列 `StatementLine`：去掉縮排的會計項目、縮排層級、
+     各欄 Decimal，全空列是段落標題）。會計項目依名稱找，不再假設在第 0 欄；資料列與 titles 不同寬、數字格式變了都報錯。
+     請求 body（最新一季 dataType 1 帶空年季）搬進 gateway。MOPS 金額有千分位、百分比沒有（國泰金 114Q2 兌換損益
+     -1362.67），工具分別用 `printed()`／`plain()` 印回。24 組呼叫（2330 最新三表、2013／2019／2025 各季、金控、銀行、
+     證券、租賃、上櫃、興櫃、IFRS 前、未公告季度、代號錯誤、年季參數錯誤）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#161；盤點出的格式問題都已修好，TWSE rwd／
-  exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway；剩 MOPS 其餘頁面）
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#162；盤點出的格式問題都已修好，TWSE rwd／
+  exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway，MOPS 依位置讀的頁面也是（股利 t05st09_2 已依欄名讀、
+  背書保證 t05st11 原樣印出表格，沒有搬）；`tools/` 裡依位置讀的還有 TDCC 股權分散 CSV、國發會與央行 CSV、
+  期交所 tick zip，以及 etf/info 在櫃買 ETF 清單比對代號）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
   搜尋式工具清單評估後不採用，改由 client 端的 tool search 處理）

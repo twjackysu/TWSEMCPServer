@@ -96,6 +96,7 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── mops/major_news.py        # t05st01 / t05st02 / *_detail → company_news(), market_news(), news_detail(): Announcement + NewsLink, by titles
 ├── mops/insiders.py          # stapap1 / query6_1 → board_holdings() (published columns kept), insider_changes() (本月增加/減少 by group title)
 ├── mops/monthly_revenue.py   # t05st10_ifrs → monthly_revenue() MonthlyRevenue (項目/營業收入淨額 pairs, period from yymm, 本月 for MoM)
+├── mops/financial_statements.py # t164sb03/04/05 → financial_statement() FinancialStatement (columns = flattened titles after 會計項目; % printed without separators)
 └── mops/investor_conference.py # legacy ajax_t100sb02_1 HTML → investor_conferences() Conference (rotc/pub pages: other website column name, no 影音連結資訊)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
