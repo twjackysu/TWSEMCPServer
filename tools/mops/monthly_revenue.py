@@ -3,23 +3,18 @@
 Replaces the OpenAPI t187ap05_L / t187ap05_P tools, which only had the latest month and
 needed separate endpoints for listed and public companies. MOPS answers one month per
 request, so a range is fetched month by month; the span is capped to keep a single tool
-call to a handful of seconds under the client's rate limit.
+call to a handful of seconds under the client's rate limit. Read through ``sources.mops.monthly_revenue``.
 """
 
 from datetime import date
 from typing import List, Optional, Tuple, Union
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
+from sources.mops.monthly_revenue import MonthlyRevenue, monthly_revenue
 from utils import TWSEAPIClient
 from toolkit import handle_api_errors
-from utils.mops import mops_post
-from utils.parse import float_or_none
 
 MAX_MONTHS = 12
-
-# data 的第一組 [項目, 值] 是當月營收；月增率由相鄰月份的這個值算出。
-# tests/contract/test_mops_api.py 驗證此標籤仍存在。
-CURRENT_MONTH_LABEL = "本月"
 
 
 def parse_month_range(start_month: str, end_month: str) -> Union[List[Tuple[int, int]], str]:
@@ -53,41 +48,21 @@ def previous_month(y: int, m: int) -> Tuple[int, int]:
     return (y - 1, 12) if m == 1 else (y, m - 1)
 
 
-def current_month_revenue(result: Optional[dict]) -> Optional[float]:
-    """The 本月 revenue of a t05st10_ifrs result as a number, or None."""
-    for row in (result or {}).get("data") or []:
-        if isinstance(row, list) and len(row) >= 2 and str(row[0]).strip() == CURRENT_MONTH_LABEL:
-            return float_or_none(row[1])
-    return None
-
-
-def format_month(label: str, result: Optional[dict], prev_result: Optional[dict]) -> str:
-    """One output line: MOPS's own [項目, 值] pairs, plus 月增率 when the prior month is known."""
-    if not result or not result.get("data"):
+def format_month(label: str, revenue: Optional[MonthlyRevenue], prev: Optional[MonthlyRevenue]) -> str:
+    """One output line: MOPS's own 項目:值 pairs, plus 月增率 when the prior month is known."""
+    if revenue is None or not revenue.items:
         return f"{label}: 尚未公告或查無資料"
     # 兩組「增減金額／增減百分比」分別屬於單月與累計，依原順序輸出即可辨識
-    pairs = [
-        f"{str(row[0]).strip()}:{str(row[1]).strip() or '-'}"
-        for row in result["data"] if isinstance(row, list) and len(row) >= 2
-    ]
-    cur, prev = current_month_revenue(result), current_month_revenue(prev_result)
-    if cur is not None and prev:
-        pairs.insert(1, f"月增率:{(cur - prev) / prev * 100:.2f}")
+    pairs = [f"{item.label}:{item.value or '-'}" for item in revenue.items]
+    cur, before = revenue.current, prev.current if prev else None
+    if cur is not None and before:
+        pairs.insert(1, f"月增率:{(cur - before) / before * 100:.2f}")
     return f"{label} | " + " | ".join(pairs)
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
     """Register MOPS monthly revenue tools."""
     _client = client or TWSEAPIClient.get_instance()
-
-    def _fetch(code: str, y: Optional[int] = None, m: Optional[int] = None) -> Optional[dict]:
-        if y is None:
-            # 最新月份：dataType=1 仍須帶空的 year/month
-            body = {"companyId": code, "dataType": "1", "year": "", "month": "", "subsidiaryCompanyId": ""}
-        else:
-            body = {"companyId": code, "dataType": "2", "year": str(y - 1911), "month": str(m),
-                    "subsidiaryCompanyId": ""}
-        return mops_post(_client, "t05st10_ifrs", body)
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)
@@ -109,18 +84,17 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             if isinstance(months, str):
                 raise ToolError(months)
             # 多抓區間前一個月，讓第一個月也有月增率
-            results = {ym: _fetch(code, *ym) for ym in [previous_month(*months[0])] + months}
+            results = {ym: monthly_revenue(_client, code, *ym) for ym in [previous_month(*months[0])] + months}
         else:
-            latest = _fetch(code)
-            if not latest or not latest.get("yymm"):
+            latest = monthly_revenue(_client, code)  # 最新月份（dataType=1）
+            if latest is None or latest.period is None:
                 return f"查無 {code} 的月營收資料（代號可能有誤）"
-            roc_ym = str(latest["yymm"])
-            ym = (int(roc_ym[:-2]) + 1911, int(roc_ym[-2:]))
+            ym = latest.period
             prev = previous_month(*ym)
             months = [prev, ym]
-            results = {prev: _fetch(code, *prev), ym: latest}
+            results = {prev: monthly_revenue(_client, code, *prev), ym: latest}
 
-        name = next((r.get("companyAbbreviation") for r in results.values() if r), "") or code
+        name = next((r.name for r in results.values() if r), "") or code
         lines = [
             f"【{name}({code}) 月營收 {months[0][0]}-{months[0][1]:02d}～{months[-1][0]}-{months[-1][1]:02d}】"
             "（單位：新台幣仟元；百分比為 %）"

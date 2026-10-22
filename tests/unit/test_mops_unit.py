@@ -144,6 +144,7 @@ def test_month_range_rejections(start, end, message):
 
 
 REVENUE_BY_MONTH = {"7": "80", "8": "100"}
+REVENUE_TITLES = [{"sub": [], "main": "項目"}, {"sub": [], "main": "營業收入淨額"}]
 
 
 def _revenue_route(seen=None):
@@ -153,7 +154,7 @@ def _revenue_route(seen=None):
         month = body["month"] or "8"  # dataType=1（最新）時 month 為空，回 8 月
         if month not in REVENUE_BY_MONTH:
             return {"code": 406, "message": "查無相符資料", "result": None}
-        return _ok({"companyAbbreviation": "台積電", "yymm": f"1150{month}",
+        return _ok({"companyAbbreviation": "台積電", "yymm": f"1150{month}", "titles": REVENUE_TITLES,
                     "data": [["本月", REVENUE_BY_MONTH[month]], ["增減百分比", "5.0"]]})
     return route
 

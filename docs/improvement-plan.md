@@ -176,8 +176,12 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      公布的欄位原樣呈現，只有職稱、姓名依名稱找。請求 body（dataType 1／2）的組法搬進 gateway，工具只檢查 year／month。
      2010–2026 titles 相同。13 組呼叫（最新、2010／2020／2025、上櫃、全部申報人、未知代號）與 main 逐字相同，送出的請求
      也相同。
+   - ✅ MOPS t05st10_ifrs（#160）：`sources/mops/monthly_revenue.py` 的 `monthly_revenue()` 回 `MonthlyRevenue`（項目／營業收入
+     淨額依 titles 取，`period` 由 yymm 解析，`current` 是「本月」那一項）。請求的民國年改用 `roc_year_of()`、yymm 改用
+     `parse_roc_date()`，工具不再自己 ±1911。IFRS 前（2009-12、2010-01）只回 yymm，沒有資料。8 組呼叫（最新、2025 上半年、
+     2014-12～2015-01、2009-12～2010-01、上櫃、未知代號、未公告月份）與 main 逐字相同，送出的 22 個請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#159；盤點出的格式問題都已修好，TWSE rwd／
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#160；盤點出的格式問題都已修好，TWSE rwd／
   exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway；剩 MOPS 其餘頁面）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
