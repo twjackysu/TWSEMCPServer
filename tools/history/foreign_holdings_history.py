@@ -3,26 +3,18 @@
 Replaces the OpenAPI /fund/MI_QFIIS_sort_20 tool (get_top_foreign_holdings): on 2026-09-29
 its top 20 were exactly this endpoint's rows sorted by 全體外資及陸資持股比率, with the same
 ratios, limits and share counts, and it could neither pick a date nor look up one stock.
+Read through the MI_QFIIS gateway (``sources.twse.mi_qfiis``).
 """
 
+from decimal import Decimal
 from typing import Literal, Optional
 from fastmcp import FastMCP
-from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, format_list_response
+from sources.twse.mi_qfiis import ForeignHolding, foreign_holdings
+from utils import TWSEAPIClient, DEFAULT_DISPLAY_LIMIT, format_list_response, printed
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from utils.parse import float_or_none
 
-MI_QFIIS_URL = "https://www.twse.com.tw/rwd/zh/fund/MI_QFIIS"
-
-# row: 證券代號,證券名稱,國際證券編碼,發行股數,外資及陸資尚可投資股數,全體外資及陸資持有股數,
-#      外資及陸資尚可投資比率,全體外資及陸資持股比率,外資及陸資共用法令投資上限比率, ...
-COL_HELD_RATIO = 7
 SortBy = Literal["code", "ratio"]
-
-
-def _ratio(row) -> float:
-    """持股比率 for sorting; a short row or a blank cell sorts last (-1)."""
-    ratio = float_or_none(row[COL_HELD_RATIO]) if len(row) > COL_HELD_RATIO else None
-    return -1.0 if ratio is None else ratio
+NO_RATIO = Decimal(-1)  # a missing 持股比率 sorts last
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -47,39 +39,32 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = {"response": "json", "selectType": "ALLBUT0999"}
-        if date:
-            params["date"] = date
-        resp = _client.fetch_json(MI_QFIIS_URL, params=params)
         label = date or "最新交易日"
-
-        if not resp or resp.get("stat") != "OK":
+        day = foreign_holdings(_client, date)
+        if day is None:
             return f"查無 {label} 的外資及陸資持股資料，請確認該日期為交易日（非假日或週末）"
 
-        data = resp.get("data", [])
+        data = day.holdings
         if not data:
             return f"查無 {label} 的外資及陸資持股資料"
-        served = resp.get("date") or label
+        served = day.date or label
 
         if stock_no:
-            data = [row for row in data if row[0].strip() == stock_no.strip()]
+            data = [h for h in data if h.code == stock_no.strip()]
             if not data:
                 return f"查無股票代號 {stock_no} 在 {served} 的外資及陸資持股資料"
         if name:
-            data = [row for row in data if name in row[1]]
+            data = [h for h in data if name in h.name]
             if not data:
                 return f"查無名稱包含「{name}」的股票在 {served} 的外資及陸資持股資料"
         if sort_by == "ratio":
-            data = sorted(data, key=_ratio, reverse=True)
+            data = sorted(data, key=lambda h: NO_RATIO if h.held_pct is None else h.held_pct, reverse=True)
 
-        def fmt(row):
-            code, sname = row[0], row[1]
-            issued = row[3]
-            held_shares = row[5]
-            remain_pct, held_pct, limit_pct = row[6], row[7], row[8]
+        def fmt(h: ForeignHolding) -> str:
             return (
-                f"{code} {sname} | 外資持股比率:{held_pct}% | 尚可投資比率:{remain_pct}% | "
-                f"投資上限:{limit_pct}% | 持有股數:{held_shares} | 發行股數:{issued}\n"
+                f"{h.code} {h.name} | 外資持股比率:{printed(h.held_pct)}% | 尚可投資比率:{printed(h.available_pct)}% | "
+                f"投資上限:{printed(h.limit_pct)}% | 持有股數:{printed(h.held_shares)} | "
+                f"發行股數:{printed(h.issued_shares)}\n"
             )
 
         order = "，依持股比率由高到低" if sort_by == "ratio" else ""
