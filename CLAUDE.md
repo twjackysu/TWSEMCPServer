@@ -16,7 +16,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **投信投顧公會 ETF 專區** (`www.sitca.org.tw/ROC/SITCA_ETF/`、`/ROC/Industry/IN2629|IN2630`，`utils/sitca.py`) — 3 tools: `get_etf_info`（所有投信、上市與上櫃 ETF 基本資料；單檔另合併證交所 t187ap47_L 與櫃買 ETF/detail，清單補上 SITCA 沒有的期信／外幣級別代號；取代了 `get_fund_basic_info`）、`get_etf_monthly_stats`（每月規模／淨值／受益人數／申購買回／定期定額，2007 起）、`get_etf_holdings`（成分股：基金投資明細每月前十大 2021-08 起、每季占淨值 1% 以上 2021-09 起；以基金名稱對回 ETF 代號，只做精確比對）
 - **國發會** (`ws.ndc.gov.tw`，data.gov.tw 6099/6100) — 2 tools: 景氣對策信號與景氣指標、PMI/NMI
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
-- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`services/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `services/price_series.py`（上市 STOCK_DAY（`sources/twse/stock_day.py`）／上櫃 tradingStock（`sources/tpex/trading_stock.py`）日K、TWT49U（`sources/twse/twt49u.py`）／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
+- **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`services/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `services/price_series.py`（上市 STOCK_DAY（`sources/twse/stock_day.py`）／上櫃 tradingStock（`sources/tpex/trading_stock.py`）日K、TWT49U（`sources/twse/twt49u.py`）／exDailyQ（`sources/tpex/ex_daily_q.py`）除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
 - **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`、`dlFutPrevious30DaysSalesData`) — 11 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨與選擇權大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具；選擇權大額交易人於 2026-10-07 同樣逐列比對（320 列，僅「所有月份總計」代碼 999912 vs 999999 不同）後也改用下載頁（largeTraderOptDown，一次最多約一個月，整年區間會被拒絕）。`get_futures_intraday`：最近 30 個交易日的每筆成交 zip 彙總成分鐘 K 線。`get_daily_futures_market_report` 的 contract 可填股票代號（openapi `SSFLists` 換成股票期貨契約）；`get_monthly_trading_statistics(market=)` 涵蓋期貨與選擇權（openapi）
 
 ## Development Commands
@@ -67,7 +67,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── institutional.py          # InstitutionalFlow / Trades / FlowDay: the 三大法人 record both markets' gateways return
 ├── twse/t86.py               # T86 → t86_flows() (all three historical column layouts, by name)
 ├── tpex/insti_daily.py       # insti/dailyTrade → tpex_flows() (Adapter: groups by order, checked by their sums)
-└── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
+├── tpex/trading_stock.py     # afterTrading/tradingStock → TradingStockMonth / TradingStockRow (volume column 成交張數, before 2025-01 成交仟股)
+└── tpex/ex_daily_q.py        # bulletin/exDailyQ → otc_exright_results() OtcExRightReport (a range starting before 2016 has one more column)
 utils/                        # Bottom layer: HTTP, parsing, formatting. Never imports fastmcp / toolkit / tools / sources / services
 ├── api_client.py             # TWSEAPIClient - all TWSE HTTP calls
 ├── sitca.py                  # SITCA: ETF zone (month lists, result grid by code / 基金統編); 基金投資明細 (period postback, query by class, fund-name key)

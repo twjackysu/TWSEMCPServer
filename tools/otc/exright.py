@@ -1,20 +1,25 @@
 """OTC (上櫃) ex-rights / ex-dividend results (除權除息計算結果), today or any date range.
 
-Source: www.tpex.org.tw website JSON bulletin/exDailyQ. It replaces the openapi
-tpex_exright_daily tool: on 2026-09-30 the openapi endpoint's only row (8440) matched this
-endpoint's row for that day in all 18 value columns, and this endpoint also lists the next
-day's pre-announced results and accepts any past range (e.g. 2024-01～2026-09 in one call).
-The listed-market counterpart is get_exright_results_history (TWSE TWT49U).
+Source: www.tpex.org.tw website JSON bulletin/exDailyQ, read through sources/tpex/ex_daily_q.py.
+It replaces the openapi tpex_exright_daily tool: on 2026-09-30 the openapi endpoint's only row
+(8440) matched this endpoint's row for that day in all 18 value columns, and this endpoint also
+lists the next day's pre-announced results and accepts any past range (e.g. 2024-01～2026-09 in
+one call). The listed-market counterpart is get_exright_results_history (TWSE TWT49U).
 """
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 from fastmcp import FastMCP
 from utils import TWSEAPIClient, format_list_response, DEFAULT_DISPLAY_LIMIT
 from toolkit import Limit, Offset, TradingDate, handle_api_errors
-from utils.date_helper import slash_date
-from .history import TPEX_WWW, first_table
+from utils.date_helper import roc_date
+from sources.tpex.ex_daily_q import otc_exright_results
 
-EX_DAILY_Q_URL = f"{TPEX_WWW}/bulletin/exDailyQ"
+
+def _text(value: Optional[Decimal]) -> str:
+    """A number as TPEx prints it here: no thousands separators, its published decimals ("0.00000000")."""
+    return "--" if value is None else f"{value:f}"
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -38,28 +43,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             limit: 回傳筆數上限（預設 50）
             offset: 跳過前 N 筆（預設 0，搭配 limit 分頁）
         """
-        params = {"response": "json"}
+        start = end = None
         if start_date or end_date:
-            start = slash_date(start_date or end_date)
-            end = slash_date(end_date or start_date)
-            params.update(startDate=start, endDate=end)
-        resp = _client.fetch_json(EX_DAILY_Q_URL, params=params)
-        served = str((resp or {}).get("date", "")).replace("~", "～")
-        rows = first_table(resp).get("data") or []
-        rows = [[c.strip() if isinstance(c, str) else c for c in r] for r in rows]
-        if not rows:
+            start = datetime.strptime(start_date or end_date, "%Y%m%d").date()
+            end = datetime.strptime(end_date or start_date, "%Y%m%d").date()
+        report = otc_exright_results(_client, start, end)
+        served = report.period.replace("~", "～")
+        if not report.results:
             return f"查無 {served or '指定期間'} 的上櫃除權息資料"
-        # 代號在 row[1]（row[0] 是日期）
-        rows = [r for r in rows if not stock_no or r[1] == stock_no.strip()]
+        rows = [r for r in report.results if not stock_no or r.code == stock_no.strip()]
 
         def fmt(r):
-            # r: 除權息日期,代號,名稱,除權息前收盤價,除權息參考價,權值,息值,權值+息值,權/息,漲停價,跌停價,
-            #    開始交易基準價,減除股利參考價,現金股利,每仟股無償配股,現金增資股數,現金增資認購價,...
-            capital = f" | 現增:{r[15]}股@{r[16]}" if str(r[15]) not in ("0", "") else ""
+            capital = f" | 現增:{r.cash_capital_shares}股@{_text(r.cash_capital_price)}" if r.cash_capital_shares else ""
             return (
-                f"{r[0]} | {r[1]} {r[2]} | {r[8]} | 前收:{r[3]} 參考價:{r[4]}（權值 {r[5]} 息值 {r[6]}）| "
-                f"現金股利:{r[13]} 每仟股配股:{r[14]} | 漲停:{r[9]} 跌停:{r[10]} 開始交易基準價:{r[11]}{capital}\n"
+                f"{roc_date(f'{r.day:%Y%m%d}')} | {r.code} {r.name} | {r.kind} | 前收:{_text(r.close_before)} "
+                f"參考價:{_text(r.reference)}（權值 {_text(r.rights)} 息值 {_text(r.dividend)}）| "
+                f"現金股利:{_text(r.cash_dividend)} 每仟股配股:{_text(r.stock_dividend)} | 漲停:{_text(r.limit_up)} "
+                f"跌停:{_text(r.limit_down)} 開始交易基準價:{_text(r.opening_reference)}{capital}\n"
             )
 
         return format_list_response(rows, f" {served} 上櫃除權除息計算結果", fmt, limit, offset)
-
