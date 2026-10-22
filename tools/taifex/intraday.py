@@ -179,7 +179,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @time_budget(INTRADAY_BUDGET, "已下載的交易日會快取，稍後再試會較快")
     def get_futures_intraday(contract: str = "TX", date: TradingDate = "", interval: Interval = 5, session: Session = "day",
                              month: str = "") -> str:
-        """查詢期貨「盤中走勢」：由期交所每筆成交資料彙總成分鐘 K 線，看一整天的多空拉鋸，
+        """查詢期貨「盤中走勢」：由期交所每筆成交資料彙總成分鐘 K 線（分K），看一整天的多空拉鋸，
         而不只是收盤價。可查最近 30 個交易日（日盤 08:45–13:45、夜盤 15:00–次日 05:00）。
         列出當日開高低收與高低點出現時間、振幅、均價、成交最集中的時段，以及每根 K 線。
 

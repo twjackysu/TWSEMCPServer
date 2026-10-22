@@ -55,7 +55,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors(use_code_param=True)
     def get_otc_stock_history(code: str, date: RequiredTradingDate) -> str:
-        """查詢上櫃個股「指定月份」的每日成交資訊（日K：開高低收、成交量值）。
+        """查詢上櫃個股「指定月份」的每日成交資訊（日K／K線、歷史股價：開高低收、成交量值）。
         與 get_otc_daily（OpenAPI，僅最新一日）不同，可回溯任意過去月份。
         上市股票請改用 get_stock_history。
 

@@ -20,7 +20,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_stock_history(stock_no: str, date: RequiredTradingDate) -> str:
-        """查詢台灣上市股票歷史日K資料。
+        """查詢台灣上市股票歷史日K資料（歷史股價、K線）。
         一次回傳指定月份的每日 OHLCV 資料，從 2010 年至今皆可查。
 
         回傳：該月份每日交易資料，含日期(西元)、開盤價、最高價、最低價、收盤價、成交量、成交金額

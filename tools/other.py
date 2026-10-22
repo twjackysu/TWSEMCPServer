@@ -30,7 +30,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_market_holiday_schedule() -> str:
-        """查詢有價證券集中交易市場開（休）市日期。"""
+        """查詢有價證券集中交易市場開（休）市日期：全年的休市日（國定假日等）與說明。"""
         data = _client.fetch_data("/holidaySchedule/holidaySchedule")
         if not data:
             return MSG_NO_DATA.format(data_type="有價證券集中交易市場開（休）市日期")

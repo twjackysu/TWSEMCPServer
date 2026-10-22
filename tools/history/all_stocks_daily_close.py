@@ -20,8 +20,8 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @handle_api_errors()
     def get_stock_daily_trading(date: TradingDate = "", stock_no: str = "", name: str = "",
                                 limit: Limit = DEFAULT_DISPLAY_LIMIT, offset: Offset = 0) -> str:
-        """查詢上市股票單日成交資訊（開高低收、漲跌、成交量值與筆數、本益比）：預設最新交易日，
-        也可指定過去日期；可查單一個股，或整個市場的快照用於篩選。
+        """查詢上市股票單日成交資訊（收盤行情：開高低收、漲跌、成交量值與筆數、本益比）：預設最新交易日，
+        也可指定過去日期；可查單一個股，或全市場收盤行情的快照用於篩選。
         單一股票一整個月的日K請用 get_stock_history。
 
         回傳：每支股票的代號、名稱、成交股數、成交金額、開高低收、漲跌、本益比

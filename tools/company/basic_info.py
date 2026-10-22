@@ -101,7 +101,7 @@ SIMPLE_LIST_TOOLS: List[ListToolSpec] = [
 # Simple tools: fetch_company_data(endpoint, code) → format as properties.
 SIMPLE_BASIC_INFO_TOOLS: List[CompanyToolSpec] = [
     CompanyToolSpec("/opendata/t187ap03_L", "get_company_profile",
-                    "根據股票代號查詢上市公司基本資料。"),
+                    "根據股票代號查詢上市公司基本資料（公司資料）：產業別、董事長、總經理、成立與上市日期、實收資本額、地址、網址等。"),
     CompanyToolSpec("/opendata/t187ap02_L", "get_company_major_shareholders",
                     "根據股票代號查詢上市公司持股逾10%大股東名單。"),
     CompanyToolSpec("/opendata/t187ap14_L", "get_company_eps_statistics",

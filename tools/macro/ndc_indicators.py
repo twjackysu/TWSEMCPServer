@@ -69,7 +69,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     @mcp.tool
     @handle_api_errors()
     def get_business_cycle_indicators(months: bounded(1, MAX_MONTHS) = 12, table: Table = "signal") -> str:
-        """查詢國發會景氣對策信號（景氣燈號）與景氣指標，每月更新，資料自 1982 年起。
+        """查詢國發會景氣對策信號（景氣燈號）與景氣指標（領先指標、同時指標、落後指標），每月更新，資料自 1982 年起。
         燈號：紅燈(38-45分，熱絡)、黃紅燈(32-37)、綠燈(23-31，穩定)、黃藍燈(17-22)、藍燈(9-16，低迷)。
 
         回傳：每月（由新到舊）的各欄位數值；最新月份部分項目可能尚未公布

@@ -78,7 +78,7 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     def get_daily_futures_market_report(contract: str = "TX", start_date: TradingDate = "", end_date: TradingDate = "") -> str:
         """查詢期貨每日交易行情（開高低收、漲跌、成交量、結算價、未平倉量、最後最佳買賣價）：
         預設最新交易日，也可指定任意過去區間（最長一個月，資料可回溯至 2020 年以前）。
-        常用契約代碼：TX（臺股期貨）、MTX（小型臺指）、TE（電子期貨）、TF（金融期貨）。
+        常用契約代碼：TX（臺股期貨，俗稱台指期）、MTX（小型臺指）、TE（電子期貨）、TF（金融期貨）。
         也可直接填股票／ETF 代號（例如 "2330"、"0050"），會列出該標的所有股票期貨契約
         （標準型與小型，例如台積電 CDF、QFF）。
 
