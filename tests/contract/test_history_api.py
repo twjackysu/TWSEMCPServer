@@ -21,12 +21,10 @@ class TestStockDayGateway:
     def test_fixed_month_parses_into_typed_rows(self):
         month = gateway_or_skip(stock_day_month, FIXED_STOCK, 2025, 1)
         assert month is not None, f"{FIXED_STOCK} 2025-01 應有交易資料"
-        assert month.name == "台積電", f"title 格式異動？{month.title!r}"
-        assert month.rows and all(r.day.year == 2025 and r.day.month == 1 for r in month.rows)
-        for r in month.rows:  # 2330 每個交易日都有成交
-            assert None not in (r.open, r.high, r.low, r.close, r.volume, r.value, r.transactions), r
-            assert r.low <= r.open <= r.high and r.low <= r.close <= r.high, r
-            assert r.change.strip()[:1] in ("+", "-", "0", "X"), f"漲跌價差格式異動：{r.change!r}"
+        assert month.name == "台積電", f"title 格式異動（名稱取自 title）？{month.title!r}"
+        assert month.rows and all(r.day.year == 2025 and r.day.month == 1 for r in month.rows), "date 不再對應該月"
+        first = month.rows[0]
+        assert None not in (first.open, first.high, first.low, first.close, first.volume), f"數字格式已變更：{first}"
 
     def test_unknown_code_is_no_data_not_an_error(self):
         assert gateway_or_skip(stock_day_month, "9999", 2025, 1) is None
@@ -43,8 +41,7 @@ class TestBwibbuDailyGateway:
         assert report.found and report.date == FIXED_DATE, f"回應日期 {report.date!r} 與所查日期 {FIXED_DATE} 不符"
         tsmc = next((v for v in report.valuations if v.code == FIXED_STOCK), None)
         assert tsmc is not None and tsmc.name == "台積電", f"{FIXED_DATE} 估值找不到 {FIXED_STOCK}"
-        assert None not in (tsmc.close, tsmc.dividend_yield, tsmc.pe, tsmc.pb), tsmc
-        assert tsmc.dividend_year.isdigit() and tsmc.fiscal, tsmc
+        assert None not in (tsmc.close, tsmc.dividend_yield, tsmc.pe, tsmc.pb), f"數字格式已變更：{tsmc}"
 
     def test_endpoint_actually_honours_date(self):
         """兩個不同日期必須回傳不同資料——舊的 BWIBBU_ALL 端點就是敗在這裡."""

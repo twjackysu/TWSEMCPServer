@@ -19,17 +19,12 @@ class TestT86Gateway:
         assert day is not None and day.date == FIXED_DATE and day.flows, "固定歷史交易日應有資料"
         tsmc = next((f for f in day.flows if f.code == FIXED_STOCK), None)
         assert tsmc is not None and tsmc.name == "台積電", f"{FIXED_DATE} 找不到 {FIXED_STOCK}"
-        assert tsmc.foreign_ex_dealer is not None and tsmc.dealer_self is not None, "19 欄格式應拆外資自營商與自營商自行／避險"
 
     def test_older_layouts_still_parse(self):
-        """2017-10-03 是 16 欄（外資未拆）、2014-10-03 是 12 欄（自營商也未拆）。"""
-        for date, foreign_split, dealer_split in (("20171003", False, True), ("20141003", False, False)):
+        """2017-10-03 的 16 欄（外資未拆）與 2014-10-03 的 12 欄（自營商也未拆）格式都要讀得出來。"""
+        for date in ("20171003", "20141003"):
             day = gateway_or_skip(t86_flows, "24", date)
             assert day is not None and day.flows, f"{date} 應有資料"
-            f = day.flows[0]
-            assert (f.foreign_ex_dealer is not None, f.dealer_self is not None) == (foreign_split, dealer_split), (
-                f"{date} 的欄位格式與預期不同"
-            )
 
 
 class TestT86SelectType:

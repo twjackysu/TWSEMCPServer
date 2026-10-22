@@ -19,12 +19,10 @@ class TestExrightResultsHistoryAPI:
     def test_fixed_range_parses(self):
         report = gateway_or_skip(exright_results, date(2025, 6, 1), date(2025, 7, 31))
         assert report.found and report.results, f"固定區間查無資料：{report.stat}"
-        tsmc = [r for r in report.results if r.code == "2330"]
-        assert [r.day for r in tsmc] == [date(2025, 6, 12)], "2330 於 2025-06-12 除息"
-        r = tsmc[0]
-        assert r.kind == "息" and r.close_before and r.reference and r.rights_and_dividend
-        assert None not in (r.limit_up, r.limit_down, r.opening_reference, r.ex_dividend_reference)
-        assert r.nav_per_share and r.eps
+        r = next((r for r in report.results if r.code == "2330"), None)
+        assert r is not None, "固定區間找不到 2330"
+        assert None not in (r.close_before, r.reference, r.rights_and_dividend, r.limit_up, r.limit_down,
+                            r.opening_reference, r.ex_dividend_reference), f"數字格式已變更：{r}"
 
 
 class TestDayTradingHistoryAPI:

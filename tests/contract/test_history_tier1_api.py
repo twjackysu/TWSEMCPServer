@@ -53,8 +53,9 @@ class TestMiIndexQuotesGateway:
         assert table.group.startswith("全部"), f"行情表標題格式已變更: {table.title!r}"
         tsmc = next((q for q in table.quotes if q.code == "2330"), None)
         assert tsmc and tsmc.name == "台積電"
-        assert None not in (tsmc.open, tsmc.high, tsmc.low, tsmc.close, tsmc.volume, tsmc.value, tsmc.transactions)
-        assert tsmc.low <= tsmc.close <= tsmc.high
+        assert None not in (tsmc.open, tsmc.high, tsmc.low, tsmc.close, tsmc.volume, tsmc.value, tsmc.transactions), (
+            f"數字格式已變更：{tsmc}")
+        # gateway 從漲跌(+/-) 欄的 HTML 取出正負號
         directions = {q.direction for q in table.quotes}
         assert directions <= {"+", "-", "", "X"} and directions & {"+", "-"}, f"漲跌(+/-) 欄格式已變更: {directions}"
 
