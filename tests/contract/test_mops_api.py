@@ -11,6 +11,7 @@ from datetime import date
 
 import pytest
 
+from sources.mops.major_news import company_news, market_news, news_detail
 from sources.mops.t35sc09 import treasury_buybacks
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip, gateway_or_skip
 from tools.mops.dividend import KEY_COLUMNS
@@ -176,32 +177,21 @@ class TestInvestorConferenceLegacyPage:
         assert NO_DATA_TEXT in html, f"查無資料時的頁面文字已變更: {html[:300]!r}"
 
 
-class TestMajorNewsAPI:
-    """t05st01（公司年度）/ t05st02（某日全市場）：tool 依 row[0..5] 取用，row[5] 是全文連結
-    {apiName, parameters}；全文 *_detail 的 row[3],[4],[7],[8],[9] 是發言人、職稱、條款、事實發生日、說明。"""
+class TestMajorNewsGateway:
+    """t05st01（公司年度）/ t05st02（某日全市場）/ *_detail（全文）只透過 sources/mops/major_news.py 讀；欄位依
+    titles 取，改名時 gateway 丟 UpstreamFormatError。工具靠「詳細資料」的連結取全文、靠它的 marketKind 分市場。"""
 
     def test_company_year_list_and_detail(self):
-        resp = _mops("t05st01", {"companyId": FIXED_STOCK, "year": FIXED_ROC_YEAR, "month": "all",
-                                 "firstDay": "", "lastDay": ""})
-        assert str(resp["code"]) == "200", f"t05st01 查詢失敗: {resp.get('message')}"
-        names = leaf_titles(resp["result"].get("titles", []))
-        assert names[:5] == ["公司代號", "公司名稱", "發言日期", "發言時間", "主旨"], f"欄位已變更: {names}"
-        rows = resp["result"].get("data") or []
-        assert rows and isinstance(rows[0][5], dict) and rows[0][5].get("apiName"), f"全文連結格式已變更: {rows[:1]}"
-        detail = _mops(rows[0][5]["apiName"], rows[0][5]["parameters"])
-        assert str(detail["code"]) == "200"
-        d = detail["result"]["data"][0]
-        assert len(d) >= 10 and d[1].count("/") == 2, f"全文欄位已變更: {d[:9]}"
+        news = gateway_or_skip(company_news, FIXED_STOCK, int(FIXED_ROC_YEAR))
+        assert news is not None and news.announcements, "固定歷史年度應有重大訊息"
+        a = next((a for a in news.announcements if a.link), None)
+        assert a is not None, "「詳細資料」不再是 {apiName, parameters} 連結"
+        assert gateway_or_skip(news_detail, a.link) is not None, f"{a.link.api_name} 查無全文"
 
     def test_market_day_list_carries_market_kind(self):
-        resp = _mops("t05st02", {"year": FIXED_ROC_YEAR, "month": "06", "day": "02"})
-        assert str(resp["code"]) == "200", f"t05st02 查詢失敗: {resp.get('message')}"
-        names = leaf_titles(resp["result"].get("titles", []))
-        assert names[:5] == ["發言日期", "發言時間", "公司代號", "公司名稱", "主旨"], f"欄位已變更: {names}"
-        rows = resp["result"].get("data") or []
-        assert rows and rows[0][5]["parameters"].get("marketKind") in ("sii", "otc", "rotc", "pub"), (
-            f"市場別欄位已變更: {rows[:1]}"
-        )
+        rows = gateway_or_skip(market_news, "20250602")  # 民國 114 年（FIXED_ROC_YEAR）
+        assert rows, "固定歷史交易日應有重大訊息"
+        assert {a.market for a in rows} <= {"sii", "otc", "rotc", "pub"}, "市場別（marketKind）的值已變更（工具以此篩選）"
 
 
 class TestInsiderHoldingsAPI:

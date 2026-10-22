@@ -167,8 +167,12 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      `date_params`／`first_table`／`resp_date`／`filter_rows` 不再需要，刪除。2010–2026 欄位相同（2005 沒有資料）。
      17 組呼叫中 16 組與 main 逐字相同；2014-01-02 的融資融券那一組，櫃買當天的代號後面補了空白（「1259  」），舊版
      原樣印出，現在 gateway 去掉空白，只差代號與名稱之間的空白。工具讀的 TPEx 網站端點至此都收成 gateway。
+   - ✅ MOPS 重大訊息（#158）：`sources/mops/major_news.py` 的 `company_news()`（t05st01）、`market_news()`（t05st02）、
+     `news_detail()`（*_detail 全文），依 titles 取欄。「詳細資料」轉成 `NewsLink`（apiName + parameters，marketKind 給
+     市場篩選），全文的發言人、職稱、主旨補了空白，gateway 去掉。2010–2026 titles 相同。9 組呼叫（2330 年度與分頁、
+     單日、2010、未知代號、某日全市場與上櫃篩選、星期六）與 main 逐字相同，送出的 30 個請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#157；盤點出的格式問題都已修好，TWSE rwd／
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#158；盤點出的格式問題都已修好，TWSE rwd／
   exchangeReport、TPEx 網站、TAIFEX 下載頁都收成 gateway；剩 MOPS 其餘頁面）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；
