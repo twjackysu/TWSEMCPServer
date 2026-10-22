@@ -16,7 +16,7 @@ from sources.mops.major_news import company_news, market_news, news_detail
 from sources.mops.t35sc09 import treasury_buybacks
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip, gateway_or_skip
 from tools.mops.dividend import KEY_COLUMNS
-from tools.mops.monthly_revenue import CURRENT_MONTH_LABEL
+from sources.mops.monthly_revenue import CURRENT_MONTH_LABEL, monthly_revenue
 from tools.mops.investor_conference import NO_DATA_TEXT, ROW_WIDTH, parse_conference_rows
 from utils.mops import (
     MOPS_API_BASE,
@@ -81,32 +81,20 @@ class TestFinancialStatementsAPI:
         )
 
 
-class TestMonthlyRevenueAPI:
-    """t05st10_ifrs：tool 將 result.data 當成 [項目, 值] 配對依序輸出。"""
+class TestMonthlyRevenueGateway:
+    """t05st10_ifrs 只透過 sources/mops/monthly_revenue.py 讀；欄位依 titles（項目、營業收入淨額）取，改名時 gateway 丟
+    UpstreamFormatError。工具以「本月」那一項算月增率。"""
 
-    def test_data_is_label_value_pairs(self):
-        resp = _mops("t05st10_ifrs", {
-            "companyId": FIXED_STOCK,
-            "dataType": "2",
-            "year": FIXED_ROC_YEAR,
-            "month": "8",
-            "subsidiaryCompanyId": "",
-        })
-        assert str(resp["code"]) == "200", f"查詢固定歷史月份失敗: {resp.get('message')}"
-        data = resp["result"].get("data")
-        assert isinstance(data, list) and data, "result.data 不是非空 list"
-        assert all(isinstance(r, list) and len(r) >= 2 for r in data), f"result.data 不再是 [項目, 值] 配對: {data!r:.300}"
-        assert str(data[0][0]).strip() == CURRENT_MONTH_LABEL, (
-            f"首列不再是「{CURRENT_MONTH_LABEL}」，月增率計算會失效: {data[0]}"
-        )
+    def test_fixed_month_parses(self):
+        report = gateway_or_skip(monthly_revenue, FIXED_STOCK, 2025, 8)  # 民國 114 年（FIXED_ROC_YEAR）
+        assert report is not None and report.items, "查詢固定歷史月份應有月營收"
+        assert report.period == (2025, 8), f"查詢的月份沒有被採用：{report.period}"
+        assert report.current is not None, f"沒有「{CURRENT_MONTH_LABEL}」一項或數字格式已變更：{report.items[:2]}"
 
-    def test_latest_mode_returns_yymm(self):
-        """tool 不帶月份時送 dataType=1 + 空 year/month，並以 result.yymm 推算前一個月."""
-        resp = _mops("t05st10_ifrs", {"companyId": FIXED_STOCK, "dataType": "1", "year": "", "month": "",
-                                      "subsidiaryCompanyId": ""})
-        assert str(resp["code"]) == "200", f"最新月份查詢方式已變更: {resp.get('message')}"
-        yymm = str(resp["result"].get("yymm", ""))
-        assert len(yymm) == 5 and yymm.isdigit(), f"result.yymm 格式已變更（預期民國 YYYMM）: {yymm!r}"
+    def test_latest_mode_returns_its_month(self):
+        """tool 不帶月份時送 dataType=1 + 空 year/month，並以 yymm 推算前一個月."""
+        report = gateway_or_skip(monthly_revenue, FIXED_STOCK)
+        assert report is not None and report.period is not None, "最新月份查詢不再回傳 yymm"
 
 
 class TestDividendHistoryAPI:
