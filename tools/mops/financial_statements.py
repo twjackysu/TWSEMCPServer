@@ -3,52 +3,39 @@
 These replace the TWSE OpenAPI t187ap06/t187ap07 tools, which only carried the latest
 quarter, needed a separate 公發公司 endpoint and six industry variants, and had no cash-flow
 statement at all. MOPS's t164sb03/04/05 cover listed, OTC, emerging and public companies of
-every industry, for the latest quarter (``dataType`` "1") or any past one ("2").
+every industry, for the latest quarter or any past one; ``sources.mops.financial_statements`` reads them.
 """
 
 from typing import Optional
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient
+from sources.mops.financial_statements import FinancialStatement, Kind, financial_statement
+from utils import TWSEAPIClient, plain, printed
 from toolkit import handle_api_errors
-from utils.mops import mops_post, flatten_titles, to_roc_year
+from utils.mops import to_roc_year
 
-# statement key → (MOPS api name, display name)
-STATEMENTS = {
-    "income": ("t164sb04", "綜合損益表"),
-    "balance": ("t164sb03", "資產負債表"),
-    "cashflow": ("t164sb05", "現金流量表"),
-}
+STATEMENTS = {"income": "綜合損益表", "balance": "資產負債表", "cashflow": "現金流量表"}
 
 
-def format_statement(result: dict, code: str, statement_name: str) -> str:
-    """Render a t164sb0x ``result`` generically from its own headers.
+def format_statement(statement: FinancialStatement, code: str, statement_name: str) -> str:
+    """Render a statement against the column labels MOPS itself sends.
 
     Line items differ by industry (a bank's income statement has 利息淨收益 instead of
-    營業毛利), so nothing here refers to a specific account name: every row is printed
-    against the column labels MOPS itself sends.
+    營業毛利), so nothing here refers to a specific account name.
     """
-    columns = flatten_titles(result.get("titles", []))
-    rows = result.get("reportList") or []
-    value_columns = columns[1:]  # columns[0] is 會計項目
-
-    name = result.get("companyAbbreviation", "")
-    unit = "新台幣仟元；每股盈餘為元" if statement_name == STATEMENTS["income"][1] else "新台幣仟元"
-    report_type = result.get("reportType", "")
+    unit = "新台幣仟元；每股盈餘為元" if statement_name == STATEMENTS["income"] else "新台幣仟元"
     lines = [
-        f"【{name}({code}) {report_type}{statement_name}】（單位：{unit}）",
-        "欄位: " + " | ".join(value_columns),
+        f"【{statement.name}({code}) {statement.report_type}{statement_name}】（單位：{unit}）",
+        "欄位: " + " | ".join(statement.columns),
         "",
     ]
-    for row in rows:
-        if not row:
+    # MOPS prints amounts with thousands separators and percentages without (-1362.67)
+    shown = [plain if column.endswith(" %") else printed for column in statement.columns]
+    for line in statement.lines:
+        if line.is_heading:
+            lines.append(f"〔{line.item}〕")
             continue
-        item = str(row[0]).replace("　", " ").strip()
-        values = [str(v).strip() for v in row[1:]]
-        if not any(values):
-            lines.append(f"〔{item}〕")
-            continue
-        lines.append(f"{item}: " + " | ".join(v or "-" for v in values))
+        lines.append(f"{line.item}: " + " | ".join(show(v, "-") for show, v in zip(shown, line.values, strict=True)))
     return "\n".join(lines)
 
 
@@ -56,24 +43,21 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
     """Register MOPS financial statement tools."""
     _client = client or TWSEAPIClient.get_instance()
 
-    def _query(statement: str, code: str, year: str, season: int) -> str:
-        api_name, statement_name = STATEMENTS[statement]
+    def _query(kind: Kind, code: str, year: str, season: int) -> str:
+        statement_name = STATEMENTS[kind]
         code = code.strip()
         if not year and not season:
-            # 最新一季：dataType=1 仍須帶空的 year/season，少了會回「傳入參數異常」
-            body = {"companyId": code, "dataType": "1", "year": "", "season": "", "subsidiaryCompanyId": ""}
+            roc_year = None
             period = "最新一季"
         elif not year or season not in (1, 2, 3, 4):
             raise ToolError("請同時指定 year 與 season（1～4），或兩者都留空查詢最新一季")
         else:
             roc_year = to_roc_year(year)
-            body = {"companyId": code, "dataType": "2", "year": str(roc_year), "season": str(season),
-                    "subsidiaryCompanyId": ""}
             period = f"{roc_year} 年第 {season} 季"
-        result = mops_post(_client, api_name, body)
-        if not result or not result.get("reportList"):
+        statement = financial_statement(_client, kind, code, roc_year, season)
+        if statement is None:
             return f"查無 {code} 在{period}的{statement_name}（可能尚未公告，或代號有誤）"
-        return format_statement(result, code, statement_name)
+        return format_statement(statement, code, statement_name)
 
     @mcp.tool
     @handle_api_errors(use_code_param=True)

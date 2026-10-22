@@ -79,18 +79,6 @@ def test_parse_html_table_targets_table_by_id_and_cleans_text():
 
 # ---------- financial statements ----------
 
-def test_statement_rows_render_against_their_own_headers():
-    result = {
-        "companyAbbreviation": "台積電", "reportType": "合併",
-        "titles": NESTED_TITLES,
-        "reportList": [["營業費用", "", ""], ["　　推銷費用", "4,273,247", "0.46"]],
-    }
-    text = financial_statements.format_statement(result, "2330", "綜合損益表")
-    assert "欄位: 114年第2季 金額 | 114年第2季 %" in text
-    assert "〔營業費用〕" in text  # 全空列是段落標題
-    assert "推銷費用: 4,273,247 | 0.46" in text
-
-
 def test_statement_tool_sends_roc_year_and_rejects_bad_season():
     seen = {}
 

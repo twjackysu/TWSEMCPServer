@@ -11,6 +11,7 @@ from datetime import date
 
 import pytest
 
+from sources.mops.financial_statements import financial_statement
 from sources.mops.insiders import board_holdings, insider_changes
 from sources.mops.investor_conference import investor_conferences
 from sources.mops.major_news import company_news, market_news, news_detail
@@ -22,7 +23,6 @@ from utils.mops import (
     MOPS_API_BASE,
     MOPS_LEGACY_BASE,
     MOPS_LEGACY_HIDDEN_FIELDS,
-    flatten_titles,
     leaf_titles,
 )
 
@@ -37,47 +37,24 @@ def _mops(api_name: str, body: dict) -> dict:
     return resp
 
 
-def _statement_body(year: str = FIXED_ROC_YEAR) -> dict:
-    return {
-        "companyId": FIXED_STOCK,
-        "dataType": "2",
-        "year": year,
-        "season": FIXED_SEASON,
-        "subsidiaryCompanyId": "",
-    }
+class TestFinancialStatementsGateway:
+    """t164sb03/04/05 只透過 sources/mops/financial_statements.py 讀：欄名是 titles 攤平後「會計項目」以外的各欄，
+    會計項目改名、資料列與 titles 不同寬、或數字格式變了，gateway 丟 UpstreamFormatError。"""
 
-
-class TestFinancialStatementsAPI:
-    """t164sb03/04/05：tools/mops/financial_statements.py 依 titles 攤平後的欄名
-    逐欄輸出 reportList，所以 titles 葉節點數必須等於每列的儲存格數。"""
-
-    @pytest.mark.parametrize("api_name", ["t164sb03", "t164sb04", "t164sb05"])
-    def test_report_rows_match_title_columns(self, api_name):
-        resp = _mops(api_name, _statement_body())
-        assert str(resp["code"]) == "200", f"{api_name} 查詢固定歷史季度失敗: {resp.get('message')}"
-        result = resp["result"]
-        rows, titles = result.get("reportList"), result.get("titles")
-        assert isinstance(rows, list) and rows, f"{api_name} result.reportList 不是非空 list"
-        assert isinstance(titles, list) and titles, f"{api_name} result.titles 不是非空 list"
-        width = len(flatten_titles(titles))
-        bad = [r for r in rows if not isinstance(r, list) or len(r) != width]
-        assert not bad, f"{api_name} 列寬與 titles 欄數（{width}）不符，例: {bad[0]!r:.200}"
+    @pytest.mark.parametrize("kind", ["income", "balance", "cashflow"])
+    def test_fixed_quarter_parses(self, kind):
+        s = gateway_or_skip(financial_statement, kind, FIXED_STOCK, int(FIXED_ROC_YEAR), int(FIXED_SEASON))
+        assert s is not None and s.lines, f"{kind} 查詢固定歷史季度應有資料"
 
     def test_latest_mode_needs_empty_year_and_season(self):
-        """tool 不帶年季時送 dataType=1 + 空 year/season，MOPS 回最新一季."""
-        resp = _mops("t164sb04", {"companyId": FIXED_STOCK, "dataType": "1", "year": "", "season": "",
-                                  "subsidiaryCompanyId": ""})
-        assert str(resp["code"]) == "200", f"最新一季查詢方式已變更: {resp.get('message')}"
-        assert resp["result"].get("reportList"), "最新一季 result.reportList 為空"
+        """不帶年季時送 dataType=1 + 空 year/season，MOPS 回最新一季."""
+        s = gateway_or_skip(financial_statement, "income", FIXED_STOCK)
+        assert s is not None and s.lines, "最新一季查詢方式已變更"
 
-    def test_unpublished_quarter_returns_code_406(self):
-        """mops_post 把 406 當成「查無資料」（回 None），其他非 200 碼才視為錯誤."""
-        future_roc_year = str(date.today().year - 1911 + 2)  # contract-ok: 組請求參數（未來的民國年），不是驗資料
-        resp = _mops("t164sb04", _statement_body(future_roc_year))
-        assert str(resp["code"]) == "406", (
-            f"查詢尚未公告的季度不再回 406（實際 {resp['code']} {resp.get('message')}），"
-            f"mops_post 的「查無資料」判斷需要更新"
-        )
+    def test_unpublished_quarter_is_no_data(self):
+        """尚未公告的季度回 406，mops_post 當成查無資料（gateway 回 None）；改成別的代碼會變成 MopsQueryError."""
+        future_roc_year = date.today().year - 1911 + 2  # contract-ok: 組請求參數（未來的民國年），不是驗資料
+        assert gateway_or_skip(financial_statement, "income", FIXED_STOCK, future_roc_year, 1) is None
 
 
 class TestMonthlyRevenueGateway:
