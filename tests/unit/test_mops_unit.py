@@ -267,7 +267,7 @@ def test_conference_unexpected_page_is_an_error_not_no_data():
 # ---------- parse_html_tables ----------
 
 from utils.mops import parse_html_tables  # noqa: E402
-from tools.mops import insiders, treasury_guarantees  # noqa: E402
+from tools.mops import treasury_guarantees  # noqa: E402
 
 
 def test_parse_html_tables_splits_unclosed_tables():
@@ -281,31 +281,7 @@ def test_parse_html_tables_splits_unclosed_tables():
 
 
 # ---------- major news: test_mops_major_news_gateway_unit.py ----------
-# ---------- insiders ----------
-
-def test_period_body_latest_and_specific_month():
-    assert insiders.period_body("2330", "", "")[0]["dataType"] == "1"
-    body, _ = insiders.period_body("2330", "2026", "6")
-    assert (body["dataType"], body["year"], body["month"]) == ("2", "115", "06")
-    assert "同時指定" in insiders.period_body("2330", "2026", "")[1]
-
-
-def _insider_row(name, bought=0):
-    row = ["董事本人", name, "普通股", "0", "100", "0", "0", "0"] + ["0"] * 10 + ["100", "0", "0", "0", "0", ""]
-    row[8] = str(bought)
-    return row
-
-
-def test_insider_changes_list_only_movers_by_default():
-    titles = [{"main": f"c{i}", "sub": []} for i in range(24)]
-    payload = _ok({"companyAbbreviation": "台積電", "year": "115", "month": "08", "titles": titles,
-                   "data": [_insider_row("甲", 1000), _insider_row("乙")]})
-    fn = register_module_tools(insiders, OfflineClient({"/mops/api/query6_1": payload}))["get_company_insider_holding_changes"]
-    text = fn("2330")
-    assert "本月有異動 1 位" in text and "甲" in text and "乙" not in text and "c8:1000" in text
-    assert "乙" in fn("2330", only_changed=False)
-
-
+# ---------- insiders: test_mops_insiders_gateway_unit.py ----------
 # ---------- lending (buybacks: test_mops_t35sc09_gateway_unit.py) ----------
 
 def test_lending_page_without_tables_is_an_error_unless_it_says_no_data():

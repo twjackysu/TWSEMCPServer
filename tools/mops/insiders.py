@@ -9,12 +9,13 @@ has no OpenAPI counterpart; t187ap12_L / t187ap13_L are daily pre-transfer filin
 different disclosure.
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
-from utils import TWSEAPIClient, cap_rows
+from sources.mops.insiders import board_holdings, insider_changes
+from utils import TWSEAPIClient, cap_rows, printed
 from toolkit import handle_api_errors
-from utils.mops import mops_post, flatten_titles, to_roc_year
+from utils.mops import to_roc_year
 
 # stapap1 result.parentCompany.total → label
 TOTAL_LABELS = {
@@ -29,25 +30,16 @@ TOTAL_LABELS = {
 MAX_OUTPUT_ROWS = 200
 
 
-def period_body(code: str, year: str, month: str) -> tuple:
-    """MOPS body for the latest month (dataType 1, blank year/month) or a given month."""
+def period(year: str, month: str) -> Tuple[Optional[int], Optional[int]]:
+    """(ROC year, month) to query, or (None, None) for the latest month; ToolError when only one is given."""
     if not year and not month:
-        return {"companyId": code, "dataType": "1", "year": "", "month": "", "subsidiaryCompanyId": ""}, None
+        return None, None
     if not year or not month:
-        return None, "請同時指定 year 與 month，或兩者都留空查詢最新月份"
+        raise ToolError("請同時指定 year 與 month，或兩者都留空查詢最新月份")
     m = int(month)
     if not 1 <= m <= 12:
-        return None, "month 必須是 1～12"
-    return {"companyId": code, "dataType": "2", "year": str(to_roc_year(year)), "month": f"{m:02d}",
-            "subsidiaryCompanyId": ""}, None
-
-
-def _nonzero(value) -> bool:
-    text = str(value).replace(",", "").replace("%", "").strip()
-    try:
-        return float(text) != 0
-    except ValueError:
-        return bool(text)
+        raise ToolError("month 必須是 1～12")
+    return to_roc_year(year), m
 
 
 def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None:
@@ -67,35 +59,26 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             year: 年度，西元或民國（選填；與 month 同時留空＝最新月份）
             month: 月份 1～12（選填）
         """
-        body, error = period_body(code.strip(), year.strip(), month.strip())
-        if error:
-            raise ToolError(error)
-        result = mops_post(_client, "stapap1", body)
-        parent = (result or {}).get("parentCompany") or {}
-        rows = parent.get("data") or []
-        if not rows:
+        report = board_holdings(_client, code.strip(), *period(year.strip(), month.strip()))
+        if report is None:
             return f"查無 {code} 的董監事持股資料（代號可能有誤，或該月份尚未申報）"
 
-        columns = flatten_titles(parent.get("titles", []))
-        name = parent.get("companyAbbreviation") or code
-        yymm = str(parent.get("yymm", ""))
-        period = f"民國{yymm[:-2]}年{yymm[-2:]}月" if len(yymm) >= 4 else ""
-        lines = [f"【{name}({code}) 董監事持股餘額明細 {period}】", "欄位: " + " | ".join(columns[2:]), ""]
-        shown, cap_note = cap_rows(rows, MAX_OUTPUT_ROWS)
-        for r in shown:
-            lines.append(f"{r[0]} {r[1]}: " + " | ".join(str(v) for v in r[2:]))
+        name = report.name or code
+        yymm = report.yymm
+        label = f"民國{yymm[:-2]}年{yymm[-2:]}月" if len(yymm) >= 4 else ""
+        lines = [f"【{name}({code}) 董監事持股餘額明細 {label}】", "欄位: " + " | ".join(report.columns), ""]
+        shown, cap_note = cap_rows(report.holdings, MAX_OUTPUT_ROWS)
+        for h in shown:
+            lines.append(f"{h.title} {h.name}: " + " | ".join(h.values))
         if cap_note:
             lines.append(cap_note.lstrip("，"))
 
-        totals = parent.get("total") or {}
-        if totals:
+        if report.totals:
             lines.append("\n持股合計（持股 | 設質股數 | 設質比例）:")
-            for key, label in TOTAL_LABELS.items():
-                if key in totals:
-                    lines.append(f"  {label}: " + " | ".join(totals[key]))
-        for key in ("note", "reason"):
-            if str(parent.get(key, "")).strip():
-                lines.append(str(parent[key]).strip())
+            for key, total_label in TOTAL_LABELS.items():
+                if key in report.totals:
+                    lines.append(f"  {total_label}: " + " | ".join(report.totals[key]))
+        lines += [text for text in (report.note, report.reason) if text]
         return "\n".join(lines)
 
     @mcp.tool
@@ -114,28 +97,23 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
             month: 月份 1～12（選填）
             only_changed: 只列本月有增減的申報人（預設 True）；False 則列出全部申報人
         """
-        body, error = period_body(code.strip(), year.strip(), month.strip())
-        if error:
-            raise ToolError(error)
-        result = mops_post(_client, "query6_1", body) or {}
-        rows = result.get("data") or []
-        if not rows:
+        report = insider_changes(_client, code.strip(), *period(year.strip(), month.strip()))
+        if report is None:
             return f"查無 {code} 的內部人持股異動資料（代號可能有誤，或該月份尚未申報）"
 
-        columns = flatten_titles(result.get("titles", []))
-        name = result.get("companyAbbreviation") or code
-        period = f"民國{result.get('year', '')}年{result.get('month', '')}月"
-        changed = [r for r in rows if any(_nonzero(v) for v in r[8:18])]
-        lines = [f"【{name}({code}) 內部人持股異動 {period}】（共 {len(rows)} 位申報人，本月有異動 {len(changed)} 位）\n"]
+        name = report.name or code
+        rows = report.changes
+        changed = [c for c in rows if c.changed]
+        lines = [f"【{name}({code}) 內部人持股異動 民國{report.year}年{report.month}月】"
+                 f"（共 {len(rows)} 位申報人，本月有異動 {len(changed)} 位）\n"]
         if only_changed and not changed:
             return lines[0] + "本月沒有任何內部人持股異動（only_changed=False 可列出全部申報人目前持股）"
         shown, cap_note = cap_rows(changed if only_changed else rows, MAX_OUTPUT_ROWS)
-        for r in shown:
-            # r[0:3] 身份別,姓名,持股種類; r[4] 上月實際持有股數; r[8:18] 本月增加/減少 各 5 欄;
-            # r[18] 本月實際自有持有股數; r[21] 截至本月底累計設質; 其餘見 columns
-            moves = [f"{columns[i]}:{r[i]}" for i in range(8, min(18, len(r))) if _nonzero(r[i])]
-            who = f"{r[0]} {r[1]}".strip()
-            head = f"{who}（{r[2]}）| 上月持股:{r[4]} → 本月持股:{r[18]} | 累計設質:{r[21]}"
+        for c in shown:
+            moves = [f"{title}:{printed(shares)}" for title, shares in c.moves if shares]
+            who = f"{c.identity} {c.name}".strip()
+            head = (f"{who}（{c.share_type}）| 上月持股:{printed(c.last_month)} → 本月持股:{printed(c.this_month)} | "
+                    f"累計設質:{printed(c.pledged)}")
             lines.append(head + (" | " + " | ".join(moves) if moves else ""))
         if cap_note:
             lines.append(cap_note.lstrip("，"))

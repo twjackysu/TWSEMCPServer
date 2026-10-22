@@ -11,6 +11,7 @@ from datetime import date
 
 import pytest
 
+from sources.mops.insiders import board_holdings, insider_changes
 from sources.mops.major_news import company_news, market_news, news_detail
 from sources.mops.t35sc09 import treasury_buybacks
 from tests.helpers import fetch_or_skip, fetch_bytes_or_skip, gateway_or_skip
@@ -194,26 +195,23 @@ class TestMajorNewsGateway:
         assert {a.market for a in rows} <= {"sii", "otc", "rotc", "pub"}, "市場別（marketKind）的值已變更（工具以此篩選）"
 
 
-class TestInsiderHoldingsAPI:
-    """stapap1（董監持股）與 query6_1（內部人持股異動）：tool 依欄位位置與 total 的鍵名取用。"""
+class TestInsiderHoldingsGateway:
+    """stapap1（董監持股）與 query6_1（內部人持股異動）只透過 sources/mops/insiders.py 讀；欄位依 titles 取（異動的
+    「本月增加」「本月減少」兩組依群組名），改名時 gateway 丟 UpstreamFormatError。工具依 total 的鍵名標示合計。"""
 
     def test_board_holdings(self):
-        resp = _mops("stapap1", {"companyId": FIXED_STOCK, "dataType": "2", "year": FIXED_ROC_YEAR,
-                                 "month": "06", "subsidiaryCompanyId": ""})
-        assert str(resp["code"]) == "200", f"stapap1 查詢失敗: {resp.get('message')}"
-        parent = resp["result"]["parentCompany"]
-        assert leaf_titles(parent["titles"])[:6] == ["職稱", "姓名", "選任時持股", "目前持股", "設質股數", "設質股數佔持股比例"]
-        assert {"allDirectorSupervisor", "independentDirector", "nonIndependentDirector"} <= set(parent.get("total", {}))
-        assert parent.get("data") and str(parent.get("yymm", "")).endswith("06")
+        report = gateway_or_skip(board_holdings, FIXED_STOCK, int(FIXED_ROC_YEAR), 6)
+        assert report is not None and report.holdings, "固定歷史月份應有董監持股"
+        assert report.yymm.endswith("06"), f"查詢的月份沒有被採用：{report.yymm}"
+        assert {"allDirectorSupervisor", "independentDirector", "nonIndependentDirector"} <= set(report.totals), (
+            f"total 的鍵名已變更（工具以此標示）：{sorted(report.totals)}")
 
-    def test_monthly_changes_column_positions(self):
-        resp = _mops("query6_1", {"companyId": FIXED_STOCK, "dataType": "2", "year": FIXED_ROC_YEAR,
-                                  "month": "06", "subsidiaryCompanyId": ""})
-        assert str(resp["code"]) == "200", f"query6_1 查詢失敗: {resp.get('message')}"
-        cols = flatten_titles(resp["result"]["titles"])
-        assert len(cols) == 24, f"欄位數已變更: {cols}"
-        assert cols[4] == "上月實際持有股數" and cols[18] == "本月實際自有持有股數" and cols[21] == "截至本月底累計設質", cols
-        assert cols[8].startswith("本月增加") and cols[13].startswith("本月減少"), cols
+    def test_monthly_changes(self):
+        report = gateway_or_skip(insider_changes, FIXED_STOCK, int(FIXED_ROC_YEAR), 6)
+        assert report is not None and report.changes, "固定歷史月份應有內部人申報"
+        c = report.changes[0]
+        assert None not in (c.last_month, c.this_month, c.pledged), f"數字格式已變更：{c}"
+        assert {t.split(" ", 1)[0] for t, _ in c.moves} == {"本月增加", "本月減少"}, "異動欄位的群組已變更"
 
 
 class TestTreasuryAndGuaranteesLegacyPages:
