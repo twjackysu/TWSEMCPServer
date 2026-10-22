@@ -151,8 +151,12 @@ middleware、transform），沒有才自己寫。對照表見「FastMCP 4 對照
      「最低價/日期」，日期不再緊接在價格後面就報錯。年度、月份是 JSON 數字。新增 `year_cache_ttl()`（今年 2 分鐘、
      過去年度 1 小時）。歷年工具的查詢日期改用 `taipei_today()`。12 組呼叫（逐月：今年、1999／2005／2010／2018／2025、
      查無；歷年：2330、1101、0050、2317、查無）與 main 逐字相同，送出的請求也相同。
+   - ✅ TWSE FMTQIK／MI_5MINS_HIST（#155）：`sources/twse/fmtqik.py` 的 `market_turnover()`（每日成交量值與加權指數）與
+     `sources/twse/mi_5mins_hist.py` 的 `taiex_history()`（加權指數開高低收），各回一個月。欄位依名稱取、日期解析成
+     `date`。證交所把民國 100 年以前的日期印成「 94/01/03」（前面補空白），新增 `utils.date_helper.roc_day()` 照樣印回。
+     14 組呼叫（本月、1999／2005／2010／2018／2021／2025、未來月份）與 main 逐字相同，送出的請求也相同。
 - [x] Phase 2 共用核心（#125 Literal／Field、#126 TradingDate、#127 日期慣例、#128 數字解析）
-- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#154；盤點出的格式問題都已修好，剩格式沒變過、
+- [ ] Phase 3 來源層 + 領域層（進行中：#116–#119、#121、#137–#143、#146–#155；盤點出的格式問題都已修好，剩格式沒變過、
   只在一處依位置讀的端點：MOPS 其餘頁面、TWSE rwd、TPEx 網站）
 - [x] Phase 4 MCP 介面（#109 output_schema、#127 server instructions、#129 annotations／tags、
   #130 依來源開關工具、#131 prompts 自動註冊、#132 回應大小上限、#133 結構化輸出、#134 工具搜尋用詞與順序；

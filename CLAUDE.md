@@ -65,6 +65,8 @@ sources/                      # Gateways: one module per upstream endpoint, type
 ├── twse/mi_margn.py          # MI_MARGN → margin_balances() MarginDay (信用交易統計 + per-stock 融資/融券 by group/name; 註記 kept padded)
 ├── twse/fmsrfk.py            # FMSRFK → monthly_trading() MonthlyTradingYear (one stock, one year by month)
 ├── twse/fmnptk.py            # FMNPTK → yearly_trading() YearlyTrading list (each 日期 named after the price before it)
+├── twse/fmtqik.py            # FMTQIK → market_turnover() MarketMonth (daily turnover + TAIEX close, one month)
+├── twse/mi_5mins_hist.py     # MI_5MINS_HIST → taiex_history() IndexMonth (TAIEX daily OHLC, one month)
 ├── twse/mi_index.py          # MI_INDEX → stock_quotes() QuoteTable (ALLBUT0999 / industry code), index_quotes() IndexBoard (IND)
 ├── twse/twt49u.py            # TWT49U → exright_results() ExRightReport (stat kept for TWSE's own "nothing found" reason)
 ├── twse/bwibbu_d.py          # BWIBBU_d → valuation_ratios() ValuationReport (served date: a bad `date` gets the latest day)
@@ -95,7 +97,7 @@ utils/                        # Bottom layer: HTTP, parsing, formatting. Never i
 ├── indicators.py             # Pure functions: SMA/EMA/RSI/KD/MACD/Bollinger
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
-├── date_helper.py            # roc_date() / roc_year_of() / slash_date(): a YYYYMMDD input → an upstream's form; parse_roc_date() / roc_to_ad() for ROC dates in replies; taipei_today()
+├── date_helper.py            # roc_date() / roc_year_of() / slash_date(): a YYYYMMDD input → an upstream's form; parse_roc_date() / roc_to_ad() / roc_day() for ROC dates in replies; taipei_today()
 ├── errors.py                 # InvalidArgument (→ ToolError as is), UpstreamFormatError (a reply's shape changed)
 ├── parse.py                  # decimal_or_none() / int_or_none() / float_or_none(): every exchange-printed number in the repo; "--" → None (write `or 0` where none counts as 0)
 ├── pagination.py             # Page / Paged: limit/offset paging

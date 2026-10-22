@@ -4,6 +4,8 @@
 """
 
 import pytest
+from sources.twse.fmtqik import market_turnover
+from sources.twse.mi_5mins_hist import taiex_history
 from sources.twse.mi_index import stock_quotes
 from sources.twse.mi_qfiis import foreign_holdings
 from tests.helpers import fetch_or_skip, gateway_or_skip
@@ -60,38 +62,30 @@ class TestMiIndexQuotesGateway:
         assert directions <= {"+", "-", "", "X"} and directions & {"+", "-"}, f"漲跌(+/-) 欄格式已變更: {directions}"
 
 
-class TestMarketTurnoverHistoryAPI:
-    """每日市場成交資訊 - FMTQIK
-    Tool get_market_turnover_history 使用 row[0]~row[5]：
-    日期、成交股數、成交金額、成交筆數、加權指數、漲跌點數。
+class TestMarketTurnoverGateway:
+    """每日市場成交資訊 - FMTQIK（sources/twse/fmtqik.py）
+    get_market_turnover_history 只透過這個 gateway 讀；欄位依名稱取、日期解析成 date，改了 gateway 丟 UpstreamFormatError。
     """
 
-    def test_row_has_6_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 6, f"欄位數不為 6，row 結構可能已變更: {data[0]}"
+    @pytest.mark.parametrize("day", [FIXED_DATE, "20050103"])
+    def test_fixed_month_parses(self, day):
+        month = gateway_or_skip(market_turnover, day)
+        assert month is not None and month.days, f"{day[:6]} 應有資料"
+        d = month.days[0]
+        assert None not in (d.volume, d.value, d.transactions, d.index, d.change), f"數字格式已變更：{d}"
 
 
-class TestTaiexIndexHistoryAPI:
-    """加權股價指數歷史 - MI_5MINS_HIST
-    Tool get_taiex_index_history 使用 row[0]~row[4]：
-    日期、開盤指數、最高指數、最低指數、收盤指數。
+class TestTaiexHistoryGateway:
+    """加權股價指數歷史 - MI_5MINS_HIST（sources/twse/mi_5mins_hist.py）
+    get_taiex_index_history 只透過這個 gateway 讀；欄位依名稱取、日期解析成 date，改了 gateway 丟 UpstreamFormatError。
     """
 
-    def test_row_has_5_columns(self):
-        result = fetch_or_skip(
-            "https://www.twse.com.tw/rwd/zh/TAIEX/MI_5MINS_HIST",
-            params={"response": "json", "date": FIXED_DATE},
-        )
-        assert result.get("stat") == "OK"
-        data = result.get("data", [])
-        assert len(data) > 0
-        assert len(data[0]) == 5, f"欄位數不為 5，row 結構可能已變更: {data[0]}"
+    @pytest.mark.parametrize("day", [FIXED_DATE, "20050103"])
+    def test_fixed_month_parses(self, day):
+        month = gateway_or_skip(taiex_history, day)
+        assert month is not None and month.days, f"{day[:6]} 應有資料"
+        d = month.days[0]
+        assert None not in (d.open, d.high, d.low, d.close), f"數字格式已變更：{d}"
 
 
 class TestForeignHoldingsGateway:
