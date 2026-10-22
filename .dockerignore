@@ -27,9 +27,20 @@ env
 
 # Testing
 .pytest_cache
+.ruff_cache
 .coverage
 htmlcov
 tests/
+run_tests.py
+pytest.ini
+
+# Not part of the image (staticFiles is reference material, read by no code)
+.claude
+.github
+docs
+staticFiles
+.env
+.env.*
 
 # Documentation
 *.md

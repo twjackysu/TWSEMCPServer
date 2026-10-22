@@ -33,7 +33,10 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 | Run tests by category | `python run_tests.py history` (also: `realtime`, `otc`, `taifex`, `institutional`, `mops`, `macro`, `etf`; `contract` = all contract tests, `unit` = all offline unit tests) |
 | Quick test (fail fast) | `python run_tests.py quick` |
 | Tests with coverage | `python run_tests.py cov` (opens HTML report) |
-| Run server directly | `python server.py` (HTTP on port 8000) |
+| Run server directly | `python server.py` (HTTP on port 8000, `GET /health` → `ok`; `MCP_STDIO=1` for stdio) |
+| Build Docker image | `docker build -t twse-mcp .` — two stages: uv (pinned) installs `uv.lock` without dev extras into `/app/.venv`; the runtime image holds that venv and the packages only (no uv, no Node.js), runs as user `app` (uid 10001), and its HEALTHCHECK GETs `/health` (healthy by default under stdio) |
+
+Dependencies live in `pyproject.toml` + `uv.lock` only (no `requirements*.txt`); Prefect Horizon, which hosts the public server, reads `pyproject.toml`. Declare a package there only if our code imports it.
 
 ## Code Architecture
 

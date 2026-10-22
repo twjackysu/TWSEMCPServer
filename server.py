@@ -3,6 +3,9 @@
 from fastmcp import FastMCP
 import logging
 
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+
 from prompts import register_all_prompts
 from toolkit import ArgumentErrorsInChinese, response_limit
 from tools import SOURCES, enabled_sources, register_all_tools, show_only_sources
@@ -47,6 +50,13 @@ show_only_sources(mcp, SERVED_SOURCES)
 # are left out: the cap would hide their output schema, so they bound their own size.
 if ServerConfig.MAX_RESPONSE_BYTES:
     mcp.add_middleware(response_limit(ServerConfig.MAX_RESPONSE_BYTES, tools=registered.text_tools))
+
+
+# The Docker HEALTHCHECK's target under the HTTP transport: the process is up and serving. It calls no
+# upstream, so a source that is down does not mark the container unhealthy.
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request: Request) -> PlainTextResponse:
+    return PlainTextResponse("ok")
 
 if __name__ == "__main__":
     import os
