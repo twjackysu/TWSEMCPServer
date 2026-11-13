@@ -17,6 +17,7 @@ TWStockMCPServer is a Model Context Protocol (MCP) server for Taiwan stock marke
 - **中央銀行** (`cpx.cbc.gov.tw`) — 1 tool: 每日匯率
 - **衍生分析** (`tools/analytics/`) — 4 tools: 還原權息日K、技術指標、選股 screener、同業比較（`utils/market_snapshot.py`：估值與行情取同一資料日；上市/上櫃產業代碼同一套）。由 `utils/price_series.py`（上市 STOCK_DAY／上櫃 tradingStock 日K、TWT49U／exDailyQ 除權息，自動判斷市場並還原）與 `utils/indicators.py`（純計算）組成
 - **TAIFEX 網站下載** (`www.taifex.com.tw/cht/3/*Down`) — 10 tools: 期貨／選擇權每日行情、三大法人（期貨/選擇權分計、總表、各期貨契約、各選擇權契約、買賣權分計）、期貨與選擇權大額交易人（無伺服器端契約篩選，本地端過濾）、Put/Call Ratio。日期留空＝最新交易日（往回逐日找有資料的一天），也可查過去區間。2026-09-29 逐列比對：最新一日的資料涵蓋同名 openapi 端點的全部內容且更完整，因此取代了那 9 個 openapi 工具；選擇權大額交易人於 2026-10-07 同樣逐列比對（320 列，僅「所有月份總計」代碼 999912 vs 999999 不同）後也改用下載頁（largeTraderOptDown，一次最多約一個月，整年區間會被拒絕）
+- **分點進出資料庫** (自建 PostgreSQL，例如 Neon；`branch_trades_schema.sql`) — 8 tools: 資料覆蓋範圍、分點代號查詢、個股某日各分點買賣超、個股分價量表、個股×分點逐日時序、分點期間各股買賣超排行、分點逐日紀錄，以及參考表回填（`brokers`/`broker_code`/`stocks`，本 server 唯一會寫入的工具）。資料來源是使用者自己的匯入流程，不是公開 API，所以**只收錄已匯入的股票與日期**；未設定 `BRANCH_DB_URL` 時工具照常註冊但回提示。數量一律以「張」呈現（資料庫存股，保留零股精度）
 
 ## Development Commands
 
@@ -46,6 +47,13 @@ utils/
 ├── price_series.py           # Daily bars (listed/OTC auto-detected) + ex-rights events + backward adjustment
 ├── indicators.py             # Pure functions: SMA/EMA/RSI/KD/MACD/Bollinger
 ├── market_snapshot.py        # Latest-day listed+OTC valuation/price snapshot (same data date) and industry membership
+├── neon_db.py                # Branch-trades PostgreSQL: lazy per-URL pool (min_size=0 for autosuspend),
+                              #   parameterized query + one-retry cold start, TTL cache, write_transaction
+├── branch_query.py           # Branch-trades lookups: branch/broker resolution (case-sensitive codes),
+                              #   coverage checks, trading-day date-range defaults
+├── branch_format.py          # 股→張 conversion, volume-weighted average price, 連買/連賣 streak
+├── broker_mapping.py         # 分點 → 券商總公司 resolution from TWSE reference data (pure; see its docstring
+                              #   for the measured hit rates and the 臺/台, HTML-entity and dash quirks)
 ├── config.py                 # APIConfig, DisplayConfig, TestConfig (env var overrides)
 ├── constants.py              # Localized message templates (Chinese)
 ├── date_helper.py            # roc_to_ad() / ad_to_roc() for TWSE legacy ROC dates; taipei_today()
@@ -76,6 +84,10 @@ tools/
                               #   odd_lot, index, trading_halt (注意股/處置股) (openapi, latest day); exright (website bulletin/exDailyQ);
                               #   history, valuation_holdings (www.tpex.org.tw website JSON: stock OHLC, 三大法人, 融資融券,
                               #   本益比, 外資持股; latest or any past date)
+├── branch/                   # 分點進出 (self-hosted PostgreSQL): reference (coverage, branch lookup),
+                              #   by_stock (per-stock branch net / price levels / daily trend),
+                              #   by_branch (per-branch stock ranking, daily history),
+                              #   backfill (brokers + stocks reference tables; the only writing tool)
 └── taifex/                   # TAIFEX derivatives. Download pages (latest day or any period):
                               #   daily_market_report, futures_position, institutional_details,
                               #   institutional_general, large_traders_oi (futures + options), put_call_ratio.
@@ -123,6 +135,12 @@ All configuration in `utils/config.py` reads from environment variables with sen
 - `DISPLAY_LIMIT` (default: `50`)
 - `PYTEST_DELAY_SECONDS` (default: `1.0` — rate limit delay between tests)
 
+Branch-trades database (all optional; with none of them set the branch tools still register and report that they are unconfigured):
+- `BRANCH_DB_URL` — connection string for the query tools; point it at a read-only role
+- `BRANCH_DB_WRITE_URL` — used only by `backfill_branch_reference_data`; falls back to `BRANCH_DB_URL`
+- `BRANCH_DB_CACHE_TTL` (default: `300`) — past trade dates are immutable, so results cache well
+- `BRANCH_DB_TIMEOUT` (default: `15`), `BRANCH_DB_MAX_ROWS` (default: `5000`)
+
 ## Testing
 
 Two kinds of tests, kept strictly apart:
@@ -138,6 +156,8 @@ The `conftest.py` autouse fixture sleeps between live tests to avoid rate limiti
 - `tests/e2e/test_*.py` — per-category E2E tests (history, realtime, otc, taifex, institutional, mops, otc_history, tdcc_macro). For non-TWSE-OpenAPI tools (TAIFEX, OTC, MIS, legacy exchangeReport, MOPS, TDCC, NDC, CBC), field assertions live here instead. Use `fetch_bytes_or_skip()` from `tests/helpers.py` for CSV/zip/HTML sources.
 - `tests/test_output_limits_unit.py`, `tests/test_summary_row_filtering_unit.py` — offline guards for pagination/output caps and summary-row and placeholder filtering.
 - `tests/test_prompt_tool_references_unit.py` — every `get_xxx(` named in `prompts/` must be a registered tool; update the prompts when removing or renaming a tool.
+- `tests/test_branch_db_unit.py` — offline guards for the branch tools: 股→張 conversion, volume-weighted period average price, 連買 streak, pagination, the four distinct empty-data messages, case-sensitive branch codes, the broker-mapping boundary cases, and that the backfill tool writes nothing on a dry run and never names a trade table.
+- `tests/e2e/test_branch_db_api.py` — contract test for the branch database, skipped unless `BRANCH_DB_URL` is set. Asserts the hardcoded columns exist, `branch_code` keeps its case-sensitive `C` collation, and the rollup still equals the price-level detail. It does not assert that any stock or day is loaded.
 
 **Fixtures** in `conftest.py`: `sample_stock_code` returns `"2330"` (TSMC), `sample_stock_code_with_data` returns `"1210"`.
 
@@ -186,3 +206,4 @@ def register_tools(mcp: FastMCP, client: Optional[TWSEAPIClient] = None) -> None
 - **NDC** (`tools/macro/ndc_indicators.py`): `index.ndc.gov.tw` is behind a Cloudflare bot block — don't try to get around it. Use the fixed `ws.ndc.gov.tw/Download.ashx` links from data.gov.tw datasets 6099 (zip of CSVs) and 6100 (PMI CSV); if NDC re-points them the contract tests fail.
 - **CBC** (`tools/macro/exchange_rates.py`): `cpx.cbc.gov.tw/API/DataAPI/Get?FileName=BP01D01`; the file is refreshed about monthly, so the latest weeks may be absent.
 - **TDCC query page** (`tools/tdcc/shareholding_distribution.py`): `www.tdcc.com.tw/portal/zh/smWeb/qryStock` has no CAPTCHA, but it is a stateful form: GET the page (sets `JSESSIONID`; hidden `SYNCHRONIZER_TOKEN`, `firDate`, and a `scaDate` list of ~51 weeks newest first), then POST `SYNCHRONIZER_TOKEN`, `SYNCHRONIZER_URI=/portal/zh/smWeb/qryStock`, `method=submit`, `firDate`, `scaDate`, `sqlMethod=StockNo`, `stockNo`, `stockName`. Tokens are single-use and every reply carries the next one, so the tool chains them inside one `requests.Session` (`fetch_bytes(..., session=)`, which also bypasses the response cache) and reloads the page if a reply has none. Unknown code → `查無此資料`. Compared with the open-data CSV (2026-10-02; 2330, 6488, 0050): levels 1–15 and the total are identical; only 差異數調整 differs (page keeps the sign and drops the row when zero), so the trend ignores it. Past weeks are immutable and kept in an in-process cache.
+- **Branch trades DB** (`tools/branch/`, `utils/neon_db.py`): the schema is in `branch_trades_schema.sql`. Query by the rollup `branch_stock_daily` whenever a price level is not needed — it is the only table indexed branch-first (`idx_bsd_branch_date`), while `branch_daily_trades` is indexed `(stock_id, trade_date, branch_code, price)` and must always be queried with a stock and a date (one stock-day reached 5,250 rows: 682 branches × 68 price levels). `branch_code` is `COLLATE "C"` because `9A9d` 永豐古亭 and `9A9D` 永豐忠孝 are different branches: match codes exactly, search names case-insensitively. `broker_code`, `brokers` and `stocks` may be empty — the schema leaves the branch→firm link nullable because it cannot be derived from the code prefix (`1020` 合庫 and `1030` 土銀 share `10`), so `group_by="broker"` and stock names depend on `backfill_branch_reference_data` having run. Period average prices must be Σamt ÷ Σvol, never the mean of daily averages. Writes are confined to that one tool, default `dry_run=True`, one transaction, and never touch `branch_daily_trades` / `branch_stock_daily` / `import_log`.

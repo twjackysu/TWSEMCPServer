@@ -58,6 +58,28 @@ class APIConfig:
     ))
 
 
+class BranchDBConfig:
+    """Neon PostgreSQL 分點進出資料庫設定。
+
+    查詢工具用 ``URL``（建議指向唯讀 role），只有回填工具用 ``WRITE_URL``；
+    ``WRITE_URL`` 未設定時退回 ``URL``。兩者皆未設定時工具照常註冊，但呼叫
+    會回 MSG_BRANCH_DB_NOT_CONFIGURED，不會讓 server 啟動失敗。
+    """
+
+    URL: Final[str] = os.getenv('BRANCH_DB_URL', '')
+
+    WRITE_URL: Final[str] = os.getenv('BRANCH_DB_WRITE_URL', '')
+
+    # 過去交易日的分點資料不會再變動，所以查詢結果可以放心快取
+    CACHE_TTL: Final[float] = float(os.getenv('BRANCH_DB_CACHE_TTL', '300'))
+
+    # 連線 / 查詢 timeout（秒）。Neon 的 compute 冷啟動會讓第一次連線變慢
+    TIMEOUT: Final[float] = float(os.getenv('BRANCH_DB_TIMEOUT', '15'))
+
+    # 單次查詢回傳列數硬上限，避免一次把整張明細表讀進記憶體
+    MAX_ROWS: Final[int] = int(os.getenv('BRANCH_DB_MAX_ROWS', '5000'))
+
+
 class DisplayConfig:
     """Display and formatting configuration."""
     
@@ -87,6 +109,7 @@ class TestConfig:
 # Convenience exports
 __all__ = [
     'APIConfig',
+    'BranchDBConfig',
     'DisplayConfig',
     'TestConfig',
 ]
